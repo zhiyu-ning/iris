@@ -56,7 +56,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "159";
+const VOICE_UI_VERSION = "160";
 const IRIS_PUBLIC_CONFIG = Object.freeze({
   backendOrigin: "",
   appBasePath: "/voice",
@@ -414,7 +414,7 @@ const TTS_ROUTE_PERSIST_FALLBACK_MS = 160;
 const CONVERSATION_BOTTOM_EPSILON_PX = 52;
 const CONVERSATION_USER_SCROLL_PAUSE_MS = 9000;
 
-const WEB_VERSION = "voice-ui-web-polish-v159-static-trim-access-key";
+const WEB_VERSION = "voice-ui-web-polish-v160-static-trim-access-key";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -3778,8 +3778,8 @@ async function handleAccessSubmit(event) {
     setAccessStatus("正在验证访问密钥。");
     const session = await requestAccessSession(accessKey);
     if (els.accessToken) els.accessToken.value = "";
-    await loadModelSettings();
     completeSessionLogin(session.session_token, session.expires_at);
+    loadModelSettings().catch((err) => logLine(err.message || "model settings failed"));
   } catch (err) {
     showAccessGate(`连接失败：${err.message || "请检查访问密钥"}`);
   } finally {
