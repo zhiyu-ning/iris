@@ -360,34 +360,12 @@ p {
   gap: 10px;
 }
 
-.accessActions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
-}
-
-.emailPrimary {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-}
-
 .accessForm input {
   min-width: 0;
   min-height: 46px;
   border-radius: 16px;
   padding: 0 13px;
   background: var(--field-bg);
-}
-
-.accessCodeRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
-}
-
-.accessCodeRow[hidden] {
-  display: none;
 }
 
 .accessForm button {
@@ -398,41 +376,8 @@ p {
   background: var(--accent);
 }
 
-.accessForm .githubLoginButton {
-  color: var(--ink);
-  border-color: var(--line);
-  background: color-mix(in srgb, var(--field-bg) 86%, white 14%);
-  box-shadow: none;
-}
-
-.githubFallbackButton {
-  justify-self: center;
-  min-height: 38px !important;
-  padding: 0 12px;
-  color: var(--ink-muted) !important;
-  border-color: transparent !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  font-size: 13px;
-}
-
-.githubLoginButton {
-  font-weight: 720;
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--accent) 22%, transparent);
-}
-
-.githubLoginButton:active {
+.accessForm button:active {
   transform: translateY(1px) scale(0.99);
-}
-
-.emailFallback[hidden] {
-  display: none;
-}
-
-@media (max-width: 420px) {
-  .emailPrimary {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 .conversationShell {
@@ -596,7 +541,7 @@ p {
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=158");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=159");
 }
 
 .brandName {
@@ -2533,10 +2478,6 @@ body.pageHidden::after {
     min-height: 54px;
     border-radius: 18px;
     font-size: 16px;
-  }
-
-  .githubLoginButton {
-    box-shadow: 0 18px 34px color-mix(in srgb, var(--accent) 18%, transparent);
   }
 
   .terminal {

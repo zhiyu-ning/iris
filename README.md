@@ -37,6 +37,6 @@ https://zhiyu-ning.github.io/iris
 https://jarvis-alpha.tail36770b.ts.net
 ```
 
-浏览器会从这个后端调用 `/client/v1/*`、`/voice/tts` 和 `/voice/ws`。用户通过授权邮箱验证码登录；私有后端校验 `IRIS_LOGIN_ALLOWED_EMAILS` 后发送验证码并签发短期 Iris session token，浏览器只在当前会话保存该 token，不写入仓库。GitHub OAuth 仅作为备用登录路径保留。生产环境需要在私有后端 `.env` 配置授权邮箱和 SMTP 发信参数。
+浏览器会从这个后端调用 `/client/v1/*`、`/voice/tts` 和 `/voice/ws`。用户手动输入访问密钥，前端只把密钥发送给私有后端 `/voice/session-token` 换取短期 Iris session token；浏览器只在当前会话保存短期 token，不写入仓库。长期访问密钥必须只保存在私有后端 `.env`，不能写进 Pages 仓库或前端源码。
 
 本仓库由主项目构建生成，不在这里维护后端逻辑。

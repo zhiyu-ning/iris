@@ -37,6 +37,6 @@ Current backend origin:
 https://jarvis-alpha.tail36770b.ts.net
 ```
 
-The browser calls `/client/v1/*`, `/voice/tts`, and `/voice/ws` on that backend. Users sign in with an allowed email one-time code; the private backend checks `IRIS_LOGIN_ALLOWED_EMAILS`, sends the code, and mints a short-lived Iris session token after verification. The browser stores that token only in the current session, and it is not committed to this repository. GitHub OAuth remains only as a fallback login path. Production email OTP requires allowed emails and SMTP delivery settings in the private backend `.env`.
+The browser calls `/client/v1/*`, `/voice/tts`, and `/voice/ws` on that backend. Users manually enter the access key; the frontend sends it only to the private backend `/voice/session-token` to exchange for a short-lived Iris session token. The browser stores only the short-lived token in the current session, and it is not committed to this repository. The long-lived access key must stay only in the private backend `.env`, never in the Pages repository or frontend source.
 
 This repository is generated from the main project and does not maintain backend logic.

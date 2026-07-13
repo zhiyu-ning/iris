@@ -33,11 +33,8 @@ const els = {
   memoryList: document.getElementById("memoryList"),
   accessGate: document.getElementById("accessGate"),
   accessForm: document.getElementById("accessForm"),
-  accessEmail: document.getElementById("accessEmailInput"),
-  accessCode: document.getElementById("accessCodeInput"),
-  accessCodeRow: document.getElementById("accessCodeRow"),
+  accessToken: document.getElementById("accessTokenInput"),
   accessSubmit: document.getElementById("accessSubmitButton"),
-  githubLogin: document.getElementById("githubLoginButton"),
   accessStatus: document.getElementById("accessStatus"),
   voiceProfile: document.getElementById("voiceProfileSelect"),
   documentPdf: document.getElementById("documentPdfInput"),
@@ -59,7 +56,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "158";
+const VOICE_UI_VERSION = "159";
 const IRIS_PUBLIC_CONFIG = Object.freeze({
   backendOrigin: "",
   appBasePath: "/voice",
@@ -400,7 +397,6 @@ let lastUserConversationAt = 0;
 let memoryControlLoaded = false;
 let memoryControlLoading = false;
 let memorySearchTimer = 0;
-let accessEmailPending = "";
 
 const VAD = {
   startThresholdMs: 220,
@@ -418,7 +414,7 @@ const TTS_ROUTE_PERSIST_FALLBACK_MS = 160;
 const CONVERSATION_BOTTOM_EPSILON_PX = 52;
 const CONVERSATION_USER_SCROLL_PAUSE_MS = 9000;
 
-const WEB_VERSION = "voice-ui-web-polish-v158-static-trim-email-otp";
+const WEB_VERSION = "voice-ui-web-polish-v159-static-trim-access-key";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -1724,17 +1720,6 @@ function setAccessStatus(text) {
   if (els.accessStatus) els.accessStatus.textContent = text || " ";
 }
 
-function isLikelyMobileAuthTarget() {
-  const ua = String(navigator.userAgent || "");
-  if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) return true;
-  return Boolean(navigator.maxTouchPoints > 1 && window.matchMedia && window.matchMedia("(max-width: 720px)").matches);
-}
-
-function refreshAccessAuthMode() {
-  const mobile = isLikelyMobileAuthTarget();
-  document.body.classList.toggle("mobileAuthTarget", mobile);
-}
-
 function completeSessionLogin(token, expiresAt) {
   rememberSessionToken(token, expiresAt || "");
   hideAccessGate();
@@ -1745,22 +1730,11 @@ function completeSessionLogin(token, expiresAt) {
 
 function showAccessGate(reason = "") {
   if (!els.accessGate) return;
-  refreshAccessAuthMode();
   els.accessGate.hidden = false;
   document.body.classList.add("accessLocked");
   if (reason) setAccessStatus(reason);
-  if (els.accessSubmit) els.accessSubmit.textContent = accessEmailPending ? "验证进入" : "发送验证码";
-  if (els.accessCodeRow) els.accessCodeRow.hidden = !accessEmailPending;
-  const focusTarget = accessEmailPending ? els.accessCode : els.accessEmail;
-  if (focusTarget) {
-    window.setTimeout(() => focusTarget.focus(), 60);
-  } else if (els.accessEmail) {
-    els.accessEmail.disabled = Boolean(accessEmailPending);
-    window.setTimeout(() => {
-      const target = accessEmailPending ? els.accessCode : els.accessEmail;
-      if (target) target.focus();
-    }, 60);
-  }
+  if (els.accessSubmit) els.accessSubmit.textContent = "进入";
+  if (els.accessToken) window.setTimeout(() => els.accessToken.focus(), 60);
 }
 
 function hideAccessGate() {
@@ -1775,73 +1749,23 @@ function maybePromptForAccess() {
     hideAccessGate();
     return;
   }
-  showAccessGate("请使用授权邮箱验证码登录。");
+  showAccessGate("请先输入访问密钥。");
 }
 
 function handleUnauthorizedResponse(response) {
   if (!response || response.status !== 401) return false;
   saveToken();
-  accessEmailPending = "";
-  showAccessGate("登录已过期，请重新使用邮箱验证码登录。");
+  showAccessGate("登录已过期，请重新输入访问密钥。");
   return true;
 }
 
-function githubLoginUrl(preferApp = false) {
-  return backendUrl(preferApp ? "/voice/auth/github/start?prefer_app=1" : "/voice/auth/github/start");
-}
-
-function cleanupAuthRedirectHash() {
-  if (!window.history || !window.history.replaceState) return;
-  window.history.replaceState(null, document.title, `${window.location.pathname}${window.location.search}`);
-}
-
-function consumeAuthRedirectHash() {
-  const rawHash = String(window.location.hash || "");
-  if (!rawHash || rawHash.length <= 1) return false;
-  const params = new URLSearchParams(rawHash.slice(1));
-  const error = params.get("iris_auth_error");
-  if (error) {
-    cleanupAuthRedirectHash();
-    saveToken();
-    showAccessGate(`GitHub 登录失败：${error}`);
-    return false;
-  }
-  const token = params.get("iris_session_token");
-  if (!token) return false;
-  cleanupAuthRedirectHash();
-  completeSessionLogin(token, params.get("iris_session_expires_at") || "");
-  return true;
-}
-
-function handleGithubLogin() {
-  const mobile = isLikelyMobileAuthTarget();
-  setAccessStatus(mobile ? "正在打开 GitHub 备用登录；如果系统没有接管，会继续使用浏览器登录。" : "正在打开 GitHub 备用登录。");
-  window.location.assign(githubLoginUrl(mobile));
-}
-
-async function requestEmailLoginCode(email) {
-  const response = await fetch(backendUrl("/voice/auth/email/start"), {
+async function requestAccessSession(accessKey) {
+  const response = await fetch(backendUrl("/voice/session-token"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     cache: "no-store",
     body: JSON.stringify({
-      email,
-      client_id: voiceClientId()
-    })
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.detail || `HTTP ${response.status}`);
-  return payload;
-}
-
-async function verifyEmailLoginCode(email, code) {
-  const response = await fetch(backendUrl("/voice/auth/email/verify"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    cache: "no-store",
-    body: JSON.stringify({
-      email,
-      code,
+      access_key: accessKey,
       client_id: voiceClientId()
     })
   });
@@ -3844,42 +3768,18 @@ async function handleReconnectCommand() {
 
 async function handleAccessSubmit(event) {
   if (event) event.preventDefault();
-  const email = (accessEmailPending || (els.accessEmail && els.accessEmail.value ? els.accessEmail.value : "")).trim().toLowerCase();
-  if (!email) {
-    showAccessGate("请输入授权邮箱。");
+  const accessKey = els.accessToken && els.accessToken.value ? els.accessToken.value.trim() : "";
+  if (!accessKey) {
+    showAccessGate("请输入访问密钥。");
     return;
   }
   if (els.accessSubmit) els.accessSubmit.disabled = true;
   try {
-    if (!accessEmailPending) {
-      setAccessStatus("正在发送验证码。");
-      const challenge = await requestEmailLoginCode(email);
-      accessEmailPending = challenge.email || email;
-      if (els.accessEmail) els.accessEmail.value = accessEmailPending;
-      if (els.accessCode) els.accessCode.value = "";
-      showAccessGate("验证码已发送，请查收邮箱。");
-      return;
-    }
-    const code = els.accessCode && els.accessCode.value ? els.accessCode.value.trim() : "";
-    if (!code) {
-      showAccessGate("请输入邮箱验证码。");
-      return;
-    }
-    setAccessStatus("正在验证。");
-    const session = await verifyEmailLoginCode(accessEmailPending, code);
-    rememberSessionToken(session.session_token, session.expires_at);
-    accessEmailPending = "";
-    if (els.accessEmail) {
-      els.accessEmail.disabled = false;
-      els.accessEmail.value = "";
-    }
-    if (els.accessCode) els.accessCode.value = "";
-    if (els.accessCodeRow) els.accessCodeRow.hidden = true;
+    setAccessStatus("正在验证访问密钥。");
+    const session = await requestAccessSession(accessKey);
+    if (els.accessToken) els.accessToken.value = "";
     await loadModelSettings();
-    hideAccessGate();
-    loadConversationHistory().catch((err) => logLine(err.message || "conversation history failed"));
-    setState("idle");
-    setAccessStatus(" ");
+    completeSessionLogin(session.session_token, session.expires_at);
   } catch (err) {
     showAccessGate(`连接失败：${err.message || "请检查访问密钥"}`);
   } finally {
@@ -3916,9 +3816,6 @@ if (els.accessForm) {
   els.accessForm.addEventListener("submit", (event) => {
     handleAccessSubmit(event).catch((err) => showAccessGate(`连接失败：${err.message || "unknown"}`));
   });
-}
-if (els.githubLogin) {
-  els.githubLogin.addEventListener("click", handleGithubLogin);
 }
 if (els.memoryRefresh) {
   els.memoryRefresh.addEventListener("click", () => {
@@ -4050,7 +3947,6 @@ if (els.manual) {
 applyBrowserTargeting();
 loadToken();
 initVoiceClientId();
-consumeAuthRedirectHash();
 maybePromptForAccess();
 initThemeSettings();
 initModelSettings();
