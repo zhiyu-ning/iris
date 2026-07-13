@@ -3,8 +3,7 @@
   --page: #f7f9fc;
   --page-warm: #ffffff;
   --page-gradient:
-    radial-gradient(circle at 50% 10%, rgba(196, 218, 255, 0.16), transparent 31%),
-    linear-gradient(180deg, #ffffff 0%, var(--page) 100%);
+    linear-gradient(180deg, #ffffff 0%, #fbfcff 50%, var(--page) 100%);
   --ink: #151f2e;
   --ink-soft: rgba(21, 31, 46, 0.76);
   --ink-dim: rgba(21, 31, 46, 0.48);
@@ -14,11 +13,36 @@
   --line-strong: rgba(24, 42, 67, 0.18);
   --shadow: rgba(39, 62, 94, 0.085);
   --accent: #2f8cff;
+  --accent-soft: rgba(47, 140, 255, 0.12);
   --accent-2: #31c6a8;
   --accent-3: #ffffff;
   --field-bg: rgba(255, 255, 255, 0.8);
   --soft-panel: #f7f9fc;
   --button-bg: #f4f7fb;
+  --dock-surface: rgba(255, 255, 255, 0.78);
+  --composer-field: rgba(255, 255, 255, 0.7);
+  --assistant-bubble: rgba(255, 255, 255, 0.72);
+  --user-bubble: color-mix(in srgb, var(--accent) 8%, rgba(255, 255, 255, 0.82));
+  --file-bubble: #eafaf6;
+  --detail-bg:
+    radial-gradient(circle at 12% 8%, rgba(208, 225, 255, 0.18), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), color-mix(in srgb, var(--page) 92%, white 8%));
+  --access-bg: var(--page-gradient);
+  --access-backdrop:
+    radial-gradient(circle at 50% 24%, rgba(255, 255, 255, 0.9), transparent 26%),
+    var(--page-gradient);
+  --access-panel-bg: transparent;
+  --access-panel-border: transparent;
+  --access-panel-shadow: none;
+  --access-form-bg: rgba(255, 255, 255, 0.52);
+  --primary-action: #ffffff;
+  --primary-action-text: var(--ink);
+  --primary-action-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 18px 42px rgba(39, 62, 94, 0.1);
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=162");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=162");
+  --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
   --status-listening: #2f8cff;
@@ -46,9 +70,9 @@
 }
 
 :root[data-theme="soft-gray"] {
-  --page: #e7ebf0;
+  --page: #e8ebf0;
   --page-warm: #f7f8fa;
-  --page-gradient: linear-gradient(180deg, #f8f9fb 0%, #e7ebf0 52%, #dde3ea 100%);
+  --page-gradient: linear-gradient(180deg, #f8f9fb 0%, #eef1f5 44%, #dde3ea 100%);
   --ink: #18202b;
   --ink-soft: rgba(24, 32, 43, 0.78);
   --ink-dim: rgba(24, 32, 43, 0.5);
@@ -58,36 +82,66 @@
   --line-strong: rgba(48, 59, 76, 0.25);
   --shadow: rgba(29, 38, 54, 0.18);
   --accent: #4f6578;
+  --accent-soft: rgba(79, 101, 120, 0.12);
   --accent-2: #4b8278;
   --field-bg: rgba(255, 255, 255, 0.7);
   --soft-panel: #eef2f6;
   --button-bg: #e8edf3;
+  --dock-surface: rgba(247, 249, 251, 0.86);
+  --composer-field: rgba(255, 255, 255, 0.68);
+  --assistant-bubble: rgba(255, 255, 255, 0.8);
+  --user-bubble: rgba(238, 242, 247, 0.9);
+  --detail-bg:
+    linear-gradient(180deg, rgba(248, 249, 251, 0.98), rgba(229, 234, 241, 0.98));
+  --access-form-bg: rgba(255, 255, 255, 0.56);
+  --primary-action: linear-gradient(180deg, #9aa5b2 0%, #778493 100%);
+  --primary-action-text: #ffffff;
+  --primary-action-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    0 18px 42px rgba(29, 38, 54, 0.16);
+  --logo-glow: rgba(79, 101, 120, 0.18);
 }
 
 :root[data-theme="classic-blue"] {
-  --page: #e8f0f8;
+  --page: #dcecff;
   --page-warm: #fbfdff;
-  --page-gradient: linear-gradient(180deg, #fbfdff 0%, #edf4fb 48%, #ddeaf7 100%);
-  --ink: #142338;
-  --ink-soft: rgba(20, 35, 56, 0.8);
-  --ink-dim: rgba(20, 35, 56, 0.5);
+  --page-gradient: linear-gradient(180deg, #f6fbff 0%, #e8f3ff 42%, #d7e9ff 100%);
+  --ink: #112e63;
+  --ink-soft: rgba(17, 46, 99, 0.82);
+  --ink-dim: rgba(17, 46, 99, 0.52);
   --glass: rgba(251, 253, 255, 0.88);
   --glass-strong: rgba(255, 255, 255, 0.96);
   --line: rgba(34, 91, 160, 0.13);
   --line-strong: rgba(34, 91, 160, 0.24);
   --shadow: rgba(35, 66, 105, 0.16);
-  --accent: #256fc8;
+  --accent: #0a74ff;
+  --accent-soft: rgba(10, 116, 255, 0.14);
   --accent-2: #268b9a;
   --field-bg: rgba(255, 255, 255, 0.8);
   --soft-panel: #f0f6fc;
   --button-bg: #e7f1fb;
+  --dock-surface: rgba(250, 253, 255, 0.88);
+  --composer-field: rgba(255, 255, 255, 0.76);
+  --assistant-bubble: rgba(255, 255, 255, 0.82);
+  --user-bubble: rgba(198, 225, 255, 0.86);
+  --detail-bg:
+    linear-gradient(180deg, rgba(248, 252, 255, 0.98), rgba(218, 235, 255, 0.96));
+  --access-form-bg: rgba(255, 255, 255, 0.58);
+  --primary-action: linear-gradient(180deg, #127cff 0%, #034fe0 100%);
+  --primary-action-text: #ffffff;
+  --primary-action-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 20px 46px rgba(10, 116, 255, 0.2);
+  --logo-glow: rgba(10, 116, 255, 0.22);
 }
 
 :root[data-theme="pure-black"] {
   color-scheme: dark;
   --page: #050608;
   --page-warm: #0b0d12;
-  --page-gradient: linear-gradient(180deg, #11151c 0%, #050608 100%);
+  --page-gradient:
+    radial-gradient(circle at 50% 36%, rgba(67, 80, 147, 0.18), transparent 30%),
+    linear-gradient(180deg, #11151c 0%, #050608 100%);
   --ink: #f4f7fb;
   --ink-soft: rgba(244, 247, 251, 0.78);
   --ink-dim: rgba(244, 247, 251, 0.5);
@@ -97,11 +151,78 @@
   --line-strong: rgba(255, 255, 255, 0.24);
   --shadow: rgba(0, 0, 0, 0.42);
   --accent: #69adf3;
+  --accent-soft: rgba(105, 173, 243, 0.16);
   --accent-2: #48d6bd;
   --field-bg: rgba(255, 255, 255, 0.08);
   --soft-panel: #11161f;
   --button-bg: #171c25;
+  --dock-surface: rgba(15, 18, 25, 0.94);
+  --composer-field: rgba(255, 255, 255, 0.075);
+  --assistant-bubble: rgba(255, 255, 255, 0.07);
+  --user-bubble: rgba(105, 173, 243, 0.13);
+  --file-bubble: rgba(72, 214, 189, 0.12);
+  --detail-bg:
+    radial-gradient(circle at 14% 9%, rgba(105, 173, 243, 0.12), transparent 34%),
+    linear-gradient(180deg, #10131a, #07090d);
+  --access-bg:
+    radial-gradient(circle at 50% 38%, rgba(40, 58, 82, 0.3), transparent 30%),
+    linear-gradient(180deg, rgba(13, 16, 22, 0.96), rgba(5, 6, 8, 0.98));
+  --access-backdrop: var(--access-bg);
+  --access-form-bg: rgba(255, 255, 255, 0.055);
+  --primary-action: linear-gradient(180deg, #6f78ff 0%, #2c36c9 100%);
+  --primary-action-text: #ffffff;
+  --primary-action-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 22px 54px rgba(88, 92, 255, 0.26);
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=162");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=162");
+  --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
+}
+
+:root[data-theme="aurora-glass"] {
+  color-scheme: light;
+  --page: #aebdff;
+  --page-warm: #f1f5ff;
+  --page-gradient:
+    radial-gradient(circle at 18% 14%, rgba(255, 255, 255, 0.78), transparent 24%),
+    radial-gradient(circle at 86% 18%, rgba(255, 211, 233, 0.74), transparent 33%),
+    radial-gradient(circle at 16% 86%, rgba(139, 210, 255, 0.64), transparent 38%),
+    linear-gradient(145deg, #a9bdff 0%, #b6a8ff 46%, #ffd4dd 100%);
+  --ink: #ffffff;
+  --ink-soft: rgba(255, 255, 255, 0.9);
+  --ink-dim: rgba(255, 255, 255, 0.68);
+  --glass: rgba(255, 255, 255, 0.2);
+  --glass-strong: rgba(255, 255, 255, 0.28);
+  --line: rgba(255, 255, 255, 0.3);
+  --line-strong: rgba(255, 255, 255, 0.48);
+  --shadow: rgba(82, 78, 166, 0.22);
+  --accent: #5ca3ff;
+  --accent-soft: rgba(255, 255, 255, 0.2);
+  --accent-2: #8ef2dc;
+  --field-bg: rgba(255, 255, 255, 0.18);
+  --soft-panel: rgba(255, 255, 255, 0.18);
+  --button-bg: rgba(255, 255, 255, 0.16);
+  --dock-surface: rgba(255, 255, 255, 0.18);
+  --composer-field: rgba(255, 255, 255, 0.16);
+  --assistant-bubble: rgba(255, 255, 255, 0.18);
+  --user-bubble: rgba(255, 255, 255, 0.2);
+  --file-bubble: rgba(142, 242, 220, 0.18);
+  --detail-bg:
+    radial-gradient(circle at 14% 12%, rgba(255, 255, 255, 0.46), transparent 24%),
+    radial-gradient(circle at 90% 22%, rgba(255, 199, 224, 0.45), transparent 34%),
+    linear-gradient(150deg, rgba(152, 178, 255, 0.96), rgba(180, 160, 255, 0.92), rgba(255, 207, 220, 0.9));
+  --access-bg: var(--page-gradient);
+  --access-backdrop: var(--page-gradient);
+  --access-form-bg: rgba(255, 255, 255, 0.18);
+  --primary-action: rgba(255, 255, 255, 0.22);
+  --primary-action-text: #ffffff;
+  --primary-action-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 22px 54px rgba(82, 78, 166, 0.22);
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=162");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=162");
+  --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
 * {
@@ -167,6 +288,13 @@ body::after {
   opacity: 0.34;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.42), transparent 42%, rgba(37, 111, 200, 0.08));
+}
+
+:root[data-theme="aurora-glass"] body::after {
+  opacity: 0.52;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent 38%, rgba(255, 255, 255, 0.24) 76%, transparent),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 52%, rgba(255, 255, 255, 0.18));
 }
 
 button,
@@ -271,8 +399,7 @@ p {
   display: grid;
   place-items: center;
   padding: max(24px, env(safe-area-inset-top)) 22px max(24px, env(safe-area-inset-bottom));
-  background:
-    color-mix(in srgb, var(--page) 88%, transparent);
+  background: var(--access-bg);
   overflow: hidden;
 }
 
@@ -283,14 +410,15 @@ p {
 .accessPanel {
   position: relative;
   z-index: 1;
-  width: min(420px, 100%);
+  width: min(320px, 100%);
   display: grid;
-  gap: 14px;
-  padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  background: var(--glass-strong);
-  box-shadow: 0 22px 64px var(--shadow);
+  justify-items: center;
+  gap: 18px;
+  padding: 0;
+  border: 1px solid var(--access-panel-border);
+  border-radius: 30px;
+  background: var(--access-panel-bg);
+  box-shadow: var(--access-panel-shadow);
 }
 
 .accessBackdrop {
@@ -298,9 +426,7 @@ p {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background:
-    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.72), transparent 32%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(229, 237, 248, 0.42));
+  background: var(--access-backdrop);
 }
 
 .accessHalo {
@@ -328,20 +454,28 @@ p {
 }
 
 .accessMark {
+  display: block;
+  width: 108px;
+  height: 108px;
+  margin: 0 auto 2px;
+  border-radius: 31px;
+  background: var(--app-logo) center / contain no-repeat;
+  filter: drop-shadow(0 18px 34px var(--logo-glow));
+  box-shadow: none;
+}
+
+.accessPanel > .eyebrow,
+.accessCopy {
   display: none;
-  width: 46px;
-  height: 46px;
-  border-radius: 17px;
-  background: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=161") center / contain no-repeat;
-  box-shadow: 0 16px 32px color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .accessPanel h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 54px;
   line-height: 1.1;
-  font-weight: 720;
+  font-weight: 380;
   letter-spacing: 0;
+  color: var(--ink);
 }
 
 .accessCopy {
@@ -350,25 +484,37 @@ p {
 }
 
 .accessForm {
+  width: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
+  gap: 14px;
+  margin-top: 34px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: var(--access-form-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.58),
+    0 22px 52px var(--shadow);
 }
 
 .accessForm input {
   min-width: 0;
-  min-height: 46px;
+  min-height: 52px;
   border-radius: 16px;
-  padding: 0 13px;
+  padding: 0 16px;
   background: var(--field-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
 }
 
 .accessForm button {
-  min-height: 46px;
+  min-height: 52px;
   border-radius: 16px;
-  color: #ffffff;
-  border-color: color-mix(in srgb, var(--accent) 74%, transparent);
-  background: var(--accent);
+  color: var(--primary-action-text);
+  border-color: color-mix(in srgb, var(--accent) 18%, transparent);
+  background: var(--primary-action);
+  box-shadow: var(--primary-action-shadow);
+  font-weight: 680;
 }
 
 .accessForm button:active {
@@ -424,7 +570,7 @@ p {
   padding: 14px 16px;
   border: 1px solid rgba(24, 42, 67, 0.045);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--assistant-bubble);
   color: var(--ink-soft);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.74),
@@ -434,7 +580,7 @@ p {
 .message.user {
   align-self: flex-end;
   border-color: rgba(47, 140, 255, 0.09);
-  background: color-mix(in srgb, var(--accent) 8%, rgba(255, 255, 255, 0.82));
+  background: var(--user-bubble);
   color: var(--ink);
 }
 
@@ -446,7 +592,7 @@ p {
 
 .message.file {
   border-color: rgba(49, 198, 168, 0.22);
-  background: #eafaf6;
+  background: var(--file-bubble);
 }
 
 .messageMeta {
@@ -505,8 +651,8 @@ p {
   display: grid;
   place-items: center;
   border-radius: 18px;
-  background: url("/iris/assets/brand/iris-symbol-light-192.webp?v=161") center / contain no-repeat;
-  filter: drop-shadow(0 18px 30px color-mix(in srgb, var(--accent) 18%, transparent));
+  background: var(--ambient-logo) center / contain no-repeat;
+  filter: drop-shadow(0 18px 30px var(--logo-glow));
   transform: translateX(-50%);
 }
 
@@ -527,13 +673,13 @@ p {
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=161");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=162");
 }
 
 .brandName {
   justify-self: end;
   text-transform: none;
-  letter-spacing: 0.28em;
+  letter-spacing: 0;
   color: var(--ink);
 }
 
@@ -622,7 +768,7 @@ body[data-visual-state="error"] .statusIndicator {
   font-size: 12px;
   line-height: 1;
   font-weight: 760;
-  letter-spacing: 0.18em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--ink-dim);
 }
@@ -644,8 +790,9 @@ body[data-visual-state="error"] .statusIndicator {
   height: 42px;
   display: block;
   border-radius: 16px;
-  background: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=161") center / contain no-repeat;
-  box-shadow: 0 16px 30px color-mix(in srgb, var(--accent) 16%, transparent);
+  background: var(--app-logo) center / contain no-repeat;
+  filter: drop-shadow(0 16px 28px var(--logo-glow));
+  box-shadow: none;
 }
 
 .sheetBrandMark {
@@ -865,7 +1012,7 @@ body.quickOpen .conversationShell .captionFloat {
   margin: 0 0 7px;
   font-size: 10.5px;
   line-height: 1;
-  letter-spacing: 0.16em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--ink-dim);
   flex: 0 0 auto;
@@ -969,14 +1116,14 @@ body.quickOpen .conversationShell .captionFloat {
   min-height: 58px;
   padding: 7px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.78);
+  background: var(--dock-surface);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.86),
     0 16px 38px rgba(39, 62, 94, 0.105);
 }
 
 .dock.unifiedComposer {
-  grid-template-columns: 42px minmax(0, 1fr) 42px 42px 42px;
+  grid-template-columns: 42px minmax(0, 1fr) 42px 42px;
   align-items: end;
   min-height: 58px;
   border-radius: 999px;
@@ -986,6 +1133,10 @@ body.quickOpen .conversationShell .captionFloat {
     border-color 180ms ease,
     box-shadow 180ms ease,
     background 180ms ease;
+}
+
+.dockMore {
+  display: none;
 }
 
 .dock.unifiedComposer:focus-within {
@@ -1015,7 +1166,7 @@ body.quickOpen .conversationShell .captionFloat {
   line-height: 1.35;
   scrollbar-width: none;
   color: var(--ink);
-  background: rgba(255, 255, 255, 0.68);
+  background: var(--composer-field);
   transition:
     border-color 160ms ease,
     background 160ms ease,
@@ -1072,7 +1223,7 @@ body.quickOpen .conversationShell .captionFloat {
 
 .sendButton {
   color: #ffffff;
-  background: #2f8cff;
+  background: var(--accent);
 }
 
 .primary {
@@ -1117,7 +1268,7 @@ body.quickOpen .conversationShell .captionFloat {
   font-size: 22px;
   line-height: 1;
   color: var(--ink);
-  background: rgba(255, 255, 255, 0.58);
+  background: var(--button-bg);
   box-shadow: none;
 }
 
@@ -1306,9 +1457,7 @@ body.quickOpen .quickGrid {
   border-radius: 0;
   border: 0;
   color: var(--ink);
-  background:
-    radial-gradient(circle at 12% 8%, rgba(208, 225, 255, 0.18), transparent 30%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.97), color-mix(in srgb, var(--page) 92%, white 8%));
+  background: var(--detail-bg);
   box-shadow: -20px 0 54px rgba(39, 62, 94, 0.09);
   transform: translateX(104%);
   transition: transform 320ms cubic-bezier(0.2, 0, 0, 1);
@@ -1349,7 +1498,7 @@ body.quickOpen .quickGrid {
 
 .sheetEyebrow {
   font-size: 11px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0;
   opacity: 0.72;
 }
 
@@ -1574,7 +1723,7 @@ body.quickOpen .quickGrid {
 .groupTitle {
   margin: 0;
   font-size: 12px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--ink-dim);
 }
@@ -1930,6 +2079,10 @@ button:disabled {
 .swatchGray { background: #cfd6df; }
 .swatchBlue { background: #2f8cff; }
 .swatchBlack { background: #07090d; }
+.swatchAurora {
+  background:
+    linear-gradient(135deg, #98b8ff 0%, #b6a8ff 46%, #ffd4dd 100%);
+}
 
 .debugDetails {
   color: var(--ink-soft);
@@ -2043,7 +2196,7 @@ button:disabled {
   }
 
   .dock.unifiedComposer {
-    grid-template-columns: 40px minmax(0, 1fr) 40px 40px 40px;
+    grid-template-columns: 40px minmax(0, 1fr) 40px 40px;
     border-radius: 999px;
   }
 
@@ -2107,7 +2260,7 @@ button:disabled {
   }
 
   .dock.unifiedComposer {
-    grid-template-columns: 38px minmax(0, 1fr) 38px 38px 38px;
+    grid-template-columns: 38px minmax(0, 1fr) 38px 38px;
     gap: 5px;
   }
 
@@ -2173,7 +2326,7 @@ body.pageHidden::after {
 :root[data-theme="pure-black"] .dock,
 :root[data-theme="pure-black"] .captionFloat,
 :root[data-theme="pure-black"] .detailSheet {
-  background: rgba(15, 18, 25, 0.94);
+  background: var(--dock-surface);
   border-color: rgba(255, 255, 255, 0.12);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
@@ -2181,7 +2334,7 @@ body.pageHidden::after {
 }
 
 :root[data-theme="pure-black"] .detailSheet {
-  background: #090b10;
+  background: var(--detail-bg);
   box-shadow: 0 -22px 64px rgba(0, 0, 0, 0.58);
 }
 
@@ -2283,7 +2436,7 @@ body.pageHidden::after {
 :root[data-theme="soft-gray"] .detailSheet,
 :root[data-theme="soft-gray"] .settingsGroup,
 :root[data-theme="soft-gray"] .iconButton {
-  background: rgba(247, 249, 251, 0.86);
+  background: var(--dock-surface);
   border-color: rgba(48, 59, 76, 0.13);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.62),
@@ -2295,8 +2448,12 @@ body.pageHidden::after {
 :root[data-theme="soft-gray"] .audibilityBox,
 :root[data-theme="soft-gray"] .routeBox,
 :root[data-theme="soft-gray"] .documentAnswer {
-  background: #f0f3f7;
+  background: var(--assistant-bubble);
   border-color: rgba(48, 59, 76, 0.12);
+}
+
+:root[data-theme="soft-gray"] .detailSheet {
+  background: var(--detail-bg);
 }
 
 :root[data-theme="soft-gray"] .dockIcon,
@@ -2304,7 +2461,7 @@ body.pageHidden::after {
 :root[data-theme="soft-gray"] .manual button,
 :root[data-theme="soft-gray"] .audibilityActions button,
 :root[data-theme="soft-gray"] .themeOption {
-  background: #e9eef4;
+  background: var(--button-bg);
 }
 
 :root[data-theme="classic-blue"] .dock,
@@ -2312,7 +2469,7 @@ body.pageHidden::after {
 :root[data-theme="classic-blue"] .detailSheet,
 :root[data-theme="classic-blue"] .settingsGroup,
 :root[data-theme="classic-blue"] .iconButton {
-  background: rgba(250, 253, 255, 0.88);
+  background: var(--dock-surface);
   border-color: rgba(48, 93, 145, 0.12);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.74),
@@ -2324,8 +2481,12 @@ body.pageHidden::after {
 :root[data-theme="classic-blue"] .audibilityBox,
 :root[data-theme="classic-blue"] .routeBox,
 :root[data-theme="classic-blue"] .documentAnswer {
-  background: #f2f7fc;
+  background: var(--assistant-bubble);
   border-color: rgba(48, 93, 145, 0.12);
+}
+
+:root[data-theme="classic-blue"] .detailSheet {
+  background: var(--detail-bg);
 }
 
 :root[data-theme="classic-blue"] .dockIcon,
@@ -2333,7 +2494,7 @@ body.pageHidden::after {
 :root[data-theme="classic-blue"] .manual button,
 :root[data-theme="classic-blue"] .audibilityActions button,
 :root[data-theme="classic-blue"] .themeOption {
-  background: #e7f1fb;
+  background: var(--button-bg);
 }
 
 :root[data-theme] .settingsGroup.navGroup {
@@ -2359,9 +2520,7 @@ body.pageHidden::after {
 }
 
 :root[data-theme="pure-black"] .detailSheet {
-  background:
-    radial-gradient(circle at 14% 9%, rgba(105, 173, 243, 0.12), transparent 34%),
-    linear-gradient(180deg, #10131a, #07090d);
+  background: var(--detail-bg);
   box-shadow: -20px 0 58px rgba(0, 0, 0, 0.62);
 }
 
@@ -2382,33 +2541,119 @@ body.pageHidden::after {
 
 :root[data-theme="pure-black"] .ambientMark,
 :root[data-theme="pure-black"] .sheetGlyph {
-  background-image: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=161");
+  background-image: var(--app-logo);
 }
 
 :root[data-theme="pure-black"] .accessMark {
-  background-image: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=161");
+  background-image: var(--app-logo);
 }
 
 :root[data-theme="pure-black"] .accessGate {
-  background:
-    radial-gradient(circle at 50% 38%, rgba(40, 58, 82, 0.3), transparent 30%),
-    linear-gradient(180deg, rgba(13, 16, 22, 0.96), rgba(5, 6, 8, 0.98));
+  background: var(--access-bg);
 }
 
 :root[data-theme="pure-black"] .accessPanel {
-  background: rgba(18, 22, 30, 0.94);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 30px 84px rgba(0, 0, 0, 0.46);
+  background: var(--access-panel-bg);
+  border-color: var(--access-panel-border);
+  box-shadow: var(--access-panel-shadow);
 }
 
 :root[data-theme="soft-gray"] .topbar,
 :root[data-theme="classic-blue"] .topbar,
-:root[data-theme="pure-black"] .topbar {
+:root[data-theme="pure-black"] .topbar,
+:root[data-theme="aurora-glass"] .topbar {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
+}
+
+:root[data-theme="aurora-glass"] .dock,
+:root[data-theme="aurora-glass"] .captionFloat,
+:root[data-theme="aurora-glass"] .detailSheet,
+:root[data-theme="aurora-glass"] .settingsGroup,
+:root[data-theme="aurora-glass"] .groupBody,
+:root[data-theme="aurora-glass"] .panel,
+:root[data-theme="aurora-glass"] .audibilityBox,
+:root[data-theme="aurora-glass"] .routeBox,
+:root[data-theme="aurora-glass"] .documentAnswer,
+:root[data-theme="aurora-glass"] .documentContextBar,
+:root[data-theme="aurora-glass"] .debugDetails summary,
+:root[data-theme="aurora-glass"] .iconButton {
+  color: var(--ink-soft);
+  background: rgba(255, 255, 255, 0.17);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    0 16px 42px rgba(82, 78, 166, 0.16);
+}
+
+:root[data-theme="aurora-glass"] .detailSheet {
+  background: var(--detail-bg);
+}
+
+:root[data-theme="aurora-glass"] .message {
+  background: var(--assistant-bubble);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 16px 34px rgba(82, 78, 166, 0.1);
+}
+
+:root[data-theme="aurora-glass"] .message.user {
+  background: var(--user-bubble);
+}
+
+:root[data-theme="aurora-glass"] input,
+:root[data-theme="aurora-glass"] select,
+:root[data-theme="aurora-glass"] textarea {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+:root[data-theme="aurora-glass"] input::placeholder,
+:root[data-theme="aurora-glass"] textarea::placeholder {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+:root[data-theme="aurora-glass"] option {
+  color: #27324b;
+  background: #eef3ff;
+}
+
+:root[data-theme="aurora-glass"] .dockIcon,
+:root[data-theme="aurora-glass"] .maintenanceGrid button,
+:root[data-theme="aurora-glass"] .manual button,
+:root[data-theme="aurora-glass"] .audibilityActions button,
+:root[data-theme="aurora-glass"] .themeOption,
+:root[data-theme="aurora-glass"] .quick {
+  color: var(--ink-soft);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+:root[data-theme="aurora-glass"] .themeOption[aria-checked="true"] {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.52);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+:root[data-theme="aurora-glass"] .sendButton {
+  color: #ffffff;
+  background: #5ca3ff;
+}
+
+:root[data-theme="aurora-glass"] .micGlyph {
+  border-color: rgba(255, 255, 255, 0.76);
+}
+
+:root[data-theme="aurora-glass"] .micGlyph::before {
+  border-color: rgba(255, 255, 255, 0.58);
+}
+
+:root[data-theme="aurora-glass"] .micGlyph::after {
+  background: rgba(255, 255, 255, 0.76);
 }
 
 @media (min-width: 900px) and (min-height: 680px) {
@@ -2420,41 +2665,38 @@ body.pageHidden::after {
 
   .accessGate {
     padding: 40px;
-    background:
-      radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.86), transparent 26%),
-      linear-gradient(90deg, rgba(250, 252, 255, 0.96), rgba(235, 241, 248, 0.98) 22%, rgba(228, 235, 244, 0.98) 50%, rgba(235, 241, 248, 0.98) 78%, rgba(250, 252, 255, 0.96));
+    background: var(--access-bg);
   }
 
   .accessBackdrop {
-    background:
-      radial-gradient(circle at 50% 37%, rgba(255, 255, 255, 0.9), transparent 24%),
-      radial-gradient(circle at 50% 82%, rgba(202, 216, 232, 0.42), transparent 34%);
+    background: var(--access-backdrop);
   }
 
   .accessPanel {
-    width: min(460px, calc(100vw - 80px));
-    gap: 16px;
-    padding: 30px 32px;
-    border-radius: 28px;
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.84),
-      0 30px 84px rgba(46, 63, 88, 0.14);
+    width: min(340px, calc(100vw - 80px));
+    gap: 18px;
+    padding: 0;
+    border-radius: 30px;
+    background: var(--access-panel-bg);
+    box-shadow: var(--access-panel-shadow);
   }
 
   .accessMark {
-    display: block;
-    margin-bottom: 4px;
+    width: 108px;
+    height: 108px;
+    margin-bottom: 2px;
   }
 
   .accessPanel h1 {
-    font-size: 34px;
+    font-size: 54px;
   }
 
   .accessCopy {
-    max-width: 36em;
-    font-size: 15px;
-    line-height: 1.7;
+    display: none;
+  }
+
+  .accessForm {
+    margin-top: 34px;
   }
 
   .accessForm button {

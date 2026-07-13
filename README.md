@@ -18,6 +18,7 @@ https://zhiyu-ning.github.io/iris
 - HTML / CSS / JavaScript
 - PWA manifest 和 service worker
 - Iris 品牌图标
+- 五套公开前端主题：极简白、素雅灰、经典蓝、极致黑、流光玻璃
 - 公开运行配置 `public-config.js`
 
 它不包含，也不应该包含：

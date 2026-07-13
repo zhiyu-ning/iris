@@ -56,7 +56,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "161";
+const VOICE_UI_VERSION = "162";
 const IRIS_PUBLIC_CONFIG = Object.freeze({
   backendOrigin: "",
   appBasePath: "/voice",
@@ -414,7 +414,7 @@ const TTS_ROUTE_PERSIST_FALLBACK_MS = 160;
 const CONVERSATION_BOTTOM_EPSILON_PX = 52;
 const CONVERSATION_USER_SCROLL_PAUSE_MS = 9000;
 
-const WEB_VERSION = "voice-ui-web-polish-v161-static-trim-access-key";
+const WEB_VERSION = "voice-ui-web-polish-v162-five-theme-ui";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -1029,9 +1029,10 @@ function speechContent(text) {
 
 function normalizedTheme(value) {
   const next = String(value || "").trim().toLowerCase().replace(/_/g, "-");
-  if (["minimal-white", "soft-gray", "classic-blue", "pure-black"].includes(next)) return next;
+  if (["minimal-white", "soft-gray", "classic-blue", "pure-black", "aurora-glass"].includes(next)) return next;
   if (next === "light") return "minimal-white";
   if (next === "dark" || next === "black") return "pure-black";
+  if (next === "aurora" || next === "glass") return "aurora-glass";
   return "minimal-white";
 }
 
@@ -1048,7 +1049,8 @@ function applyTheme(theme, { persist = true } = {}) {
     "minimal-white": "#f7f9fc",
     "soft-gray": "#eef1f5",
     "classic-blue": "#edf5ff",
-    "pure-black": "#050608"
+    "pure-black": "#050608",
+    "aurora-glass": "#aebdff"
   };
   if (metaTheme) metaTheme.setAttribute("content", themeColors[next] || themeColors["minimal-white"]);
   if (els.themePicker) {

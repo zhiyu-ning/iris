@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=161" type="image/png" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=161" />
-    <link rel="manifest" href="/iris/manifest.json?v=161" />
-    <link rel="stylesheet" href="/iris/styles.css?v=161" />
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=162" type="image/png" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=162" />
+    <link rel="manifest" href="/iris/manifest.json?v=162" />
+    <link rel="stylesheet" href="/iris/styles.css?v=162" />
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -54,10 +54,10 @@
             </div>
             <textarea id="manualInput" rows="1" autocomplete="off" placeholder="问 Iris"></textarea>
           </div>
-          <button id="manualSend" class="dockIcon sendButton" type="button" aria-label="发送">↑</button>
           <button id="dockMicButton" class="dockIcon dockMic" type="button" aria-label="语音输入">
             <span class="micGlyph" aria-hidden="true"></span>
           </button>
+          <button id="manualSend" class="dockIcon sendButton" type="button" aria-label="发送">↑</button>
           <button id="quickToggle" class="dockIcon dockMore" type="button" aria-label="快捷建议">…</button>
           <div class="quickGrid">
             <button class="quick" type="button" data-prompt="继续刚才">继续刚才</button>
@@ -140,6 +140,10 @@
             <button type="button" class="themeOption" data-theme-choice="pure-black" role="radio" aria-checked="false">
               <span class="themeSwatch swatchBlack" aria-hidden="true"></span>
               <span>极致黑</span>
+            </button>
+            <button type="button" class="themeOption" data-theme-choice="aurora-glass" role="radio" aria-checked="false">
+              <span class="themeSwatch swatchAurora" aria-hidden="true"></span>
+              <span>流光玻璃</span>
             </button>
           </div>
         </details>
@@ -257,7 +261,7 @@
         </div>
       </aside>
     </main>
-    <script src="/iris/public-config.js?v=161"></script>
-    <script src="/iris/app.js?v=161"></script>
+    <script src="/iris/public-config.js?v=162"></script>
+    <script src="/iris/app.js?v=162"></script>
   </body>
 </html>

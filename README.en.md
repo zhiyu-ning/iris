@@ -18,6 +18,7 @@ This repository contains only static frontend assets:
 - HTML / CSS / JavaScript
 - PWA manifest and service worker
 - Iris brand icons
+- Five public frontend themes: minimal white, soft gray, classic blue, pure black, and aurora glass
 - Public runtime config in `public-config.js`
 
 It does not contain, and must never contain:
