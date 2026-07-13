@@ -332,13 +332,8 @@ p {
   width: 46px;
   height: 46px;
   border-radius: 17px;
-  background:
-    radial-gradient(circle at 36% 33%, rgba(255, 255, 255, 0.95), transparent 22%),
-    linear-gradient(135deg, rgba(103, 173, 255, 0.75), rgba(222, 157, 244, 0.58), rgba(255, 255, 255, 0.86));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.84),
-    0 16px 32px color-mix(in srgb, var(--accent) 14%, transparent);
-  transform: rotate(45deg);
+  background: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=161") center / contain no-repeat;
+  box-shadow: 0 16px 32px color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .accessPanel h1 {
@@ -509,23 +504,14 @@ p {
   height: 58px;
   display: grid;
   place-items: center;
-  border-radius: 22px;
-  background:
-    radial-gradient(circle at 38% 32%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.4) 25%, transparent 38%),
-    linear-gradient(135deg, rgba(103, 173, 255, 0.72), rgba(222, 157, 244, 0.62) 53%, rgba(255, 255, 255, 0.82));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.88),
-    0 18px 38px color-mix(in srgb, var(--accent) 18%, transparent);
-  transform: translateX(-50%) rotate(45deg);
+  border-radius: 18px;
+  background: url("/iris/assets/brand/iris-symbol-light-192.webp?v=161") center / contain no-repeat;
+  filter: drop-shadow(0 18px 30px color-mix(in srgb, var(--accent) 18%, transparent));
+  transform: translateX(-50%);
 }
 
 .ambientMark span {
-  width: 22px;
-  height: 22px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.82);
-  filter: blur(0.1px);
-  transform: scale(0.78);
+  display: none;
 }
 
 .brandMark {
@@ -541,7 +527,7 @@ p {
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=160");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=161");
 }
 
 .brandName {
@@ -658,13 +644,8 @@ body[data-visual-state="error"] .statusIndicator {
   height: 42px;
   display: block;
   border-radius: 16px;
-  background:
-    radial-gradient(circle at 35% 34%, rgba(255, 255, 255, 0.95), transparent 20%),
-    linear-gradient(135deg, rgba(103, 173, 255, 0.78), rgba(222, 157, 244, 0.64) 56%, rgba(251, 255, 255, 0.9));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    0 16px 30px color-mix(in srgb, var(--accent) 16%, transparent);
-  transform: rotate(45deg);
+  background: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=161") center / contain no-repeat;
+  box-shadow: 0 16px 30px color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 .sheetBrandMark {
@@ -2401,9 +2382,11 @@ body.pageHidden::after {
 
 :root[data-theme="pure-black"] .ambientMark,
 :root[data-theme="pure-black"] .sheetGlyph {
-  background:
-    radial-gradient(circle at 35% 34%, rgba(255, 255, 255, 0.85), transparent 20%),
-    linear-gradient(135deg, rgba(105, 173, 243, 0.78), rgba(72, 214, 189, 0.34), rgba(255, 255, 255, 0.1));
+  background-image: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=161");
+}
+
+:root[data-theme="pure-black"] .accessMark {
+  background-image: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=161");
 }
 
 :root[data-theme="pure-black"] .accessGate {
