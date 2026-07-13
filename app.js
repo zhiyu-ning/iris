@@ -59,7 +59,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "157";
+const VOICE_UI_VERSION = "158";
 const IRIS_PUBLIC_CONFIG = Object.freeze({
   backendOrigin: "",
   appBasePath: "/voice",
@@ -418,7 +418,7 @@ const TTS_ROUTE_PERSIST_FALLBACK_MS = 160;
 const CONVERSATION_BOTTOM_EPSILON_PX = 52;
 const CONVERSATION_USER_SCROLL_PAUSE_MS = 9000;
 
-const WEB_VERSION = "voice-ui-web-polish-v157-static-trim";
+const WEB_VERSION = "voice-ui-web-polish-v158-static-trim-email-otp";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -1724,15 +1724,36 @@ function setAccessStatus(text) {
   if (els.accessStatus) els.accessStatus.textContent = text || " ";
 }
 
+function isLikelyMobileAuthTarget() {
+  const ua = String(navigator.userAgent || "");
+  if (/Android|iPhone|iPad|iPod|Mobile/i.test(ua)) return true;
+  return Boolean(navigator.maxTouchPoints > 1 && window.matchMedia && window.matchMedia("(max-width: 720px)").matches);
+}
+
+function refreshAccessAuthMode() {
+  const mobile = isLikelyMobileAuthTarget();
+  document.body.classList.toggle("mobileAuthTarget", mobile);
+}
+
+function completeSessionLogin(token, expiresAt) {
+  rememberSessionToken(token, expiresAt || "");
+  hideAccessGate();
+  loadConversationHistory().catch((err) => logLine(err.message || "conversation history failed"));
+  setState("idle");
+  setAccessStatus(" ");
+}
+
 function showAccessGate(reason = "") {
   if (!els.accessGate) return;
+  refreshAccessAuthMode();
   els.accessGate.hidden = false;
   document.body.classList.add("accessLocked");
   if (reason) setAccessStatus(reason);
   if (els.accessSubmit) els.accessSubmit.textContent = accessEmailPending ? "验证进入" : "发送验证码";
   if (els.accessCodeRow) els.accessCodeRow.hidden = !accessEmailPending;
-  if (els.githubLogin) {
-    window.setTimeout(() => els.githubLogin.focus(), 60);
+  const focusTarget = accessEmailPending ? els.accessCode : els.accessEmail;
+  if (focusTarget) {
+    window.setTimeout(() => focusTarget.focus(), 60);
   } else if (els.accessEmail) {
     els.accessEmail.disabled = Boolean(accessEmailPending);
     window.setTimeout(() => {
@@ -1754,19 +1775,19 @@ function maybePromptForAccess() {
     hideAccessGate();
     return;
   }
-  showAccessGate("请使用授权 GitHub 账号登录。");
+  showAccessGate("请使用授权邮箱验证码登录。");
 }
 
 function handleUnauthorizedResponse(response) {
   if (!response || response.status !== 401) return false;
   saveToken();
   accessEmailPending = "";
-  showAccessGate("登录已过期，请重新使用 GitHub 登录。");
+  showAccessGate("登录已过期，请重新使用邮箱验证码登录。");
   return true;
 }
 
-function githubLoginUrl() {
-  return backendUrl("/voice/auth/github/start");
+function githubLoginUrl(preferApp = false) {
+  return backendUrl(preferApp ? "/voice/auth/github/start?prefer_app=1" : "/voice/auth/github/start");
 }
 
 function cleanupAuthRedirectHash() {
@@ -1787,18 +1808,15 @@ function consumeAuthRedirectHash() {
   }
   const token = params.get("iris_session_token");
   if (!token) return false;
-  rememberSessionToken(token, params.get("iris_session_expires_at") || "");
   cleanupAuthRedirectHash();
-  hideAccessGate();
-  loadConversationHistory().catch((err) => logLine(err.message || "conversation history failed"));
-  setState("idle");
-  setAccessStatus(" ");
+  completeSessionLogin(token, params.get("iris_session_expires_at") || "");
   return true;
 }
 
 function handleGithubLogin() {
-  setAccessStatus("正在打开 GitHub 登录。");
-  window.location.assign(githubLoginUrl());
+  const mobile = isLikelyMobileAuthTarget();
+  setAccessStatus(mobile ? "正在打开 GitHub 备用登录；如果系统没有接管，会继续使用浏览器登录。" : "正在打开 GitHub 备用登录。");
+  window.location.assign(githubLoginUrl(mobile));
 }
 
 async function requestEmailLoginCode(email) {
