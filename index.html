@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f7f9fc" />
+    <title>Iris Voice</title>
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=157" type="image/png" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=157" />
+    <link rel="manifest" href="/iris/manifest.json?v=157" />
+    <link rel="stylesheet" href="/iris/styles.css?v=157" />
+  </head>
+  <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
+    <main class="terminal">
+      <section class="home" aria-label="Iris voice home">
+        <header class="topbar">
+          <button id="detailsToggle" class="iconButton menuButton" type="button" aria-label="系统舱">
+            <span class="systemGlyph" aria-hidden="true"><i></i><i></i><i></i></span>
+          </button>
+          <div class="ambientMark" aria-hidden="true"><span></span></div>
+          <div class="identityBlock brandLockup">
+            <p class="eyebrow brandName">Iris</p>
+            <p class="statusLineCompact">
+              <span id="statusIndicator" class="statusIndicator" aria-label="状态：在线"></span>
+              <span id="stateLabel" class="topStatus">在线</span>
+            </p>
+          </div>
+        </header>
+
+        <section class="conversationShell" aria-label="Iris conversation">
+          <div id="conversationStream" class="conversationStream" role="log" aria-live="polite">
+            <article class="message assistant" data-kind="welcome">
+              <p class="messageMeta">Iris</p>
+              <p class="messageText">我在。你可以直接说，也可以把文件发给我。</p>
+            </article>
+          </div>
+
+          <section class="dialogueCard captionFloat" aria-label="Iris dialogue">
+            <p id="subtitleSpeaker" class="dialogueLabel">IRIS</p>
+            <div id="dialogueScroll" class="dialogueScroll" role="log" aria-live="polite">
+              <p id="subtitleText" class="dialogueText">我在。你可以直接说。</p>
+            </div>
+          </section>
+        </section>
+
+        <section class="controls dock unifiedComposer" aria-label="message composer">
+          <p id="voiceInputStatus" class="voiceInputStatus" aria-live="polite">正在语音输入</p>
+          <input id="documentPdfInput" class="fileInput" type="file" accept="application/pdf,.pdf" />
+          <button id="documentUploadButton" class="dockIcon attachButton" type="button" aria-label="上传文件">+</button>
+          <div class="composerField">
+            <div id="documentContextBar" class="documentContextBar" hidden>
+              <span id="documentStatus">未连接文件</span>
+              <button id="documentSummarizeButton" type="button" disabled>摘要</button>
+            </div>
+            <textarea id="manualInput" rows="1" autocomplete="off" placeholder="问 Iris"></textarea>
+          </div>
+          <button id="manualSend" class="dockIcon sendButton" type="button" aria-label="发送">↑</button>
+          <button id="dockMicButton" class="dockIcon dockMic" type="button" aria-label="语音输入">
+            <span class="micGlyph" aria-hidden="true"></span>
+          </button>
+          <button id="quickToggle" class="dockIcon dockMore" type="button" aria-label="快捷建议">…</button>
+          <div class="quickGrid">
+            <button class="quick" type="button" data-prompt="继续刚才">继续刚才</button>
+            <button class="quick" type="button" data-prompt="记一件事">记一件事</button>
+            <button class="quick" type="button" data-prompt="今天怎么安排">今天怎么安排</button>
+          </div>
+          <button id="mainButton" class="primary dockInput srOnly" type="button" hidden>问问 Iris</button>
+          <textarea id="documentQuestionInput" class="srOnly" rows="1"></textarea>
+          <button id="documentAskButton" class="srOnly" type="button" disabled>追问</button>
+          <p id="documentAnswer" class="srOnly"> </p>
+        </section>
+      </section>
+
+      <section id="accessGate" class="accessGate" aria-label="Iris access" hidden>
+        <div class="accessBackdrop" aria-hidden="true">
+          <span class="accessHalo accessHaloOne"></span>
+          <span class="accessHalo accessHaloTwo"></span>
+        </div>
+        <div class="accessPanel">
+          <span class="accessMark" aria-hidden="true"></span>
+          <p class="eyebrow">PRIVATE ACCESS</p>
+          <h1>Iris</h1>
+          <p class="accessCopy">使用授权 GitHub 账号登录。Iris 只会在当前浏览器会话中保存短期登录令牌。</p>
+          <form id="accessForm" class="accessForm">
+            <button id="githubLoginButton" class="githubLoginButton" type="button">使用 GitHub 登录</button>
+            <div class="emailFallback" hidden>
+              <input id="accessEmailInput" type="email" autocomplete="email" inputmode="email" placeholder="邮箱" aria-label="邮箱" />
+              <button id="accessSubmitButton" type="submit">发送验证码</button>
+            </div>
+            <div id="accessCodeRow" class="accessCodeRow" hidden>
+              <input id="accessCodeInput" type="text" autocomplete="one-time-code" inputmode="numeric" maxlength="6" placeholder="验证码" aria-label="验证码" />
+            </div>
+          </form>
+          <p id="accessStatus" class="settingHint"> </p>
+        </div>
+      </section>
+
+      <aside id="detailSheet" class="detailSheet" aria-label="Iris settings" aria-hidden="true">
+        <div class="sheetHeader">
+          <div class="sheetTitleLockup">
+            <span class="sheetGlyph" aria-hidden="true"></span>
+            <div>
+              <p class="eyebrow sheetEyebrow">SYSTEM</p>
+              <h2>系统舱</h2>
+            </div>
+          </div>
+          <button id="closeDetails" class="iconButton closeButton" type="button" aria-label="关闭">×</button>
+        </div>
+
+        <div class="settingsList">
+        <details class="settingsGroup navGroup" open>
+          <summary class="navSummary">
+            <span class="navIcon linkIcon" aria-hidden="true"></span>
+            <span class="navCopy">
+              <span class="navTitle">连接</span>
+              <span class="navSub">重连 · 停止</span>
+            </span>
+          </summary>
+          <div class="groupBody maintenanceGrid">
+            <button id="reconnectButton" type="button">重连</button>
+            <button id="stopButton" type="button">停止</button>
+          </div>
+        </details>
+
+        <details class="settingsGroup navGroup">
+          <summary class="navSummary">
+            <span class="navIcon paletteIcon" aria-hidden="true"></span>
+            <span class="navCopy">
+              <span class="navTitle">外观</span>
+              <span class="navSub">主题 · 模式</span>
+            </span>
+          </summary>
+          <div id="themePicker" class="groupBody themePicker" role="radiogroup" aria-label="界面主题">
+            <button type="button" class="themeOption" data-theme-choice="minimal-white" role="radio" aria-checked="true">
+              <span class="themeSwatch swatchWhite" aria-hidden="true"></span>
+              <span>极简白</span>
+            </button>
+            <button type="button" class="themeOption" data-theme-choice="soft-gray" role="radio" aria-checked="false">
+              <span class="themeSwatch swatchGray" aria-hidden="true"></span>
+              <span>素雅灰</span>
+            </button>
+            <button type="button" class="themeOption" data-theme-choice="classic-blue" role="radio" aria-checked="false">
+              <span class="themeSwatch swatchBlue" aria-hidden="true"></span>
+              <span>经典蓝</span>
+            </button>
+            <button type="button" class="themeOption" data-theme-choice="pure-black" role="radio" aria-checked="false">
+              <span class="themeSwatch swatchBlack" aria-hidden="true"></span>
+              <span>极致黑</span>
+            </button>
+          </div>
+        </details>
+
+        <details class="settingsGroup navGroup modelGroup">
+          <summary class="navSummary">
+            <span class="navIcon cubeIcon" aria-hidden="true"></span>
+            <span class="navCopy">
+              <span class="navTitle">模型</span>
+              <span id="modelStatus" class="navSub">读取当前模型中。</span>
+            </span>
+          </summary>
+          <div class="groupBody settingRow">
+            <label for="modelSelect">DeepSeek API 模型</label>
+            <select id="modelSelect" aria-label="DeepSeek API 模型">
+              <option value="">正在加载</option>
+            </select>
+          </div>
+        </details>
+
+        <details class="settingsGroup navGroup memoryGroup">
+          <summary class="navSummary">
+            <span class="navIcon bookIcon" aria-hidden="true"></span>
+            <span class="navCopy">
+              <span class="navTitle">记忆</span>
+              <span id="memoryStatus" class="navSub">你的偏好与对话记忆</span>
+            </span>
+          </summary>
+          <div class="groupBody memoryControls">
+          <div class="groupHeader">
+            <button id="memoryRefreshButton" type="button">刷新</button>
+          </div>
+          <div class="memorySearchRow">
+            <input id="memorySearchInput" type="search" autocomplete="off" inputmode="search" placeholder="搜索记忆" aria-label="搜索记忆" />
+            <button id="memorySearchClearButton" type="button" aria-label="清空记忆搜索">清除</button>
+          </div>
+          <div id="memoryList" class="memoryList" aria-live="polite"></div>
+          </div>
+        </details>
+
+        <details class="settingsGroup navGroup soundGroup">
+          <summary class="navSummary">
+            <span class="navIcon voiceIcon" aria-hidden="true"></span>
+            <span class="navCopy">
+              <span class="navTitle">声音</span>
+              <span class="navSub">语音 · 播放 · 麦克风</span>
+            </span>
+          </summary>
+          <div class="groupBody collapsibleBody">
+          <div class="settingRow">
+            <label for="voiceProfileSelect">Edge TTS 音色</label>
+            <select id="voiceProfileSelect">
+              <option value="jarvis_taiwan_sweet_female" selected>台湾甜妹</option>
+              <option value="jarvis_taiwan_bright_female">台湾元气</option>
+              <option value="jarvis_mainland_soft_female">温柔普通话</option>
+              <option value="jarvis_mainland_lively_female">活泼普通话</option>
+              <option value="jarvis_liaoning_playful_female">东北小贝</option>
+              <option value="jarvis_shaanxi_bright_female">陕西小妮</option>
+              <option value="jarvis_hongkong_friendly_female">港风女声</option>
+            </select>
+          </div>
+          <div class="maintenanceGrid">
+            <button id="micButton" type="button">麦克风</button>
+            <button id="speakerButton" type="button">静音扬声器</button>
+          </div>
+          <div class="audibilityBox">
+            <div>
+              <p class="audibilityTitle">发声听感确认</p>
+              <p id="webTtsAudibilityStatus" class="settingHint">未确认</p>
+            </div>
+            <div class="routeBox">
+              <p class="audibilityTitle">最近播报链路</p>
+              <p id="webTtsRouteStatus" class="settingHint">还没有播报记录。</p>
+            </div>
+            <div class="audibilityActions">
+              <button id="webTtsTestButton" type="button">测试播报</button>
+              <button id="webTtsHeardButton" type="button">我听到了</button>
+              <button id="webTtsNotHeardButton" type="button">没听到</button>
+              <button id="webTtsSyncButton" type="button">同步记录</button>
+            </div>
+          </div>
+          </div>
+        </details>
+
+        <details class="settingsGroup navGroup debugDetails">
+          <summary class="navSummary">
+            <span class="navIcon gearIcon" aria-hidden="true"></span>
+            <span class="navCopy">
+              <span class="navTitle">高级</span>
+              <span class="navSub">开发者选项与诊断</span>
+            </span>
+          </summary>
+          <div class="groupBody">
+          <section class="panel">
+          <div class="panelHeader">
+            <span>我说</span>
+            <span id="vadLevel">0.000</span>
+          </div>
+          <p id="sttHint" class="hint"> </p>
+          <p id="partialText" class="muted"> </p>
+          <p id="finalText"> </p>
+          </section>
+
+          <section class="panel">
+          <div class="panelHeader">
+            <span>Iris</span>
+            <span id="turnLabel"> </span>
+          </div>
+          <p id="replyText"> </p>
+          </section>
+
+          <section class="log" id="eventLog" aria-label="event log"></section>
+          </div>
+        </details>
+        </div>
+      </aside>
+    </main>
+    <script src="/iris/public-config.js?v=157"></script>
+    <script src="/iris/app.js?v=157"></script>
+  </body>
+</html>
