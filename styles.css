@@ -40,8 +40,8 @@
   --primary-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
     0 18px 42px rgba(39, 62, 94, 0.1);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=166");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=166");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=167");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=167");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -174,8 +174,8 @@
   --primary-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.24),
     0 22px 54px rgba(88, 92, 255, 0.26);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=166");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=166");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=167");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=167");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -220,8 +220,8 @@
   --primary-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=166");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=166");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=167");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=167");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -405,6 +405,79 @@ p {
 
 .accessGate[hidden] {
   display: none;
+}
+
+.accessQuickControls {
+  position: absolute;
+  left: max(22px, env(safe-area-inset-left));
+  right: max(22px, env(safe-area-inset-right));
+  top: max(18px, env(safe-area-inset-top));
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.accessQuickButton {
+  pointer-events: auto;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--ink-soft);
+  border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  background: color-mix(in srgb, var(--glass-strong) 84%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    0 14px 30px rgba(39, 62, 94, 0.08);
+}
+
+.accessQuickButton:active {
+  transform: scale(0.96);
+}
+
+.accessThemeGlyph {
+  width: 21px;
+  height: 17px;
+  position: relative;
+  display: block;
+}
+
+.accessThemeGlyph i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.accessThemeGlyph i:nth-child(1) { top: 1px; }
+.accessThemeGlyph i:nth-child(2) { top: 7px; }
+.accessThemeGlyph i:nth-child(3) { top: 13px; }
+
+.accessThemeGlyph i::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  transform: translateY(-50%);
+}
+
+.accessThemeGlyph i:nth-child(1)::after { left: 4px; }
+.accessThemeGlyph i:nth-child(2)::after { right: 4px; }
+.accessThemeGlyph i:nth-child(3)::after { left: 9px; }
+
+.accessLanguageButton {
+  font-size: 12px;
+  font-weight: 760;
+  letter-spacing: 0;
 }
 
 .accessPanel {
@@ -673,7 +746,7 @@ p {
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=166");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=167");
 }
 
 .brandName {
@@ -969,12 +1042,6 @@ body.longDialogue .captionFloat {
   justify-content: flex-start;
 }
 
-body.longDialogue.quickOpen .captionFloat {
-  height: var(--caption-quick-max-height);
-  max-height: var(--caption-quick-max-height);
-  transform: translateX(-50%) translateY(-54px) scale(0.985);
-}
-
 body[data-visual-state="user_speaking"] .captionFloat,
 body[data-visual-state="thinking"] .captionFloat,
 body[data-visual-state="ai_speaking"] .captionFloat,
@@ -998,14 +1065,6 @@ body.detailsOpen .captionFloat {
   opacity: 0;
   transform: translateX(-50%) translateY(16px) scale(0.98);
   pointer-events: none;
-}
-
-body.quickOpen .conversationShell .captionFloat {
-  opacity: 0;
-  visibility: hidden;
-  transform: translateX(-50%) translateY(10px) scale(0.985);
-  pointer-events: none;
-  transition: none;
 }
 
 .dialogueLabel {
@@ -1131,10 +1190,6 @@ body.quickOpen .conversationShell .captionFloat {
     border-color 180ms ease,
     box-shadow 180ms ease,
     background 180ms ease;
-}
-
-.dockMore {
-  display: none;
 }
 
 .dock.unifiedComposer:focus-within {
@@ -1286,35 +1341,9 @@ body.quickOpen .conversationShell .captionFloat {
 }
 
 .attachPlus {
-  font-size: 21px;
+  font-size: 28px;
   line-height: 1;
-  transform: translateY(-5px);
-}
-
-.attachHint {
-  position: absolute;
-  left: 50%;
-  bottom: 7px;
-  min-width: 20px;
-  color: var(--ink-dim);
-  font-size: 8px;
-  font-weight: 680;
-  line-height: 1;
-  opacity: 0.72;
-  pointer-events: none;
-  transform: translateX(-50%);
-}
-
-.attachButton::after {
-  content: "";
-  position: absolute;
-  right: 8px;
-  top: 9px;
-  width: 8px;
-  height: 10px;
-  border: 1.5px solid currentColor;
-  border-radius: 2px;
-  opacity: 0.46;
+  transform: translateY(-1px);
 }
 
 .sendButton {
@@ -1462,52 +1491,6 @@ body[data-visual-state="user_speaking"] .voiceInputStatus::before {
   transform: translateX(-50%);
 }
 
-.quickGrid {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(100% + 8px);
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  max-height: 0;
-  margin-top: 0;
-  opacity: 0;
-  overflow: hidden;
-  pointer-events: none;
-  transition:
-    max-height 180ms ease,
-    margin-top 180ms ease,
-    opacity 180ms ease,
-    visibility 0ms linear 180ms;
-  visibility: hidden;
-}
-
-body.quickOpen .quickGrid {
-  max-height: 46px;
-  margin-top: 2px;
-  opacity: 1;
-  pointer-events: auto;
-  transition:
-    max-height 180ms ease,
-    margin-top 180ms ease,
-    opacity 180ms ease,
-    visibility 0ms;
-  visibility: visible;
-}
-
-.quick {
-  min-height: 38px;
-  border-radius: 999px;
-  color: var(--ink-soft);
-  background: #f3f7fb;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    0 8px 22px rgba(54, 68, 96, 0.08);
-  font-size: 12px;
-  font-weight: 560;
-}
-
 .detailSheet {
   position: fixed;
   inset: 0;
@@ -1523,8 +1506,7 @@ body.quickOpen .quickGrid {
   align-content: start;
   gap: 26px;
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--ink-dim) 8%, transparent) transparent;
+  scrollbar-width: none;
   border-radius: 0;
   border: 0;
   color: var(--ink);
@@ -1536,7 +1518,8 @@ body.quickOpen .quickGrid {
 }
 
 .detailSheet::-webkit-scrollbar {
-  width: 2px;
+  width: 0;
+  height: 0;
 }
 
 .detailSheet::-webkit-scrollbar-track {
@@ -1721,6 +1704,21 @@ body.quickOpen .quickGrid {
   background: currentColor;
 }
 
+.languageIcon::before {
+  content: "Aa";
+  width: auto;
+  height: auto;
+  border: 0;
+  color: currentColor;
+  font-size: 16px;
+  font-weight: 720;
+  line-height: 1;
+}
+
+.languageIcon::after {
+  display: none;
+}
+
 .navCopy {
   min-width: 0;
   display: grid;
@@ -1747,13 +1745,12 @@ body.quickOpen .quickGrid {
   display: grid;
   gap: 12px;
   margin: 8px 0 0 56px;
-  padding: 14px;
-  border: 1px solid color-mix(in srgb, var(--line) 64%, transparent);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.46);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.62),
-    0 14px 32px rgba(46, 63, 88, 0.04);
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--line) 56%, transparent);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .collapsibleSummary {
@@ -2115,7 +2112,14 @@ button:disabled {
   gap: 8px;
 }
 
-.themeOption {
+.languagePicker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.themeOption,
+.languageOption {
   min-height: 40px;
   padding: 7px 10px;
   border-radius: 12px;
@@ -2131,7 +2135,8 @@ button:disabled {
   text-align: left;
 }
 
-.themeOption[aria-checked="true"] {
+.themeOption[aria-checked="true"],
+.languageOption[aria-checked="true"] {
   color: var(--ink);
   border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
   background: color-mix(in srgb, var(--field-bg) 72%, var(--accent) 8%);
@@ -2419,8 +2424,7 @@ body.pageHidden::after {
 :root[data-theme="pure-black"] .audibilityBox,
 :root[data-theme="pure-black"] .routeBox,
 :root[data-theme="pure-black"] .documentAnswer,
-:root[data-theme="pure-black"] .documentContextBar,
-:root[data-theme="pure-black"] .debugDetails summary {
+:root[data-theme="pure-black"] .documentContextBar {
   color: var(--ink-soft);
   background: rgba(255, 255, 255, 0.055);
   border: 1px solid rgba(255, 255, 255, 0.095);
@@ -2457,6 +2461,7 @@ body.pageHidden::after {
 :root[data-theme="pure-black"] .manual button,
 :root[data-theme="pure-black"] .audibilityActions button,
 :root[data-theme="pure-black"] .themeOption,
+:root[data-theme="pure-black"] .languageOption,
 :root[data-theme="pure-black"] .dockIcon,
 :root[data-theme="pure-black"] .iconButton {
   color: var(--ink-soft);
@@ -2465,7 +2470,8 @@ body.pageHidden::after {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-:root[data-theme="pure-black"] .themeOption[aria-checked="true"] {
+:root[data-theme="pure-black"] .themeOption[aria-checked="true"],
+:root[data-theme="pure-black"] .languageOption[aria-checked="true"] {
   color: var(--ink);
   background: rgba(105, 173, 243, 0.13);
   border-color: rgba(105, 173, 243, 0.42);
@@ -2502,7 +2508,7 @@ body.pageHidden::after {
   background: rgba(244, 247, 251, 0.62);
 }
 
-:root[data-theme="pure-black"] .debugDetails summary::after {
+:root[data-theme="pure-black"] .debugDetails > summary:not(.navSummary)::after {
   color: #8fc7ff;
   background: rgba(115, 183, 255, 0.13);
 }
@@ -2547,7 +2553,8 @@ body.pageHidden::after {
 :root[data-theme="soft-gray"] .maintenanceGrid button,
 :root[data-theme="soft-gray"] .manual button,
 :root[data-theme="soft-gray"] .audibilityActions button,
-:root[data-theme="soft-gray"] .themeOption {
+:root[data-theme="soft-gray"] .themeOption,
+:root[data-theme="soft-gray"] .languageOption {
   background: var(--button-bg);
 }
 
@@ -2596,7 +2603,8 @@ body.pageHidden::after {
 :root[data-theme="classic-blue"] .maintenanceGrid button,
 :root[data-theme="classic-blue"] .manual button,
 :root[data-theme="classic-blue"] .audibilityActions button,
-:root[data-theme="classic-blue"] .themeOption {
+:root[data-theme="classic-blue"] .themeOption,
+:root[data-theme="classic-blue"] .languageOption {
   background: var(--button-bg);
 }
 
@@ -2618,13 +2626,15 @@ body.pageHidden::after {
 }
 
 :root[data-theme="soft-gray"] .groupBody {
-  background: rgba(247, 249, 251, 0.58);
+  background: transparent;
   border-color: rgba(48, 59, 76, 0.1);
+  box-shadow: none;
 }
 
 :root[data-theme="classic-blue"] .groupBody {
-  background: rgba(250, 253, 255, 0.62);
+  background: transparent;
   border-color: rgba(48, 93, 145, 0.1);
+  box-shadow: none;
 }
 
 :root[data-theme="pure-black"] .detailSheet {
@@ -2643,8 +2653,9 @@ body.pageHidden::after {
 }
 
 :root[data-theme="pure-black"] .groupBody {
-  background: rgba(255, 255, 255, 0.045);
+  background: transparent;
   border-color: rgba(255, 255, 255, 0.085);
+  box-shadow: none;
 }
 
 :root[data-theme="pure-black"] .ambientMark,
@@ -2685,7 +2696,6 @@ body.pageHidden::after {
 :root[data-theme="aurora-glass"] .routeBox,
 :root[data-theme="aurora-glass"] .documentAnswer,
 :root[data-theme="aurora-glass"] .documentContextBar,
-:root[data-theme="aurora-glass"] .debugDetails summary,
 :root[data-theme="aurora-glass"] .iconButton {
   color: var(--ink-soft);
   background: rgba(255, 255, 255, 0.42);
@@ -2742,17 +2752,32 @@ body.pageHidden::after {
 :root[data-theme="aurora-glass"] .manual button,
 :root[data-theme="aurora-glass"] .audibilityActions button,
 :root[data-theme="aurora-glass"] .themeOption,
-:root[data-theme="aurora-glass"] .quick {
+:root[data-theme="aurora-glass"] .languageOption {
   color: var(--ink-soft);
   background: rgba(255, 255, 255, 0.42);
   border-color: rgba(255, 255, 255, 0.52);
 }
 
-:root[data-theme="aurora-glass"] .themeOption[aria-checked="true"] {
+:root[data-theme="aurora-glass"] .themeOption[aria-checked="true"],
+:root[data-theme="aurora-glass"] .languageOption[aria-checked="true"] {
   color: var(--ink);
   background: rgba(255, 255, 255, 0.56);
   border-color: rgba(255, 255, 255, 0.7);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.38);
+}
+
+:root[data-theme="aurora-glass"] .groupBody {
+  color: var(--ink-soft);
+  background: transparent;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.34);
+  box-shadow: none;
+}
+
+:root[data-theme] .settingsGroup.navGroup {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 :root[data-theme] .dockMic:not([data-mode="interrupt"]) {
@@ -2783,15 +2808,6 @@ body.pageHidden::after {
 
 :root[data-theme="aurora-glass"] .micGlyph::after {
   background: color-mix(in srgb, var(--ink) 46%, transparent);
-}
-
-:root[data-theme="aurora-glass"] .attachHint {
-  color: var(--ink-dim);
-  opacity: 0.92;
-}
-
-:root[data-theme="aurora-glass"] .attachButton::after {
-  opacity: 0.62;
 }
 
 @media (min-width: 900px) and (min-height: 680px) {

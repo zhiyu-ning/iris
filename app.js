@@ -11,7 +11,6 @@ const els = {
   state: document.getElementById("stateLabel"),
   statusIndicator: document.getElementById("statusIndicator"),
   main: document.getElementById("mainButton"),
-  quickToggle: document.getElementById("quickToggle"),
   dockMic: document.getElementById("dockMicButton"),
   mic: document.getElementById("micButton"),
   speaker: document.getElementById("speakerButton"),
@@ -24,6 +23,8 @@ const els = {
   stop: document.getElementById("stopButton"),
   reconnect: document.getElementById("reconnectButton"),
   themePicker: document.getElementById("themePicker"),
+  languagePicker: document.getElementById("languagePicker"),
+  languageStatus: document.getElementById("languageStatus"),
   modelSelect: document.getElementById("modelSelect"),
   modelStatus: document.getElementById("modelStatus"),
   memoryRefresh: document.getElementById("memoryRefreshButton"),
@@ -36,6 +37,8 @@ const els = {
   accessToken: document.getElementById("accessTokenInput"),
   accessSubmit: document.getElementById("accessSubmitButton"),
   accessStatus: document.getElementById("accessStatus"),
+  accessTheme: document.getElementById("accessThemeToggle"),
+  accessLanguage: document.getElementById("accessLanguageToggle"),
   voiceProfile: document.getElementById("voiceProfileSelect"),
   documentPdf: document.getElementById("documentPdfInput"),
   documentUpload: document.getElementById("documentUploadButton"),
@@ -56,7 +59,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "166";
+const VOICE_UI_VERSION = "167";
 const IRIS_PUBLIC_CONFIG = Object.freeze({
   backendOrigin: "",
   appBasePath: "/voice",
@@ -204,75 +207,296 @@ const VISUAL_STATE_MAP = {
 };
 
 const VOICE_COPY = {
-  idle: {
-    topStatus: "在线",
-    speaker: "IRIS",
-    text: "我在。你可以直接说。",
-    button: "问问 Iris",
-    buttonTone: ""
+  zh: {
+    idle: {
+      topStatus: "在线",
+      speaker: "IRIS",
+      text: "我在。你可以直接说。",
+      button: "问问 Iris",
+      buttonTone: ""
+    },
+    connecting: {
+      topStatus: "连接中",
+      speaker: "IRIS",
+      text: "正在连接 Iris...",
+      button: "正在连接",
+      buttonTone: "soft"
+    },
+    permission_required: {
+      topStatus: "待授权",
+      speaker: "IRIS",
+      text: "开启麦克风后，我就可以听你说话。",
+      button: "开启麦克风",
+      buttonTone: ""
+    },
+    listening: {
+      topStatus: "聆听中",
+      speaker: "IRIS",
+      text: "我在听。",
+      button: "我在听",
+      buttonTone: "soft"
+    },
+    user_speaking: {
+      topStatus: "聆听中",
+      speaker: "你",
+      text: "正在聆听...",
+      button: "正在聆听",
+      buttonTone: "soft"
+    },
+    thinking: {
+      topStatus: "思考中",
+      speaker: "IRIS",
+      text: "正在整理你的请求...",
+      button: "正在整理",
+      buttonTone: "soft"
+    },
+    ai_speaking: {
+      topStatus: "回答中",
+      speaker: "IRIS",
+      text: "",
+      button: "正在回答",
+      buttonTone: "soft"
+    },
+    interrupted: {
+      topStatus: "处理中",
+      speaker: "IRIS",
+      text: "我在听。",
+      button: "我在听",
+      buttonTone: "soft"
+    },
+    error: {
+      topStatus: "可重试",
+      speaker: "IRIS",
+      text: "刚刚没有听清，可以再说一次。",
+      button: "再试一次",
+      buttonTone: ""
+    },
+    offline: {
+      topStatus: "离线",
+      speaker: "IRIS",
+      text: "连接断开了，我正在尝试恢复。",
+      button: "重新连接",
+      buttonTone: ""
+    }
   },
-  connecting: {
-    topStatus: "连接中",
-    speaker: "IRIS",
-    text: "正在连接 Iris...",
-    button: "正在连接",
-    buttonTone: "soft"
+  en: {
+    idle: {
+      topStatus: "Online",
+      speaker: "IRIS",
+      text: "I'm here. You can speak or send a file.",
+      button: "Ask Iris",
+      buttonTone: ""
+    },
+    connecting: {
+      topStatus: "Connecting",
+      speaker: "IRIS",
+      text: "Connecting to Iris...",
+      button: "Connecting",
+      buttonTone: "soft"
+    },
+    permission_required: {
+      topStatus: "Permission",
+      speaker: "IRIS",
+      text: "Turn on the microphone and I can listen.",
+      button: "Enable mic",
+      buttonTone: ""
+    },
+    listening: {
+      topStatus: "Listening",
+      speaker: "IRIS",
+      text: "I'm listening.",
+      button: "Listening",
+      buttonTone: "soft"
+    },
+    user_speaking: {
+      topStatus: "Listening",
+      speaker: "You",
+      text: "Listening...",
+      button: "Listening",
+      buttonTone: "soft"
+    },
+    thinking: {
+      topStatus: "Thinking",
+      speaker: "IRIS",
+      text: "Working through your request...",
+      button: "Thinking",
+      buttonTone: "soft"
+    },
+    ai_speaking: {
+      topStatus: "Answering",
+      speaker: "IRIS",
+      text: "",
+      button: "Answering",
+      buttonTone: "soft"
+    },
+    interrupted: {
+      topStatus: "Processing",
+      speaker: "IRIS",
+      text: "I'm listening.",
+      button: "Listening",
+      buttonTone: "soft"
+    },
+    error: {
+      topStatus: "Retry",
+      speaker: "IRIS",
+      text: "I missed that. Try once more.",
+      button: "Try again",
+      buttonTone: ""
+    },
+    offline: {
+      topStatus: "Offline",
+      speaker: "IRIS",
+      text: "The connection dropped. I'm trying to recover.",
+      button: "Reconnect",
+      buttonTone: ""
+    }
+  }
+};
+
+const UI_TEXT = {
+  zh: {
+    "status.online": "在线",
+    "welcome.message": "我在。你可以直接说，也可以把文件发给我。",
+    "voice.idleText": "我在。你可以直接说。",
+    "voice.inputting": "正在语音输入",
+    "voice.buttonIdle": "问问 Iris",
+    "voice.defaultSubtitle": "我在。",
+    "access.eyebrow": "PRIVATE ACCESS",
+    "access.copy": "输入访问密钥进入。Iris 只会在当前浏览器会话中保存短期登录令牌。",
+    "access.placeholder": "访问密钥",
+    "access.submit": "进入",
+    "access.required": "请先输入访问密钥。",
+    "access.expired": "登录已过期，请重新输入访问密钥。",
+    "access.empty": "请输入访问密钥。",
+    "access.verifying": "正在验证访问密钥。",
+    "access.failed": "连接失败：",
+    "access.checkKey": "请检查访问密钥",
+    "settings.aria": "Iris 设置",
+    "settings.eyebrow": "SETTINGS",
+    "settings.title": "设置",
+    "settings.connection": "连接",
+    "settings.connectionSub": "重连 · 停止",
+    "settings.appearance": "外观",
+    "settings.appearanceSub": "主题 · 模式",
+    "settings.themeAria": "界面主题",
+    "settings.language": "语言",
+    "settings.languageSub": "中文 · English",
+    "settings.languageAria": "界面语言",
+    "settings.model": "模型",
+    "settings.modelLabel": "DeepSeek API 模型",
+    "settings.memory": "记忆",
+    "settings.memorySub": "你的偏好与对话记忆",
+    "settings.sound": "声音",
+    "settings.soundSub": "语音 · 播放 · 麦克风",
+    "settings.voiceLabel": "Edge TTS 音色",
+    "settings.advanced": "高级",
+    "settings.advancedSub": "开发者选项与诊断",
+    "action.uploadFile": "上传文件",
+    "action.voiceInput": "语音输入",
+    "action.send": "发送",
+    "action.themeCycle": "切换主题",
+    "action.close": "关闭",
+    "action.reconnect": "重连",
+    "action.stop": "停止",
+    "action.refresh": "刷新",
+    "action.clear": "清除",
+    "action.microphone": "麦克风",
+    "action.muteSpeaker": "静音扬声器",
+    "action.unmuteSpeaker": "打开扬声器",
+    "action.unmuteMic": "取消麦克风静音",
+    "action.interrupt": "打断 Iris",
+    "action.stopVoice": "结束语音",
+    "composer.placeholder": "输入内容...",
+    "document.disconnected": "未连接文件",
+    "document.summary": "摘要",
+    "document.ask": "追问",
+    "memory.search": "搜索记忆",
+    "memory.clearSearch": "清空记忆搜索",
+    "tts.audibilityTitle": "发声听感确认",
+    "tts.unconfirmed": "未确认",
+    "tts.routeTitle": "最近播报链路",
+    "tts.noRoute": "还没有播报记录。",
+    "tts.test": "测试播报",
+    "tts.heard": "我听到了",
+    "tts.notHeard": "没听到",
+    "tts.sync": "同步记录",
+    "debug.userSaid": "我说",
+    "role.user": "你",
+    "role.file": "文件",
+    "role.system": "状态",
+    "role.recent": "最近"
   },
-  permission_required: {
-    topStatus: "待授权",
-    speaker: "IRIS",
-    text: "开启麦克风后，我就可以听你说话。",
-    button: "开启麦克风",
-    buttonTone: ""
-  },
-  listening: {
-    topStatus: "聆听中",
-    speaker: "IRIS",
-    text: "我在听。",
-    button: "我在听",
-    buttonTone: "soft"
-  },
-  user_speaking: {
-    topStatus: "聆听中",
-    speaker: "你",
-    text: "正在聆听...",
-    button: "正在聆听",
-    buttonTone: "soft"
-  },
-  thinking: {
-    topStatus: "思考中",
-    speaker: "IRIS",
-    text: "正在整理你的请求...",
-    button: "正在整理",
-    buttonTone: "soft"
-  },
-  ai_speaking: {
-    topStatus: "回答中",
-    speaker: "IRIS",
-    text: "",
-    button: "正在回答",
-    buttonTone: "soft"
-  },
-  interrupted: {
-    topStatus: "处理中",
-    speaker: "IRIS",
-    text: "我在听。",
-    button: "我在听",
-    buttonTone: "soft"
-  },
-  error: {
-    topStatus: "可重试",
-    speaker: "IRIS",
-    text: "刚刚没有听清，可以再说一次。",
-    button: "再试一次",
-    buttonTone: ""
-  },
-  offline: {
-    topStatus: "离线",
-    speaker: "IRIS",
-    text: "连接断开了，我正在尝试恢复。",
-    button: "重新连接",
-    buttonTone: ""
+  en: {
+    "status.online": "Online",
+    "welcome.message": "I'm here. You can speak or send a file.",
+    "voice.idleText": "I'm here. You can speak.",
+    "voice.inputting": "Voice input active",
+    "voice.buttonIdle": "Ask Iris",
+    "voice.defaultSubtitle": "I'm here.",
+    "access.eyebrow": "PRIVATE ACCESS",
+    "access.copy": "Enter your access key. Iris only keeps a short-lived session token in this browser session.",
+    "access.placeholder": "Access key",
+    "access.submit": "Enter",
+    "access.required": "Enter your access key first.",
+    "access.expired": "Your session expired. Enter the access key again.",
+    "access.empty": "Enter your access key.",
+    "access.verifying": "Verifying access key.",
+    "access.failed": "Connection failed: ",
+    "access.checkKey": "check the access key",
+    "settings.aria": "Iris settings",
+    "settings.eyebrow": "SETTINGS",
+    "settings.title": "Settings",
+    "settings.connection": "Connection",
+    "settings.connectionSub": "Reconnect · Stop",
+    "settings.appearance": "Appearance",
+    "settings.appearanceSub": "Theme · Mode",
+    "settings.themeAria": "Interface theme",
+    "settings.language": "Language",
+    "settings.languageSub": "Chinese · English",
+    "settings.languageAria": "Interface language",
+    "settings.model": "Model",
+    "settings.modelLabel": "DeepSeek API model",
+    "settings.memory": "Memory",
+    "settings.memorySub": "Preferences and conversation memory",
+    "settings.sound": "Voice",
+    "settings.soundSub": "Speech · Playback · Mic",
+    "settings.voiceLabel": "Edge TTS voice",
+    "settings.advanced": "Advanced",
+    "settings.advancedSub": "Developer options and diagnostics",
+    "action.uploadFile": "Upload file",
+    "action.voiceInput": "Voice input",
+    "action.send": "Send",
+    "action.themeCycle": "Switch theme",
+    "action.close": "Close",
+    "action.reconnect": "Reconnect",
+    "action.stop": "Stop",
+    "action.refresh": "Refresh",
+    "action.clear": "Clear",
+    "action.microphone": "Microphone",
+    "action.muteSpeaker": "Mute speaker",
+    "action.unmuteSpeaker": "Unmute speaker",
+    "action.unmuteMic": "Unmute microphone",
+    "action.interrupt": "Interrupt Iris",
+    "action.stopVoice": "Stop voice",
+    "composer.placeholder": "Type a message...",
+    "document.disconnected": "No file connected",
+    "document.summary": "Summary",
+    "document.ask": "Ask",
+    "memory.search": "Search memory",
+    "memory.clearSearch": "Clear memory search",
+    "tts.audibilityTitle": "Voice audibility",
+    "tts.unconfirmed": "Not confirmed",
+    "tts.routeTitle": "Recent playback route",
+    "tts.noRoute": "No playback record yet.",
+    "tts.test": "Test voice",
+    "tts.heard": "I heard it",
+    "tts.notHeard": "No sound",
+    "tts.sync": "Sync record",
+    "debug.userSaid": "You said",
+    "role.user": "You",
+    "role.file": "File",
+    "role.system": "Status",
+    "role.recent": "Recent"
   }
 };
 
@@ -414,16 +638,18 @@ const TTS_ROUTE_PERSIST_FALLBACK_MS = 160;
 const CONVERSATION_BOTTOM_EPSILON_PX = 52;
 const CONVERSATION_USER_SCROLL_PAUSE_MS = 9000;
 
-const WEB_VERSION = "voice-ui-web-polish-v166-five-theme-ui";
+const WEB_VERSION = "voice-ui-web-polish-v167-settings-language-ui";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
 const ACCESS_TOKEN_EXPIRES_KEY = "iris_access_token_expires_at";
 const THEME_KEY = "iris_voice_theme";
+const LANGUAGE_KEY = "iris_voice_language";
 const VOICE_CLIENT_ID_KEY = "jarvis_voice_client_id";
 const TTS_AUDIBILITY_KEY = "jarvis_voice_tts_audibility";
 const TTS_ROUTE_KEY = "jarvis_voice_tts_route";
 const VOLUME_KEY = "jarvis_voice_volume";
+let currentLanguage = normalizedLanguage(safeStorageGet(LANGUAGE_KEY, navigator.language || "zh"));
 const WEB_TEXT_CAPABILITIES = {
   calendar: true,
   calendar_read: true,
@@ -534,9 +760,20 @@ function syncViewportMetrics({ refreshSubtitle = true } = {}) {
     720;
   const safeHeight = Math.max(420, Math.round(viewportHeight));
   const layoutHeight = window.innerHeight || document.documentElement.clientHeight || safeHeight;
-  const keyboardOpen = Boolean(viewport && layoutHeight - viewport.height > 120);
-  const viewportTopOffset = Math.max(0, Math.round(viewport ? viewport.offsetTop || 0 : 0));
-  const viewportBottomOffset = Math.max(0, Math.round(layoutHeight - safeHeight - (viewport ? viewport.offsetTop || 0 : 0)));
+  const activeElement = document.activeElement;
+  const editableFocused = Boolean(
+    activeElement
+    && activeElement !== document.body
+    && (
+      activeElement.matches("input, textarea, select, [contenteditable='true'], [contenteditable='']")
+      || activeElement.isContentEditable
+    )
+  );
+  const keyboardOpen = Boolean(viewport && editableFocused && layoutHeight - viewport.height > 120);
+  const rawViewportTopOffset = Math.max(0, Math.round(viewport ? viewport.offsetTop || 0 : 0));
+  const rawViewportBottomOffset = Math.max(0, Math.round(layoutHeight - safeHeight - (viewport ? viewport.offsetTop || 0 : 0)));
+  const viewportTopOffset = keyboardOpen ? rawViewportTopOffset : 0;
+  const viewportBottomOffset = keyboardOpen ? rawViewportBottomOffset : 0;
   const viewportSignature = `${safeHeight}|${viewportTopOffset}|${viewportBottomOffset}|${keyboardOpen ? 1 : 0}`;
   if (viewportSignature !== lastViewportMetricsSignature) {
     const keyboardStateChanged = keyboardOpen !== lastKeyboardOpen;
@@ -733,7 +970,7 @@ function animateSubtitleFlow({ reset = false, force = false } = {}) {
 
 function setSubtitle(text, options = {}) {
   if (!els.subtitle) return;
-  const value = (text || "").trim() || "我在。";
+  const value = (text || "").trim() || textFor("voice.defaultSubtitle", "我在。");
   const speaker = (options.speaker || lastSubtitleSpeaker || "IRIS").trim() || "IRIS";
   const renderSignature = `${speaker}\n${value}`;
   if (!options.resetFlow && renderSignature === lastSubtitleRenderSignature) return;
@@ -743,7 +980,7 @@ function setSubtitle(text, options = {}) {
   const speakerChanged = speaker !== lastSubtitleSpeaker;
 
   if (options.speaker) setSubtitleSpeaker(speaker);
-  if (speaker === "你" && currentVisualState === "user_speaking") {
+  if ((speaker === "你" || speaker.toLowerCase() === "you") && currentVisualState === "user_speaking") {
     setDockText(value);
   }
   const isLong = value.length > 56 || value.includes("\n");
@@ -764,9 +1001,9 @@ function setSubtitle(text, options = {}) {
 }
 
 function conversationRoleLabel(role) {
-  if (role === "user") return "你";
-  if (role === "file") return "文件";
-  if (role === "system") return "状态";
+  if (role === "user") return textFor("role.user", "你");
+  if (role === "file") return textFor("role.file", "文件");
+  if (role === "system") return textFor("role.system", "状态");
   return "Iris";
 }
 
@@ -869,17 +1106,18 @@ function ensureAssistantConversationAnchor() {
   meta.textContent = "Iris";
   const body = document.createElement("p");
   body.className = "messageText";
-  body.textContent = "我在。你可以直接说，也可以把文件发给我。";
+  body.textContent = textFor("welcome.message", "我在。你可以直接说，也可以把文件发给我。");
   item.append(meta, body);
   els.conversationStream.prepend(item);
 }
 
 function historyMessageLabel(role, time) {
-  const prefix = role === "user" ? "你" : "Iris";
-  if (!time) return `${prefix} · 最近`;
+  const prefix = role === "user" ? textFor("role.user", "你") : "Iris";
+  const recent = textFor("role.recent", "最近");
+  if (!time) return `${prefix} · ${recent}`;
   const parsed = new Date(time);
-  if (Number.isNaN(parsed.getTime())) return `${prefix} · 最近`;
-  return `${prefix} · ${parsed.toLocaleString("zh-CN", {
+  if (Number.isNaN(parsed.getTime())) return `${prefix} · ${recent}`;
+  return `${prefix} · ${parsed.toLocaleString(currentLanguage === "en" ? "en-US" : "zh-CN", {
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
@@ -1027,6 +1265,83 @@ function speechContent(text) {
   return sentenceEnd >= 80 ? head.slice(0, sentenceEnd + 1) : `${head.trimEnd()}。`;
 }
 
+function normalizedLanguage(value) {
+  const next = String(value || "").trim().toLowerCase();
+  if (next.startsWith("en")) return "en";
+  if (next.startsWith("zh") || next.startsWith("cn")) return "zh";
+  return "zh";
+}
+
+function selectedLanguage() {
+  return normalizedLanguage(safeStorageGet(LANGUAGE_KEY, navigator.language || "zh"));
+}
+
+function textFor(key, fallback = "") {
+  const table = UI_TEXT[currentLanguage] || UI_TEXT.zh;
+  if (Object.prototype.hasOwnProperty.call(table, key)) return table[key];
+  if (Object.prototype.hasOwnProperty.call(UI_TEXT.zh, key)) return UI_TEXT.zh[key];
+  return fallback || key;
+}
+
+function stateCopyFor(visualState) {
+  const langCopy = VOICE_COPY[currentLanguage] || VOICE_COPY.zh;
+  return langCopy[visualState] || langCopy.idle || VOICE_COPY.zh.idle;
+}
+
+function syncLanguageControls() {
+  if (els.languagePicker) {
+    els.languagePicker.querySelectorAll("[data-language-choice]").forEach((button) => {
+      const active = normalizedLanguage(button.dataset.languageChoice) === currentLanguage;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-checked", active ? "true" : "false");
+    });
+  }
+  if (els.accessLanguage) {
+    els.accessLanguage.textContent = currentLanguage === "zh" ? "EN" : "中";
+    els.accessLanguage.setAttribute("aria-label", currentLanguage === "zh" ? "Switch to English" : "切换到中文");
+    els.accessLanguage.setAttribute("title", currentLanguage === "zh" ? "Switch to English" : "切换到中文");
+  }
+}
+
+function applyLanguage(language, { persist = true, refreshState = true } = {}) {
+  currentLanguage = normalizedLanguage(language);
+  document.documentElement.lang = currentLanguage === "en" ? "en" : "zh-CN";
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    node.textContent = textFor(node.dataset.i18n, node.textContent || "");
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    node.setAttribute("placeholder", textFor(node.dataset.i18nPlaceholder, node.getAttribute("placeholder") || ""));
+  });
+  document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => {
+    node.setAttribute("aria-label", textFor(node.dataset.i18nAriaLabel, node.getAttribute("aria-label") || ""));
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach((node) => {
+    node.setAttribute("title", textFor(node.dataset.i18nTitle, node.getAttribute("title") || ""));
+  });
+  syncLanguageControls();
+  if (els.mic) els.mic.textContent = micMuted ? textFor("action.unmuteMic", "取消静音") : textFor("action.microphone", "麦克风");
+  if (els.speaker) els.speaker.textContent = speakerMuted ? textFor("action.unmuteSpeaker", "打开扬声器") : textFor("action.muteSpeaker", "静音扬声器");
+  updateDockControls(currentVisualState);
+  if (persist) safeStorageSet(LANGUAGE_KEY, currentLanguage);
+  if (refreshState) setState(currentRawState || "idle", { preserveSubtitle: true });
+}
+
+function initLanguageSettings() {
+  applyLanguage(selectedLanguage(), { persist: false, refreshState: false });
+  if (els.languagePicker) {
+    els.languagePicker.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-language-choice]");
+      if (!button) return;
+      applyLanguage(button.dataset.languageChoice || "zh");
+    });
+  }
+  if (els.accessLanguage) {
+    els.accessLanguage.addEventListener("click", () => {
+      applyLanguage(currentLanguage === "zh" ? "en" : "zh");
+    });
+  }
+}
+
 function normalizedTheme(value) {
   const next = String(value || "").trim().toLowerCase().replace(/_/g, "-");
   if (["minimal-white", "soft-gray", "classic-blue", "pure-black", "aurora-glass"].includes(next)) return next;
@@ -1039,6 +1354,8 @@ function normalizedTheme(value) {
 function selectedTheme() {
   return normalizedTheme(safeStorageGet(THEME_KEY, "minimal-white"));
 }
+
+const THEME_SEQUENCE = ["minimal-white", "soft-gray", "classic-blue", "pure-black", "aurora-glass"];
 
 function applyTheme(theme, { persist = true } = {}) {
   const next = normalizedTheme(theme);
@@ -1063,8 +1380,18 @@ function applyTheme(theme, { persist = true } = {}) {
   if (persist) safeStorageSet(THEME_KEY, next);
 }
 
+function cycleTheme() {
+  const current = normalizedTheme(document.documentElement.dataset.theme || selectedTheme());
+  const index = THEME_SEQUENCE.indexOf(current);
+  const next = THEME_SEQUENCE[(index + 1 + THEME_SEQUENCE.length) % THEME_SEQUENCE.length];
+  applyTheme(next);
+}
+
 function initThemeSettings() {
   applyTheme(selectedTheme(), { persist: false });
+  if (els.accessTheme) {
+    els.accessTheme.addEventListener("click", cycleTheme);
+  }
   if (!els.themePicker) return;
   els.themePicker.addEventListener("click", (event) => {
     const button = event.target.closest("[data-theme-choice]");
@@ -1541,7 +1868,7 @@ function setState(state, options = {}) {
   const previousVisualState = currentVisualState;
   currentRawState = nextRawState;
   currentVisualState = visualState;
-  const copy = VOICE_COPY[visualState] || VOICE_COPY.idle;
+  const copy = stateCopyFor(visualState);
 
   els.state.textContent = copy.topStatus;
   if (els.statusIndicator) {
@@ -1555,9 +1882,6 @@ function setState(state, options = {}) {
   updateDockControls(visualState);
   document.body.dataset.voiceState = currentRawState;
   document.body.dataset.visualState = visualState;
-  if (!["idle", "listening"].includes(visualState)) {
-    document.body.classList.remove("quickOpen");
-  }
   PresenceController.setState(state);
   if (copy.text && previousVisualState !== visualState && !options.preserveSubtitle) {
     setSubtitle(copy.text, { speaker: copy.speaker });
@@ -1581,12 +1905,12 @@ function updateDockControls(visualState) {
     els.dockMic.setAttribute(
       "aria-label",
       micMuted
-        ? "取消麦克风静音"
+        ? textFor("action.unmuteMic", "取消麦克风静音")
         : mode === "interrupt"
-          ? "打断 Iris"
+          ? textFor("action.interrupt", "打断 Iris")
           : mode === "stop"
-            ? "结束语音"
-            : "语音输入"
+            ? textFor("action.stopVoice", "结束语音")
+            : textFor("action.voiceInput", "语音输入")
     );
   }
 }
@@ -1603,7 +1927,6 @@ function openDetails() {
   els.detailSheet.classList.add("open");
   els.detailSheet.setAttribute("aria-hidden", "false");
   document.body.classList.add("detailsOpen");
-  document.body.classList.remove("quickOpen");
   if (els.memoryRefresh && !memoryControlLoaded && !memoryControlLoading) {
     refreshMemoryControlCenter().catch((err) => logLine(err.message || "memory refresh failed"));
   }
@@ -1735,7 +2058,7 @@ function showAccessGate(reason = "") {
   els.accessGate.hidden = false;
   document.body.classList.add("accessLocked");
   if (reason) setAccessStatus(reason);
-  if (els.accessSubmit) els.accessSubmit.textContent = "进入";
+  if (els.accessSubmit) els.accessSubmit.textContent = textFor("access.submit", "进入");
   if (els.accessToken) window.setTimeout(() => els.accessToken.focus(), 60);
 }
 
@@ -1751,13 +2074,13 @@ function maybePromptForAccess() {
     hideAccessGate();
     return;
   }
-  showAccessGate("请先输入访问密钥。");
+  showAccessGate(textFor("access.required", "请先输入访问密钥。"));
 }
 
 function handleUnauthorizedResponse(response) {
   if (!response || response.status !== 401) return false;
   saveToken();
-  showAccessGate("登录已过期，请重新输入访问密钥。");
+  showAccessGate(textFor("access.expired", "登录已过期，请重新输入访问密钥。"));
   return true;
 }
 
@@ -2104,7 +2427,7 @@ function documentSummaryLine(doc) {
 
 async function uploadCurrentDocument() {
   if (!canUseBackendNow()) {
-    showAccessGate("请先输入访问密钥。");
+    showAccessGate(textFor("access.required", "请先输入访问密钥。"));
     return;
   }
   if (!els.documentPdf || !els.documentPdf.files || !els.documentPdf.files.length) {
@@ -2160,7 +2483,7 @@ async function uploadCurrentDocument() {
 
 async function summarizeCurrentDocument() {
   if (!canUseBackendNow()) {
-    showAccessGate("请先输入访问密钥。");
+    showAccessGate(textFor("access.required", "请先输入访问密钥。"));
     return;
   }
   if (!currentDocumentId) {
@@ -2206,7 +2529,7 @@ async function summarizeCurrentDocument() {
 
 async function askCurrentDocument(questionOverride = "") {
   if (!canUseBackendNow()) {
-    showAccessGate("请先输入访问密钥。");
+    showAccessGate(textFor("access.required", "请先输入访问密钥。"));
     return;
   }
   if (!currentDocumentId) {
@@ -2406,7 +2729,7 @@ async function sendTextPrompt(text) {
   const final = (text || "").trim();
   if (!final) return;
   if (!canUseBackendNow()) {
-    showAccessGate("请先输入访问密钥。");
+    showAccessGate(textFor("access.required", "请先输入访问密钥。"));
     return;
   }
   const requestId = textPromptSeq + 1;
@@ -2492,7 +2815,6 @@ function handleTextPromptCommand(text, options = {}) {
   const final = (text || "").trim();
   if (!final) return;
   if (options.clearManualInput && els.manual) els.manual.value = "";
-  if (options.closeQuick) document.body.classList.remove("quickOpen");
   if (options.documentAware && currentDocumentId) {
     askCurrentDocument(final).catch((err) => {
       const message = `文档追问失败：${err.message || "PDF 不可用"}`;
@@ -2554,7 +2876,7 @@ function handleComposerSubmit() {
 
 async function connect() {
   if (!canUseBackendNow()) {
-    showAccessGate("请先输入访问密钥。");
+    showAccessGate(textFor("access.required", "请先输入访问密钥。"));
     return false;
   }
   if (ws && ws.readyState === WebSocket.OPEN && voiceSocketAuthenticated) return true;
@@ -3772,18 +4094,18 @@ async function handleAccessSubmit(event) {
   if (event) event.preventDefault();
   const accessKey = els.accessToken && els.accessToken.value ? els.accessToken.value.trim() : "";
   if (!accessKey) {
-    showAccessGate("请输入访问密钥。");
+    showAccessGate(textFor("access.empty", "请输入访问密钥。"));
     return;
   }
   if (els.accessSubmit) els.accessSubmit.disabled = true;
   try {
-    setAccessStatus("正在验证访问密钥。");
+    setAccessStatus(textFor("access.verifying", "正在验证访问密钥。"));
     const session = await requestAccessSession(accessKey);
     if (els.accessToken) els.accessToken.value = "";
     completeSessionLogin(session.session_token, session.expires_at);
     loadModelSettings().catch((err) => logLine(err.message || "model settings failed"));
   } catch (err) {
-    showAccessGate(`连接失败：${err.message || "请检查访问密钥"}`);
+    showAccessGate(`${textFor("access.failed", "连接失败：")}${err.message || textFor("access.checkKey", "请检查访问密钥")}`);
   } finally {
     if (els.accessSubmit) els.accessSubmit.disabled = false;
   }
@@ -3807,16 +4129,11 @@ els.main.addEventListener("click", () => handleMainButton().catch((err) => logLi
 if (els.dockMic) {
   els.dockMic.addEventListener("click", () => handleDockVoiceCommand().catch((err) => logLine(err.message || "dock voice failed")));
 }
-if (els.quickToggle) {
-  els.quickToggle.addEventListener("click", () => {
-    document.body.classList.toggle("quickOpen");
-  });
-}
 if (els.detailsToggle) els.detailsToggle.addEventListener("click", openDetails);
 if (els.closeDetails) els.closeDetails.addEventListener("click", closeDetails);
 if (els.accessForm) {
   els.accessForm.addEventListener("submit", (event) => {
-    handleAccessSubmit(event).catch((err) => showAccessGate(`连接失败：${err.message || "unknown"}`));
+    handleAccessSubmit(event).catch((err) => showAccessGate(`${textFor("access.failed", "连接失败：")}${err.message || "unknown"}`));
   });
 }
 if (els.memoryRefresh) {
@@ -3848,9 +4165,6 @@ if (els.detailSheet) {
     if (event.target === els.detailSheet) closeDetails();
   });
 }
-document.querySelectorAll("[data-prompt]").forEach((button) => {
-  button.addEventListener("click", () => handleTextPromptCommand(button.getAttribute("data-prompt") || "", { closeQuick: true }));
-});
 els.reconnect.addEventListener("click", () => {
   handleReconnectCommand().catch((err) => {
     logLine(err.message || "reconnect failed");
@@ -3862,7 +4176,7 @@ els.stop.addEventListener("click", () => handleStopCommand("manual_stop"));
 els.mic.addEventListener("click", () => {
   micMuted = !micMuted;
   document.body.classList.toggle("micMuted", micMuted);
-  els.mic.textContent = micMuted ? "取消静音" : "麦克风";
+  els.mic.textContent = micMuted ? textFor("action.unmuteMic", "取消静音") : textFor("action.microphone", "麦克风");
   updateDockControls(currentVisualState);
   if (micMuted) stopRecognition();
   else if (running && shouldPreferServerStt()) requestServerStt("mic_unmuted");
@@ -3871,7 +4185,7 @@ els.mic.addEventListener("click", () => {
 });
 els.speaker.addEventListener("click", () => {
   speakerMuted = !speakerMuted;
-  els.speaker.textContent = speakerMuted ? "打开扬声器" : "静音扬声器";
+  els.speaker.textContent = speakerMuted ? textFor("action.unmuteSpeaker", "打开扬声器") : textFor("action.muteSpeaker", "静音扬声器");
   if (speakerMuted) stopPlayback("speaker_muted");
   else unlockTts().catch(() => {});
 });
@@ -3949,8 +4263,9 @@ if (els.manual) {
 applyBrowserTargeting();
 loadToken();
 initVoiceClientId();
-maybePromptForAccess();
 initThemeSettings();
+initLanguageSettings();
+maybePromptForAccess();
 initModelSettings();
 initVoiceProfileSettings();
 initVolumeSettings();
@@ -3977,9 +4292,9 @@ if (els.conversationStream) {
     els.conversationStream.addEventListener(eventName, () => updateConversationPinnedState({ userIntent: true }), { passive: true });
   });
 }
-els.speaker.textContent = "静音扬声器";
+els.speaker.textContent = textFor("action.muteSpeaker", "静音扬声器");
 setState("idle");
-setSubtitle("我在。你可以直接说。", { speaker: "IRIS" });
+setSubtitle(textFor("voice.idleText", "我在。你可以直接说。"), { speaker: "IRIS" });
 logLine(WEB_VERSION);
 logLine(`browser target ${BROWSER_TARGET}`);
 serviceWorkerRegistrationIdleHandle = scheduleIdleWork(() => {
