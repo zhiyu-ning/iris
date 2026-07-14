@@ -1,6 +1,6 @@
 window.IRIS_PUBLIC_CONFIG = Object.freeze({
-  "backendOrigin": "https://iris-backend.example.com",
+  "backendOrigin": "https://jarvis-alpha.tail36770b.ts.net",
   "appBasePath": "/iris",
-  "serviceWorkerUrl": "/iris/service-worker.js?v=165",
+  "serviceWorkerUrl": "/iris/service-worker.js?v=166",
   "serviceWorkerScope": "/iris/"
 });

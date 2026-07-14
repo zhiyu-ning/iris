@@ -36,7 +36,7 @@ It does not contain, and must never contain:
 Current backend origin:
 
 ```text
-https://iris-backend.example.com
+https://jarvis-alpha.tail36770b.ts.net
 ```
 
 The browser calls `/client/v1/*`, `/voice/tts`, and `/voice/ws` on that backend. Users manually enter the access key; the frontend sends it only to the private backend `/voice/session-token` to exchange for a short-lived Iris session token. The browser stores only the short-lived token in the current session, and it is not committed to this repository. The long-lived access key should be configured as `IRIS_ACCESS_KEY` in the private backend `.env`; legacy `JARVIS_API_TOKEN` is only a compatibility fallback and must never be stored in the Pages repository or frontend source.
