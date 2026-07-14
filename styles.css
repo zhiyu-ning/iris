@@ -40,8 +40,8 @@
   --primary-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
     0 18px 42px rgba(39, 62, 94, 0.1);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=167");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=167");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=168");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=168");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -174,8 +174,8 @@
   --primary-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.24),
     0 22px 54px rgba(88, 92, 255, 0.26);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=167");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=167");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=168");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=168");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -220,8 +220,8 @@
   --primary-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=167");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=167");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=168");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=168");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -746,7 +746,7 @@ p {
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=167");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=168");
 }
 
 .brandName {
@@ -912,7 +912,6 @@ h2 {
 
 .glassCard,
 .detailSheet,
-.settingsGroup,
 .captionFloat,
 .dock,
 .iconButton {
@@ -926,7 +925,6 @@ h2 {
 @supports ((backdrop-filter: blur(28px)) or (-webkit-backdrop-filter: blur(28px))) {
   .glassCard,
   .detailSheet,
-  .settingsGroup,
   .captionFloat,
   .dock,
   .iconButton {
@@ -2419,7 +2417,6 @@ body.pageHidden::after {
   box-shadow: 0 -22px 64px rgba(0, 0, 0, 0.58);
 }
 
-:root[data-theme="pure-black"] .settingsGroup,
 :root[data-theme="pure-black"] .panel,
 :root[data-theme="pure-black"] .audibilityBox,
 :root[data-theme="pure-black"] .routeBox,
@@ -2516,7 +2513,6 @@ body.pageHidden::after {
 :root[data-theme="soft-gray"] .dock,
 :root[data-theme="soft-gray"] .captionFloat,
 :root[data-theme="soft-gray"] .detailSheet,
-:root[data-theme="soft-gray"] .settingsGroup,
 :root[data-theme="soft-gray"] .iconButton {
   border-color: rgba(48, 59, 76, 0.13);
   box-shadow:
@@ -2531,7 +2527,6 @@ body.pageHidden::after {
 }
 
 :root[data-theme="soft-gray"] .captionFloat,
-:root[data-theme="soft-gray"] .settingsGroup,
 :root[data-theme="soft-gray"] .iconButton {
   background: var(--dock-surface);
 }
@@ -2566,7 +2561,6 @@ body.pageHidden::after {
 :root[data-theme="classic-blue"] .dock,
 :root[data-theme="classic-blue"] .captionFloat,
 :root[data-theme="classic-blue"] .detailSheet,
-:root[data-theme="classic-blue"] .settingsGroup,
 :root[data-theme="classic-blue"] .iconButton {
   border-color: rgba(48, 93, 145, 0.12);
   box-shadow:
@@ -2581,7 +2575,6 @@ body.pageHidden::after {
 }
 
 :root[data-theme="classic-blue"] .captionFloat,
-:root[data-theme="classic-blue"] .settingsGroup,
 :root[data-theme="classic-blue"] .iconButton {
   background: var(--dock-surface);
 }
@@ -2689,7 +2682,6 @@ body.pageHidden::after {
 :root[data-theme="aurora-glass"] .dock,
 :root[data-theme="aurora-glass"] .captionFloat,
 :root[data-theme="aurora-glass"] .detailSheet,
-:root[data-theme="aurora-glass"] .settingsGroup,
 :root[data-theme="aurora-glass"] .groupBody,
 :root[data-theme="aurora-glass"] .panel,
 :root[data-theme="aurora-glass"] .audibilityBox,
@@ -3004,4 +2996,19 @@ body.pageHidden::after {
       linear-gradient(180deg, rgba(18, 22, 30, 0.98), #07090d);
     box-shadow: 0 28px 90px rgba(0, 0, 0, 0.54);
   }
+}
+
+:root[data-theme] .detailSheet .settingsGroup.navGroup,
+:root[data-theme] .detailSheet .settingsGroup.navGroup:not([open]),
+:root[data-theme] .detailSheet .settingsGroup.navGroup[open],
+:root[data-theme] .detailSheet .settingsGroup.navGroup > .navSummary {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+:root[data-theme] .detailSheet .settingsGroup.navGroup > .navSummary {
+  border-radius: 0;
 }

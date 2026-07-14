@@ -19,7 +19,8 @@ This repository contains only static frontend assets:
 - PWA manifest and service worker
 - Iris brand icons
 - Five public frontend themes: minimal white, soft gray, classic blue, pure black, and aurora glass
-- Reference-aligned composer layout: separate upload button with a visible `PDF` badge, input capsule, embedded microphone, and separate send button
+- Reference-aligned composer layout: clean `+` file-upload button, input capsule, embedded microphone, and separate send button
+- Flat settings navigation rows: collapsed sections no longer render extra glass backplates, keeping only text, icons, arrows, and expanded content
 - Public runtime config in `public-config.js`
 
 It does not contain, and must never contain:
