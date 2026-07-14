@@ -21,7 +21,7 @@ This repository contains only static frontend assets:
 - Five public frontend themes: minimal white, soft gray, classic blue, pure black, and aurora glass
 - Reference-aligned composer layout: clean `+` file-upload button, input capsule, embedded microphone, and separate send button
 - Flat settings navigation rows: collapsed sections no longer render extra glass backplates, keeping only text, icons, arrows, and expanded content
-- Desktop adaptation: wider conversation reading area, aligned bottom composer, and a right-side Settings inspector panel
+- Desktop adaptation: wider conversation reading area, aligned bottom composer, a right-side Settings inspector panel, and an internally scrolling settings list
 - Public runtime config in `public-config.js`
 
 It does not contain, and must never contain:
