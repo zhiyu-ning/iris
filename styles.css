@@ -40,8 +40,8 @@
   --primary-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
     0 18px 42px rgba(39, 62, 94, 0.1);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=163");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=163");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=164");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=164");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -174,8 +174,8 @@
   --primary-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.24),
     0 22px 54px rgba(88, 92, 255, 0.26);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=163");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=163");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=164");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=164");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -220,8 +220,8 @@
   --primary-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=163");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=163");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=164");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=164");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -673,7 +673,7 @@ p {
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=163");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=164");
 }
 
 .brandName {
@@ -1283,6 +1283,38 @@ body.quickOpen .conversationShell .captionFloat {
   left: 0;
   color: var(--ink);
   background: var(--dock-surface);
+}
+
+.attachPlus {
+  font-size: 21px;
+  line-height: 1;
+  transform: translateY(-5px);
+}
+
+.attachHint {
+  position: absolute;
+  left: 50%;
+  bottom: 7px;
+  min-width: 20px;
+  color: var(--ink-dim);
+  font-size: 8px;
+  font-weight: 680;
+  line-height: 1;
+  opacity: 0.72;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.attachButton::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  top: 9px;
+  width: 8px;
+  height: 10px;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+  opacity: 0.46;
 }
 
 .sendButton {

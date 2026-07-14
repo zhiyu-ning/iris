@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=163" type="image/png" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=163" />
-    <link rel="manifest" href="/iris/manifest.json?v=163" />
-    <link rel="stylesheet" href="/iris/styles.css?v=163" />
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=164" type="image/png" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=164" />
+    <link rel="manifest" href="/iris/manifest.json?v=164" />
+    <link rel="stylesheet" href="/iris/styles.css?v=164" />
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -46,7 +46,10 @@
         <section class="controls dock unifiedComposer" aria-label="message composer">
           <p id="voiceInputStatus" class="voiceInputStatus" aria-live="polite">正在语音输入</p>
           <input id="documentPdfInput" class="fileInput" type="file" accept="application/pdf,.pdf" />
-          <button id="documentUploadButton" class="dockIcon attachButton" type="button" aria-label="上传文件">+</button>
+          <button id="documentUploadButton" class="dockIcon attachButton" type="button" aria-label="上传 PDF 文件" title="上传 PDF 文件">
+            <span class="attachPlus" aria-hidden="true">+</span>
+            <span class="attachHint" aria-hidden="true">PDF</span>
+          </button>
           <div class="composerField">
             <div id="documentContextBar" class="documentContextBar" hidden>
               <span id="documentStatus">未连接文件</span>
@@ -261,7 +264,7 @@
         </div>
       </aside>
     </main>
-    <script src="/iris/public-config.js?v=163"></script>
-    <script src="/iris/app.js?v=163"></script>
+    <script src="/iris/public-config.js?v=164"></script>
+    <script src="/iris/app.js?v=164"></script>
   </body>
 </html>
