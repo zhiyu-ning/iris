@@ -40,8 +40,8 @@
   --primary-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
     0 18px 42px rgba(39, 62, 94, 0.1);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=162");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=162");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=163");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=163");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -174,8 +174,8 @@
   --primary-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.24),
     0 22px 54px rgba(88, 92, 255, 0.26);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=162");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=162");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=163");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=163");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -220,8 +220,8 @@
   --primary-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=162");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=162");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=163");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=163");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -673,7 +673,7 @@ p {
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=162");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=163");
 }
 
 .brandName {
@@ -1106,28 +1106,26 @@ body.quickOpen .conversationShell .captionFloat {
   position: fixed;
   left: 50%;
   bottom: var(--effective-dock-bottom);
-  width: min(520px, calc(100% - 38px));
+  width: calc(100% - 38px);
+  max-width: 520px;
   transform: translateX(-50%);
   z-index: 6;
-  display: grid;
-  grid-template-columns: 46px minmax(0, 1fr) 46px 46px;
-  align-items: center;
-  gap: 8px;
-  min-height: 58px;
-  padding: 7px;
-  border-radius: 999px;
-  background: var(--dock-surface);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.86),
-    0 16px 38px rgba(39, 62, 94, 0.105);
+  display: block;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .dock.unifiedComposer {
-  grid-template-columns: 42px minmax(0, 1fr) 42px 42px;
-  align-items: end;
-  min-height: 58px;
-  border-radius: 999px;
-  padding: 7px;
+  min-height: 48px;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
   transition:
     min-height 180ms ease,
     border-color 180ms ease,
@@ -1140,11 +1138,8 @@ body.quickOpen .conversationShell .captionFloat {
 }
 
 .dock.unifiedComposer:focus-within {
-  border-color: rgba(47, 140, 255, 0.18);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.86),
-    0 0 0 3px rgba(47, 140, 255, 0.07),
-    0 18px 44px rgba(39, 62, 94, 0.16);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .fileInput {
@@ -1152,21 +1147,28 @@ body.quickOpen .conversationShell .captionFloat {
 }
 
 .composerField {
-  min-width: 0;
+  position: absolute;
+  left: 54px;
+  right: 54px;
+  bottom: 0;
   display: grid;
   gap: 6px;
+  align-items: end;
 }
 
 .composerField textarea {
-  min-height: 42px;
+  min-height: 44px;
   max-height: 112px;
   resize: none;
   border-radius: 999px;
-  padding: 10px 14px;
+  padding: 11px 48px 11px 16px;
   line-height: 1.35;
   scrollbar-width: none;
   color: var(--ink);
   background: var(--composer-field);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 14px 32px rgba(39, 62, 94, 0.08);
   transition:
     border-color 160ms ease,
     background 160ms ease,
@@ -1183,7 +1185,8 @@ body.quickOpen .conversationShell .captionFloat {
   background: var(--glass-strong);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 0 0 3px rgba(47, 140, 255, 0.07);
+    0 0 0 3px rgba(47, 140, 255, 0.07),
+    0 16px 36px rgba(39, 62, 94, 0.12);
 }
 
 .documentContextBar {
@@ -1259,8 +1262,10 @@ body.quickOpen .conversationShell .captionFloat {
 }
 
 .dockIcon {
-  width: 42px;
-  min-height: 42px;
+  position: absolute;
+  bottom: 0;
+  width: 44px;
+  min-height: 44px;
   padding: 0;
   display: grid;
   place-items: center;
@@ -1269,7 +1274,38 @@ body.quickOpen .conversationShell .captionFloat {
   line-height: 1;
   color: var(--ink);
   background: var(--button-bg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 12px 26px rgba(39, 62, 94, 0.08);
+}
+
+.attachButton {
+  left: 0;
+  color: var(--ink);
+  background: var(--dock-surface);
+}
+
+.sendButton {
+  right: 0;
+  color: var(--ink);
+  background: var(--dock-surface);
+}
+
+.dockMic {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  z-index: 2;
+  width: 36px;
+  min-height: 36px;
+  border-color: transparent;
+  color: var(--ink-dim);
+  background: transparent;
   box-shadow: none;
+}
+
+.dockMic:active {
+  transform: scale(0.96);
 }
 
 .dockMic.active {
@@ -1395,7 +1431,10 @@ body[data-visual-state="user_speaking"] .voiceInputStatus::before {
 }
 
 .quickGrid {
-  grid-column: 1 / -1;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
@@ -2189,15 +2228,13 @@ button:disabled {
   }
 
   .dock {
-    grid-template-columns: 42px minmax(0, 1fr) 42px 42px;
-    min-height: 58px;
-    gap: 6px;
-    padding: 7px;
+    min-height: 46px;
+    gap: 8px;
+    padding: 0;
   }
 
   .dock.unifiedComposer {
-    grid-template-columns: 40px minmax(0, 1fr) 40px 40px;
-    border-radius: 999px;
+    border-radius: 0;
   }
 
   .dockIcon {
@@ -2255,12 +2292,10 @@ button:disabled {
 
 @media (max-width: 350px) {
   .dock {
-    grid-template-columns: 40px minmax(0, 1fr) 40px 40px;
     gap: 6px;
   }
 
   .dock.unifiedComposer {
-    grid-template-columns: 38px minmax(0, 1fr) 38px 38px;
     gap: 5px;
   }
 
@@ -2326,11 +2361,20 @@ body.pageHidden::after {
 :root[data-theme="pure-black"] .dock,
 :root[data-theme="pure-black"] .captionFloat,
 :root[data-theme="pure-black"] .detailSheet {
-  background: var(--dock-surface);
   border-color: rgba(255, 255, 255, 0.12);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 18px 54px rgba(0, 0, 0, 0.46);
+}
+
+:root[data-theme="pure-black"] .dock {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+:root[data-theme="pure-black"] .captionFloat {
+  background: var(--dock-surface);
 }
 
 :root[data-theme="pure-black"] .detailSheet {
@@ -2436,11 +2480,22 @@ body.pageHidden::after {
 :root[data-theme="soft-gray"] .detailSheet,
 :root[data-theme="soft-gray"] .settingsGroup,
 :root[data-theme="soft-gray"] .iconButton {
-  background: var(--dock-surface);
   border-color: rgba(48, 59, 76, 0.13);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.62),
     0 14px 38px rgba(29, 38, 54, 0.12);
+}
+
+:root[data-theme="soft-gray"] .dock {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+:root[data-theme="soft-gray"] .captionFloat,
+:root[data-theme="soft-gray"] .settingsGroup,
+:root[data-theme="soft-gray"] .iconButton {
+  background: var(--dock-surface);
 }
 
 :root[data-theme="soft-gray"] .message.assistant,
@@ -2464,16 +2519,32 @@ body.pageHidden::after {
   background: var(--button-bg);
 }
 
+:root[data-theme="soft-gray"] .sendButton {
+  color: #ffffff;
+  background: #7f8b99;
+}
+
 :root[data-theme="classic-blue"] .dock,
 :root[data-theme="classic-blue"] .captionFloat,
 :root[data-theme="classic-blue"] .detailSheet,
 :root[data-theme="classic-blue"] .settingsGroup,
 :root[data-theme="classic-blue"] .iconButton {
-  background: var(--dock-surface);
   border-color: rgba(48, 93, 145, 0.12);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.74),
     0 14px 38px rgba(35, 66, 105, 0.13);
+}
+
+:root[data-theme="classic-blue"] .dock {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+:root[data-theme="classic-blue"] .captionFloat,
+:root[data-theme="classic-blue"] .settingsGroup,
+:root[data-theme="classic-blue"] .iconButton {
+  background: var(--dock-surface);
 }
 
 :root[data-theme="classic-blue"] .message.assistant,
@@ -2495,6 +2566,11 @@ body.pageHidden::after {
 :root[data-theme="classic-blue"] .audibilityActions button,
 :root[data-theme="classic-blue"] .themeOption {
   background: var(--button-bg);
+}
+
+:root[data-theme="classic-blue"] .sendButton {
+  color: #ffffff;
+  background: var(--accent);
 }
 
 :root[data-theme] .settingsGroup.navGroup {
@@ -2587,6 +2663,12 @@ body.pageHidden::after {
     0 16px 42px rgba(82, 78, 166, 0.16);
 }
 
+:root[data-theme="aurora-glass"] .dock {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
 :root[data-theme="aurora-glass"] .detailSheet {
   background: var(--detail-bg);
 }
@@ -2637,6 +2719,19 @@ body.pageHidden::after {
   background: rgba(255, 255, 255, 0.24);
   border-color: rgba(255, 255, 255, 0.52);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+
+:root[data-theme] .dockMic:not([data-mode="interrupt"]) {
+  color: var(--ink-dim);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+:root[data-theme] .dockMic.active:not([data-mode="interrupt"]) {
+  color: var(--accent);
+  background: transparent;
+  box-shadow: none;
 }
 
 :root[data-theme="aurora-glass"] .sendButton {
