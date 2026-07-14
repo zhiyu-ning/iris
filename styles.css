@@ -40,8 +40,8 @@
   --primary-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.92),
     0 18px 42px rgba(39, 62, 94, 0.1);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=164");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=164");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=165");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=165");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -174,8 +174,8 @@
   --primary-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.24),
     0 22px 54px rgba(88, 92, 255, 0.26);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=164");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=164");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=165");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=165");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -189,39 +189,39 @@
     radial-gradient(circle at 86% 18%, rgba(255, 211, 233, 0.74), transparent 33%),
     radial-gradient(circle at 16% 86%, rgba(139, 210, 255, 0.64), transparent 38%),
     linear-gradient(145deg, #a9bdff 0%, #b6a8ff 46%, #ffd4dd 100%);
-  --ink: #ffffff;
-  --ink-soft: rgba(255, 255, 255, 0.9);
-  --ink-dim: rgba(255, 255, 255, 0.68);
-  --glass: rgba(255, 255, 255, 0.2);
-  --glass-strong: rgba(255, 255, 255, 0.28);
-  --line: rgba(255, 255, 255, 0.3);
-  --line-strong: rgba(255, 255, 255, 0.48);
-  --shadow: rgba(82, 78, 166, 0.22);
+  --ink: #24304a;
+  --ink-soft: rgba(36, 48, 74, 0.82);
+  --ink-dim: rgba(36, 48, 74, 0.58);
+  --glass: rgba(255, 255, 255, 0.44);
+  --glass-strong: rgba(255, 255, 255, 0.68);
+  --line: rgba(74, 88, 132, 0.16);
+  --line-strong: rgba(74, 88, 132, 0.3);
+  --shadow: rgba(82, 78, 166, 0.24);
   --accent: #5ca3ff;
-  --accent-soft: rgba(255, 255, 255, 0.2);
+  --accent-soft: rgba(92, 163, 255, 0.16);
   --accent-2: #8ef2dc;
-  --field-bg: rgba(255, 255, 255, 0.18);
-  --soft-panel: rgba(255, 255, 255, 0.18);
-  --button-bg: rgba(255, 255, 255, 0.16);
-  --dock-surface: rgba(255, 255, 255, 0.18);
-  --composer-field: rgba(255, 255, 255, 0.16);
-  --assistant-bubble: rgba(255, 255, 255, 0.18);
-  --user-bubble: rgba(255, 255, 255, 0.2);
-  --file-bubble: rgba(142, 242, 220, 0.18);
+  --field-bg: rgba(255, 255, 255, 0.5);
+  --soft-panel: rgba(255, 255, 255, 0.45);
+  --button-bg: rgba(255, 255, 255, 0.42);
+  --dock-surface: rgba(255, 255, 255, 0.46);
+  --composer-field: rgba(255, 255, 255, 0.52);
+  --assistant-bubble: rgba(255, 255, 255, 0.52);
+  --user-bubble: rgba(255, 255, 255, 0.44);
+  --file-bubble: rgba(224, 255, 248, 0.52);
   --detail-bg:
     radial-gradient(circle at 14% 12%, rgba(255, 255, 255, 0.46), transparent 24%),
     radial-gradient(circle at 90% 22%, rgba(255, 199, 224, 0.45), transparent 34%),
     linear-gradient(150deg, rgba(152, 178, 255, 0.96), rgba(180, 160, 255, 0.92), rgba(255, 207, 220, 0.9));
   --access-bg: var(--page-gradient);
   --access-backdrop: var(--page-gradient);
-  --access-form-bg: rgba(255, 255, 255, 0.18);
-  --primary-action: rgba(255, 255, 255, 0.22);
-  --primary-action-text: #ffffff;
+  --access-form-bg: rgba(255, 255, 255, 0.38);
+  --primary-action: rgba(255, 255, 255, 0.58);
+  --primary-action-text: var(--ink);
   --primary-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.5),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=164");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=164");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=165");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=165");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -673,7 +673,7 @@ p {
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=164");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=165");
 }
 
 .brandName {
@@ -2688,11 +2688,11 @@ body.pageHidden::after {
 :root[data-theme="aurora-glass"] .debugDetails summary,
 :root[data-theme="aurora-glass"] .iconButton {
   color: var(--ink-soft);
-  background: rgba(255, 255, 255, 0.17);
-  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.42);
+  border-color: rgba(255, 255, 255, 0.52);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.34),
-    0 16px 42px rgba(82, 78, 166, 0.16);
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 16px 42px rgba(82, 78, 166, 0.15);
 }
 
 :root[data-theme="aurora-glass"] .dock {
@@ -2707,27 +2707,29 @@ body.pageHidden::after {
 
 :root[data-theme="aurora-glass"] .message {
   background: var(--assistant-bubble);
-  border-color: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.54);
+  color: var(--ink-soft);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.28),
-    0 16px 34px rgba(82, 78, 166, 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.66),
+    0 16px 34px rgba(82, 78, 166, 0.12);
 }
 
 :root[data-theme="aurora-glass"] .message.user {
   background: var(--user-bubble);
+  color: var(--ink);
 }
 
 :root[data-theme="aurora-glass"] input,
 :root[data-theme="aurora-glass"] select,
 :root[data-theme="aurora-glass"] textarea {
   color: var(--ink);
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.34);
+  background: var(--composer-field);
+  border-color: rgba(255, 255, 255, 0.58);
 }
 
 :root[data-theme="aurora-glass"] input::placeholder,
 :root[data-theme="aurora-glass"] textarea::placeholder {
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--ink-dim);
 }
 
 :root[data-theme="aurora-glass"] option {
@@ -2742,15 +2744,15 @@ body.pageHidden::after {
 :root[data-theme="aurora-glass"] .themeOption,
 :root[data-theme="aurora-glass"] .quick {
   color: var(--ink-soft);
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.42);
+  border-color: rgba(255, 255, 255, 0.52);
 }
 
 :root[data-theme="aurora-glass"] .themeOption[aria-checked="true"] {
   color: var(--ink);
-  background: rgba(255, 255, 255, 0.24);
-  border-color: rgba(255, 255, 255, 0.52);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.56);
+  border-color: rgba(255, 255, 255, 0.7);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.38);
 }
 
 :root[data-theme] .dockMic:not([data-mode="interrupt"]) {
@@ -2772,15 +2774,24 @@ body.pageHidden::after {
 }
 
 :root[data-theme="aurora-glass"] .micGlyph {
-  border-color: rgba(255, 255, 255, 0.76);
+  border-color: color-mix(in srgb, var(--ink) 46%, transparent);
 }
 
 :root[data-theme="aurora-glass"] .micGlyph::before {
-  border-color: rgba(255, 255, 255, 0.58);
+  border-color: color-mix(in srgb, var(--ink) 34%, transparent);
 }
 
 :root[data-theme="aurora-glass"] .micGlyph::after {
-  background: rgba(255, 255, 255, 0.76);
+  background: color-mix(in srgb, var(--ink) 46%, transparent);
+}
+
+:root[data-theme="aurora-glass"] .attachHint {
+  color: var(--ink-dim);
+  opacity: 0.92;
+}
+
+:root[data-theme="aurora-glass"] .attachButton::after {
+  opacity: 0.62;
 }
 
 @media (min-width: 900px) and (min-height: 680px) {
