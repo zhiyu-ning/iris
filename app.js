@@ -1,4 +1,5 @@
 const els = {
+  home: document.querySelector(".home"),
   dock: document.querySelector(".dock"),
   conversationStream: document.getElementById("conversationStream"),
   subtitleSpeaker: document.getElementById("subtitleSpeaker"),
@@ -30,18 +31,27 @@ const els = {
   memoryRefresh: document.getElementById("memoryRefreshButton"),
   memorySearch: document.getElementById("memorySearchInput"),
   memorySearchClear: document.getElementById("memorySearchClearButton"),
+  memoryOverview: document.getElementById("memoryOverview"),
   memoryStatus: document.getElementById("memoryStatus"),
   memoryList: document.getElementById("memoryList"),
+  modelCard: document.getElementById("modelControlCard"),
+  modelCardTitle: document.getElementById("modelControlTitle"),
+  modelCardMeta: document.getElementById("modelControlMeta"),
   accessGate: document.getElementById("accessGate"),
   accessForm: document.getElementById("accessForm"),
   accessToken: document.getElementById("accessTokenInput"),
+  accessReveal: document.getElementById("accessRevealButton"),
   accessSubmit: document.getElementById("accessSubmitButton"),
   accessStatus: document.getElementById("accessStatus"),
   accessTheme: document.getElementById("accessThemeToggle"),
   accessLanguage: document.getElementById("accessLanguageToggle"),
   voiceProfile: document.getElementById("voiceProfileSelect"),
+  voiceControlCard: document.getElementById("voiceControlCard"),
+  voiceControlTitle: document.getElementById("voiceControlTitle"),
+  voiceControlMeta: document.getElementById("voiceControlMeta"),
   documentPdf: document.getElementById("documentPdfInput"),
   documentUpload: document.getElementById("documentUploadButton"),
+  documentUploadStatus: document.getElementById("documentUploadStatus"),
   documentSummarize: document.getElementById("documentSummarizeButton"),
   documentQuestion: document.getElementById("documentQuestionInput"),
   documentAsk: document.getElementById("documentAskButton"),
@@ -55,11 +65,14 @@ const els = {
   vad: document.getElementById("vadLevel"),
   turn: document.getElementById("turnLabel"),
   log: document.getElementById("eventLog"),
+  diagnosticsStatus: document.getElementById("diagnosticsActionStatus"),
+  diagnosticsCopy: document.getElementById("copyDiagnosticsButton"),
+  diagnosticsClear: document.getElementById("clearDiagnosticsButton"),
   manual: document.getElementById("manualInput"),
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "173";
+const VOICE_UI_VERSION = "320";
 const IRIS_PUBLIC_CONFIG = Object.freeze({
   backendOrigin: "",
   appBasePath: "/voice",
@@ -78,7 +91,19 @@ const FALLBACK_VOICE_PROFILES = new Set([
   "jarvis_hongkong_friendly_female"
 ]);
 let supportedVoiceProfiles = new Set(FALLBACK_VOICE_PROFILES);
+const VOICE_PROFILE_LABELS = {
+  jarvis_taiwan_sweet_female: { zh: "台湾甜妹", en: "Taiwan Sweet" },
+  jarvis_taiwan_bright_female: { zh: "台湾元气", en: "Taiwan Bright" },
+  jarvis_mainland_soft_female: { zh: "温柔普通话", en: "Soft Mandarin" },
+  jarvis_mainland_lively_female: { zh: "活泼普通话", en: "Lively Mandarin" },
+  jarvis_liaoning_playful_female: { zh: "东北小贝", en: "Liaoning Playful" },
+  jarvis_shaanxi_bright_female: { zh: "陕西小妮", en: "Shaanxi Bright" },
+  jarvis_hongkong_friendly_female: { zh: "港风女声", en: "Hong Kong Voice" }
+};
+const serverVoiceProfileLabels = new Map(Object.entries(VOICE_PROFILE_LABELS));
 const params = new URLSearchParams(window.location.search);
+const IS_QA_MODE = params.has("qa");
+const QA_HISTORY_ENABLED = params.get("qa_history") === "1";
 if (params.has("reset_ui")) {
   Promise.all([
     "caches" in window ? caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))) : Promise.resolve(),
@@ -88,6 +113,10 @@ if (params.has("reset_ui")) {
   ]).finally(() => {
     window.location.replace(`${appBasePath()}?v=${VOICE_UI_VERSION}`);
   });
+}
+
+function shouldSkipConversationHistory() {
+  return IS_QA_MODE && !QA_HISTORY_ENABLED;
 }
 
 function safeStorageGet(key, fallback = "") {
@@ -201,7 +230,7 @@ const VISUAL_STATE_MAP = {
   error: "error",
   disconnected: "offline",
   microphone_error: "permission_required",
-  stt_error: "error",
+  stt_error: "stt_error",
   tts_error: "error",
   auth_error: "error"
 };
@@ -269,6 +298,13 @@ const VOICE_COPY = {
       speaker: "IRIS",
       text: "刚刚没有听清，可以再说一次。",
       button: "再试一次",
+      buttonTone: ""
+    },
+    stt_error: {
+      topStatus: "语音不可用",
+      speaker: "IRIS",
+      text: "语音识别暂不可用，可以先打字给我。",
+      button: "用文字输入",
       buttonTone: ""
     },
     offline: {
@@ -343,6 +379,13 @@ const VOICE_COPY = {
       button: "Try again",
       buttonTone: ""
     },
+    stt_error: {
+      topStatus: "Voice issue",
+      speaker: "IRIS",
+      text: "Voice recognition is unavailable. You can type to me for now.",
+      button: "Type instead",
+      buttonTone: ""
+    },
     offline: {
       topStatus: "Offline",
       speaker: "IRIS",
@@ -358,19 +401,45 @@ const UI_TEXT = {
     "status.online": "在线",
     "welcome.message": "我在。你可以直接说，也可以把文件发给我。",
     "voice.idleText": "我在。你可以直接说。",
+    "voice.startListening": "我在，慢慢说。",
+    "voice.connectFailedHint": "语音连接还没建立成功，我没有开始录音。请点“重连”或重新开始。",
     "voice.inputting": "正在语音输入",
     "voice.buttonIdle": "问问 Iris",
     "voice.defaultSubtitle": "我在。",
+    "voice.controlKicker": "声音状态",
+    "voice.controlHint": "这里控制 Iris 的说话音色、输入麦克风和播放开关。",
+    "voice.controlMeta": "{mic} · {speaker}",
+    "empty.kicker": "随时在这儿",
+    "empty.title": "先说一句，Iris 会接住。",
+    "empty.voice": "语音优先",
+    "empty.pdf": "文件阅读",
+    "empty.memory": "记忆连续",
     "access.eyebrow": "PRIVATE ACCESS",
-    "access.copy": "输入访问密钥进入。Iris 只会在当前浏览器会话中保存短期登录令牌。",
-    "access.placeholder": "访问密钥",
-    "access.submit": "进入",
-    "access.required": "请先输入访问密钥。",
-    "access.expired": "登录已过期，请重新输入访问密钥。",
-    "access.empty": "请输入访问密钥。",
-    "access.verifying": "正在验证访问密钥。",
-    "access.failed": "连接失败：",
-    "access.checkKey": "请检查访问密钥",
+    "access.tagline": "你的私人 AI 空间",
+    "access.copy": "登录后，会话、语音、文件和记忆会继续接上。",
+    "access.private": "只属于你",
+    "access.voice": "语音优先",
+    "access.memory": "记忆连续",
+    "access.sessionNote": "短期令牌仅保存在这台设备。",
+    "access.keyLabel": "访问口令",
+    "access.trust": "只用于确认访问权限，不会公开你的内容。",
+    "access.placeholder": "输入访问口令",
+    "access.submit": "进入 Iris",
+    "access.submitLoading": "正在确认身份",
+    "access.showCode": "显示访问口令",
+    "access.hideCode": "隐藏访问口令",
+    "access.required": "请先输入访问口令。",
+    "access.expired": "登录已过期，请重新输入访问口令。",
+    "access.empty": "请输入访问口令。",
+    "access.verifying": "正在确认你的私人空间。",
+    "access.slow": "连接有点慢，我还在确认。",
+    "access.offline": "当前网络不可用，请稍后重试。",
+    "access.failed": "口令不正确，请再试一次。",
+    "access.checkKey": "请再检查一次访问口令。",
+    "access.unavailable": "Iris 暂时没有回应，请稍后再试。",
+    "connection.dropped": "语音连接刚才断开了。网络恢复后再点一次就好。",
+    "connection.failed": "语音连接还没建立成功。网络恢复后再点一次就好。",
+    "connection.timeout": "连接超时。网络恢复后再点一次就好。",
     "settings.aria": "Iris 设置",
     "settings.eyebrow": "SETTINGS",
     "settings.title": "设置",
@@ -383,9 +452,20 @@ const UI_TEXT = {
     "settings.languageSub": "中文 · English",
     "settings.languageAria": "界面语言",
     "settings.model": "模型",
-    "settings.modelLabel": "DeepSeek API 模型",
+    "settings.modelLabel": "回答模型",
+    "model.kicker": "模型路由",
+    "model.cardTitle": "回答模型",
+    "model.cardHint": "切换后会影响 Iris 接下来的回答。",
+    "model.status.loading": "读取当前模型中。",
+    "model.status.current": "当前：{name}",
+    "model.status.none": "没有可用模型。",
+    "model.status.switching": "正在切换到 {name}。",
+    "model.status.loadFailed": "模型读取失败：{reason}",
+    "model.status.switchFailed": "切换失败：{reason}",
+    "model.message.switched": "已切换为 {name}",
+    "model.message.switchFailed": "模型切换失败：{reason}",
     "settings.memory": "记忆",
-    "settings.memorySub": "你的偏好与对话记忆",
+    "settings.memorySub": "偏好 · 项目 · 待确认",
     "settings.sound": "声音",
     "settings.soundSub": "语音 · 播放 · 麦克风",
     "settings.voiceLabel": "Edge TTS 音色",
@@ -394,6 +474,7 @@ const UI_TEXT = {
     "action.uploadFile": "上传文件",
     "action.voiceInput": "语音输入",
     "action.send": "发送",
+    "action.sendDisabled": "输入内容后发送",
     "action.themeCycle": "切换主题",
     "action.close": "关闭",
     "action.reconnect": "重连",
@@ -404,23 +485,81 @@ const UI_TEXT = {
     "action.muteSpeaker": "静音扬声器",
     "action.unmuteSpeaker": "打开扬声器",
     "action.unmuteMic": "取消麦克风静音",
+    "action.micOn": "麦克风开",
+    "action.micMuted": "麦克风关",
+    "action.soundOn": "扬声器开",
+    "action.soundMuted": "已静音",
     "action.interrupt": "打断 Iris",
     "action.stopVoice": "结束语音",
     "composer.placeholder": "输入内容...",
+    "composer.aria": "输入内容",
+    "composer.askDocument": "追问当前 PDF",
+    "composer.askDocumentDisabled": "输入问题后追问当前 PDF",
     "document.disconnected": "未连接文件",
     "document.summary": "摘要",
     "document.ask": "追问",
+    "document.onlyPdf": "这里只接收 PDF 文件。",
+    "document.selectingPdf": "选择 PDF",
+    "document.selectingPdfHint": "正在打开文件选择器",
+    "document.uploadingPdfAria": "正在上传 PDF",
+    "document.uploading": "正在上传并解析：",
+    "document.receiving": "正在接收：",
+    "document.fileReady": "PDF 已连接",
+    "document.accepted": "我已打开：",
+    "document.uploadMissingId": "上传完成，但没有拿到文档 ID。",
+    "document.uploadFailed": "PDF 上传失败：",
+    "document.noDocument": "先上传并解析一份 PDF。",
+    "document.summarizePendingShort": "正在整理摘要...",
+    "document.summarizePending": "正在整理这份 PDF 的摘要...",
+    "document.summaryEmpty": "没有生成摘要。",
+    "document.summaryPoints": "要点",
+    "document.summaryOutline": "结构",
+    "document.summaryFailed": "摘要失败：",
+    "document.askMissingQuestion": "先输入一个想问这份 PDF 的问题。",
+    "document.askPendingShort": "正在从文档里找相关内容...",
+    "document.askPending": "正在从当前 PDF 里找相关内容...",
+    "document.askEmpty": "没有找到可回答的内容。",
+    "document.askSources": "来源",
+    "document.askPage": "第 {page} 页",
+    "document.askFailed": "追问失败：",
+    "document.summaryLabel": "Iris · PDF 摘要",
+    "document.answerLabel": "Iris · PDF",
     "memory.search": "搜索记忆",
     "memory.clearSearch": "清空记忆搜索",
     "tts.audibilityTitle": "发声听感确认",
+    "tts.checkKicker": "发声检查",
+    "tts.flowGuide": "先测试播报，再告诉 Iris 你有没有听到。",
     "tts.unconfirmed": "未确认",
     "tts.routeTitle": "最近播报链路",
     "tts.noRoute": "还没有播报记录。",
+    "tts.routeSource": "来源",
+    "tts.routeProvider": "服务",
+    "tts.routeVoice": "音色",
     "tts.test": "测试播报",
+    "tts.confirmHint": "听完后确认结果",
+    "tts.testPending": "等待确认：请听浏览器是否播出了刚才这句测试语音。",
+    "tts.testUtterance": "Iris Web 发声测试。现在使用你选择的 Edge TTS 音色。",
     "tts.heard": "我听到了",
     "tts.notHeard": "没听到",
     "tts.sync": "同步记录",
+    "tts.heardStatus": "已确认听到：Web 最近一次测试播报可被人耳听见。",
+    "tts.notHeardStatus": "未听到：请检查媒体音量、静音开关、蓝牙输出、浏览器自动播放权限和 Edge TTS 音频播放链路。",
+    "tts.syncPending": "正在同步服务器最近一次 Web 听感记录。",
+    "tts.syncEmpty": "服务器还没有 Web 听感记录。",
+    "tts.syncEventHeard": "已确认听到",
+    "tts.syncEventNotHeard": "未听到",
+    "tts.syncEventLine": "{status}：服务器最近一次 Web 测试播报记录（{created}）。",
     "debug.userSaid": "我说",
+    "debug.kicker": "运行诊断",
+    "debug.title": "只读状态与最近事件",
+    "debug.copy": "复制诊断",
+    "debug.copying": "正在复制",
+    "debug.copySuccess": "已复制当前诊断摘要。",
+    "debug.copyFailed": "复制失败，请稍后再试。",
+    "debug.clear": "清空日志",
+    "debug.clearSuccess": "日志已清空。",
+    "debug.recentEvents": "最近事件",
+    "debug.localOnly": "本地显示",
     "role.user": "你",
     "role.file": "文件",
     "role.system": "状态",
@@ -430,19 +569,45 @@ const UI_TEXT = {
     "status.online": "Online",
     "welcome.message": "I'm here. You can speak or send a file.",
     "voice.idleText": "I'm here. You can speak.",
+    "voice.startListening": "I'm listening. Take your time.",
+    "voice.connectFailedHint": "The voice connection is not ready, so recording did not start. Tap Reconnect or start again.",
     "voice.inputting": "Voice input active",
     "voice.buttonIdle": "Ask Iris",
     "voice.defaultSubtitle": "I'm here.",
+    "voice.controlKicker": "Voice status",
+    "voice.controlHint": "Control Iris's speaking voice, input mic, and playback switch here.",
+    "voice.controlMeta": "{mic} · {speaker}",
+    "empty.kicker": "Always here",
+    "empty.title": "Start anywhere. Iris will follow.",
+    "empty.voice": "Voice first",
+    "empty.pdf": "File reading",
+    "empty.memory": "Continuous memory",
     "access.eyebrow": "PRIVATE ACCESS",
-    "access.copy": "Enter your access key. Iris only keeps a short-lived session token in this browser session.",
-    "access.placeholder": "Access key",
-    "access.submit": "Enter",
-    "access.required": "Enter your access key first.",
-    "access.expired": "Your session expired. Enter the access key again.",
-    "access.empty": "Enter your access key.",
-    "access.verifying": "Verifying access key.",
-    "access.failed": "Connection failed: ",
-    "access.checkKey": "check the access key",
+    "access.tagline": "Your private AI space",
+    "access.copy": "After sign-in, conversations, voice, files, and memory stay continuous.",
+    "access.private": "Only yours",
+    "access.voice": "Voice first",
+    "access.memory": "Continuous memory",
+    "access.sessionNote": "The short-lived token stays on this device.",
+    "access.keyLabel": "Access code",
+    "access.trust": "Only confirms access. Nothing is shared publicly.",
+    "access.placeholder": "Enter access code",
+    "access.submit": "Enter Iris",
+    "access.submitLoading": "Confirming identity",
+    "access.showCode": "Show access code",
+    "access.hideCode": "Hide access code",
+    "access.required": "Enter your access code first.",
+    "access.expired": "Your session expired. Enter the access code again.",
+    "access.empty": "Enter your access code.",
+    "access.verifying": "Confirming your private Iris space.",
+    "access.slow": "Taking a little longer. I am still confirming.",
+    "access.offline": "Network is unavailable. Try again later.",
+    "access.failed": "The access code is not correct. Try again.",
+    "access.checkKey": "Check the access code and try again.",
+    "access.unavailable": "Iris is not responding right now. Try again later.",
+    "connection.dropped": "The voice connection dropped. Try again when the network is back.",
+    "connection.failed": "The voice connection was not established. Try again when the network is back.",
+    "connection.timeout": "The voice connection timed out. Try again when the network is back.",
     "settings.aria": "Iris settings",
     "settings.eyebrow": "SETTINGS",
     "settings.title": "Settings",
@@ -455,9 +620,20 @@ const UI_TEXT = {
     "settings.languageSub": "Chinese · English",
     "settings.languageAria": "Interface language",
     "settings.model": "Model",
-    "settings.modelLabel": "DeepSeek API model",
+    "settings.modelLabel": "Response model",
+    "model.kicker": "Model router",
+    "model.cardTitle": "Response model",
+    "model.cardHint": "Changes affect Iris replies after the switch.",
+    "model.status.loading": "Reading current model.",
+    "model.status.current": "Current: {name}",
+    "model.status.none": "No model available.",
+    "model.status.switching": "Switching to {name}.",
+    "model.status.loadFailed": "Model load failed: {reason}",
+    "model.status.switchFailed": "Switch failed: {reason}",
+    "model.message.switched": "Switched to {name}",
+    "model.message.switchFailed": "Model switch failed: {reason}",
     "settings.memory": "Memory",
-    "settings.memorySub": "Preferences and conversation memory",
+    "settings.memorySub": "Prefs · Projects · Review",
     "settings.sound": "Voice",
     "settings.soundSub": "Speech · Playback · Mic",
     "settings.voiceLabel": "Edge TTS voice",
@@ -466,33 +642,92 @@ const UI_TEXT = {
     "action.uploadFile": "Upload file",
     "action.voiceInput": "Voice input",
     "action.send": "Send",
+    "action.sendDisabled": "Type a message to send",
     "action.themeCycle": "Switch theme",
     "action.close": "Close",
     "action.reconnect": "Reconnect",
     "action.stop": "Stop",
     "action.refresh": "Refresh",
     "action.clear": "Clear",
-    "action.microphone": "Microphone",
-    "action.muteSpeaker": "Mute speaker",
-    "action.unmuteSpeaker": "Unmute speaker",
-    "action.unmuteMic": "Unmute microphone",
+    "action.microphone": "Mic",
+    "action.muteSpeaker": "Mute",
+    "action.unmuteSpeaker": "Sound on",
+    "action.unmuteMic": "Mic on",
+    "action.micOn": "Mic on",
+    "action.micMuted": "Mic off",
+    "action.soundOn": "Sound on",
+    "action.soundMuted": "Muted",
     "action.interrupt": "Interrupt Iris",
     "action.stopVoice": "Stop voice",
     "composer.placeholder": "Type a message...",
+    "composer.aria": "Message input",
+    "composer.askDocument": "Ask current PDF",
+    "composer.askDocumentDisabled": "Type a question to ask current PDF",
     "document.disconnected": "No file connected",
     "document.summary": "Summary",
     "document.ask": "Ask",
+    "document.onlyPdf": "Only PDF files are supported.",
+    "document.selectingPdf": "Choose PDF",
+    "document.selectingPdfHint": "Opening file picker",
+    "document.uploadingPdfAria": "Uploading PDF",
+    "document.uploading": "Uploading and parsing: ",
+    "document.receiving": "Receiving: ",
+    "document.fileReady": "PDF connected",
+    "document.accepted": "I’ve opened ",
+    "document.uploadMissingId": "Upload finished, but no document ID was returned.",
+    "document.uploadFailed": "PDF upload failed: ",
+    "document.noDocument": "Upload and parse a PDF first.",
+    "document.summarizePendingShort": "Summarizing...",
+    "document.summarizePending": "Summarizing this PDF...",
+    "document.summaryEmpty": "No summary was generated.",
+    "document.summaryPoints": "Key points",
+    "document.summaryOutline": "Outline",
+    "document.summaryFailed": "Summary failed: ",
+    "document.askMissingQuestion": "Type a question for this PDF first.",
+    "document.askPendingShort": "Looking through the document...",
+    "document.askPending": "Searching the current PDF...",
+    "document.askEmpty": "No answerable content was found.",
+    "document.askSources": "Sources",
+    "document.askPage": "Page {page}",
+    "document.askFailed": "Question failed: ",
+    "document.summaryLabel": "Iris · PDF Summary",
+    "document.answerLabel": "Iris · PDF",
     "memory.search": "Search memory",
     "memory.clearSearch": "Clear memory search",
     "tts.audibilityTitle": "Voice audibility",
+    "tts.checkKicker": "Voice check",
+    "tts.flowGuide": "Test playback first, then tell Iris whether you heard it.",
     "tts.unconfirmed": "Not confirmed",
     "tts.routeTitle": "Recent playback route",
     "tts.noRoute": "No playback record yet.",
+    "tts.routeSource": "Source",
+    "tts.routeProvider": "Service",
+    "tts.routeVoice": "Voice",
     "tts.test": "Test voice",
-    "tts.heard": "I heard it",
+    "tts.confirmHint": "Confirm the result after listening",
+    "tts.testPending": "Waiting for confirmation: listen for the test phrase.",
+    "tts.testUtterance": "Iris Web voice test. Using your selected Edge TTS voice.",
+    "tts.heard": "Heard",
     "tts.notHeard": "No sound",
     "tts.sync": "Sync record",
+    "tts.heardStatus": "Confirmed: the latest Web test playback was audible.",
+    "tts.notHeardStatus": "No sound: check media volume, mute switch, Bluetooth output, browser autoplay permission, and the Edge TTS playback route.",
+    "tts.syncPending": "Syncing the latest Web audibility record from the server.",
+    "tts.syncEmpty": "No Web audibility record on the server yet.",
+    "tts.syncEventHeard": "Heard",
+    "tts.syncEventNotHeard": "No sound",
+    "tts.syncEventLine": "{status}: latest Web test playback record on the server ({created}).",
     "debug.userSaid": "You said",
+    "debug.kicker": "Runtime diagnostics",
+    "debug.title": "Read-only state and recent events",
+    "debug.copy": "Copy report",
+    "debug.copying": "Copying",
+    "debug.copySuccess": "Copied the current diagnostics summary.",
+    "debug.copyFailed": "Copy failed. Try again later.",
+    "debug.clear": "Clear log",
+    "debug.clearSuccess": "Log cleared.",
+    "debug.recentEvents": "Recent events",
+    "debug.localOnly": "Local only",
     "role.user": "You",
     "role.file": "File",
     "role.system": "Status",
@@ -568,7 +803,7 @@ let lastTtsRoute = {
   provider: "none",
   voiceProfile: DEFAULT_VOICE_PROFILE,
   source: "none",
-  summary: "还没有播报记录。"
+  summary: ""
 };
 let currentTtsRouteText = "";
 let persistedTtsRouteText = null;
@@ -612,15 +847,26 @@ let serviceWorkerRegistrationIdleHandle = null;
 let currentDocumentId = "";
 let currentDocumentName = "";
 let currentDocumentSummary = "";
+let currentDocumentSummaryData = null;
+let currentDocumentWarnings = [];
+let currentDocumentAnswerMode = "";
+let currentDocumentReadyFileMessageId = "";
+let currentDocumentReadyAssistantMessageId = "";
+let documentUploadInFlight = false;
 let conversationMessageSeq = 0;
 let conversationHistoryLoaded = false;
 let conversationHistoryLoading = false;
 let activeAssistantMessageId = "";
+let connectionStatusMessageId = "";
 let lastUserConversationText = "";
 let lastUserConversationAt = 0;
+let detailsReturnFocus = null;
 let memoryControlLoaded = false;
 let memoryControlLoading = false;
 let memorySearchTimer = 0;
+let lastMemoryControlPayload = null;
+let modelStatusMeta = { key: "", values: {} };
+let accessSlowNoticeTimer = 0;
 
 const VAD = {
   startThresholdMs: 220,
@@ -637,8 +883,11 @@ const LOG_RENDER_LIMIT = 8;
 const TTS_ROUTE_PERSIST_FALLBACK_MS = 160;
 const CONVERSATION_BOTTOM_EPSILON_PX = 52;
 const CONVERSATION_USER_SCROLL_PAUSE_MS = 9000;
+const MEMORY_ACTION_MIN_BUSY_MS = 720;
+const COMPOSER_ACTION_MIN_BUSY_MS = 260;
+const MAINTENANCE_ACTION_MIN_BUSY_MS = 280;
 
-const WEB_VERSION = "voice-ui-web-polish-v173-desktop-workspace";
+const WEB_VERSION = "voice-ui-web-polish-v320-sound-first-screen-polish";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -673,6 +922,7 @@ const IS_ANDROID_DEVICE = /Android/i.test(USER_AGENT);
 const IS_IOS_DEVICE = /iPad|iPhone|iPod/.test(USER_AGENT) || (NAVIGATOR_PLATFORM === "MacIntel" && NAVIGATOR_MAX_TOUCH_POINTS > 1);
 const IS_CHROME_BROWSER = /(Chrome|Chromium|CriOS)\//.test(USER_AGENT) && !/(Edg|OPR|SamsungBrowser)\//.test(USER_AGENT);
 const BROWSER_TARGET = IS_CHROME_BROWSER ? "chrome" : "unsupported";
+const POINTER_FINE_QUERY = typeof window.matchMedia === "function" ? window.matchMedia("(hover: hover) and (pointer: fine)") : null;
 const IDLE_TASK_TIMEOUT_MS = 1200;
 
 function applyBrowserTargeting() {
@@ -680,6 +930,16 @@ function applyBrowserTargeting() {
   document.body.dataset.browserTarget = BROWSER_TARGET;
   document.body.classList.toggle("browserChrome", IS_CHROME_BROWSER);
   document.body.classList.toggle("browserUnsupported", BROWSER_TARGET === "unsupported");
+  document.body.classList.toggle("pointerFine", Boolean(POINTER_FINE_QUERY && POINTER_FINE_QUERY.matches));
+}
+
+if (POINTER_FINE_QUERY) {
+  const syncPointerFine = () => document.body.classList.toggle("pointerFine", POINTER_FINE_QUERY.matches);
+  if (typeof POINTER_FINE_QUERY.addEventListener === "function") {
+    POINTER_FINE_QUERY.addEventListener("change", syncPointerFine);
+  } else if (typeof POINTER_FINE_QUERY.addListener === "function") {
+    POINTER_FINE_QUERY.addListener(syncPointerFine);
+  }
 }
 
 function scheduleIdleWork(callback, options = {}) {
@@ -715,6 +975,10 @@ function isAndroid() {
 function shouldPreferServerStt() {
   if (REQUESTED_STT_MODE === "browser") return false;
   return IS_ANDROID_DEVICE || REQUESTED_STT_MODE === "server";
+}
+
+function canFallbackToServerStt() {
+  return REQUESTED_STT_MODE !== "browser";
 }
 
 function isIOS() {
@@ -888,6 +1152,32 @@ function clearConversationScrollSchedule() {
   conversationScrollSettleFrame = 0;
 }
 
+function revealConversationMessage(id, options = {}) {
+  const item = findConversationMessage(id);
+  if (!item || !els.conversationStream) return;
+  const block = options.block || "end";
+  let attempts = 0;
+  const reveal = () => {
+    const scroller = els.conversationStream;
+    if (!scroller) return;
+    const itemHeight = item.offsetHeight || item.getBoundingClientRect().height || 0;
+    const itemTop = item.offsetTop || 0;
+    const itemBottom = itemTop + itemHeight;
+    const maxScroll = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+    const dockHeight = els.dock ? Math.ceil(els.dock.getBoundingClientRect().height || 0) : 0;
+    const bottomPadding = 44;
+    const topPadding = 24;
+    const target = block === "start"
+      ? itemTop - topPadding
+      : itemBottom - scroller.clientHeight + dockHeight + bottomPadding;
+    scroller.scrollTop = Math.max(0, Math.min(maxScroll, target));
+    conversationPinnedToBottom = isConversationNearBottom();
+    attempts += 1;
+    if (attempts < 4) requestAnimationFrame(reveal);
+  };
+  requestAnimationFrame(reveal);
+}
+
 function pauseSubtitleAutoFlow(ms = 7000) {
   subtitleAutoFlowPausedUntil = Date.now() + ms;
   cancelSubtitleFlow();
@@ -1007,6 +1297,97 @@ function conversationRoleLabel(role) {
   return "Iris";
 }
 
+function documentMessageKind(kind = "") {
+  return String(kind || "").startsWith("document_") || kind === "uploading";
+}
+
+function normalizeDocumentDisplayLine(line) {
+  return String(line || "")
+    .replace(/^#{1,6}\s+/, "")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function appendDocumentInlineText(target, text) {
+  const parts = String(text || "").split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+  parts.forEach((part) => {
+    const strongMatch = part.match(/^\*\*([^*]+)\*\*$/);
+    if (strongMatch) {
+      const strong = document.createElement("strong");
+      strong.textContent = strongMatch[1];
+      target.appendChild(strong);
+      return;
+    }
+    target.appendChild(document.createTextNode(part));
+  });
+}
+
+function documentLineClass(line, index) {
+  const normalized = normalizeDocumentDisplayLine(line);
+  if (!normalized) return "";
+  if (/^-{3,}$/.test(normalized)) return "";
+  if (/^[\-•]\s+/.test(normalized)) return "documentMessageBullet";
+  if (/^\|.+\|$/.test(normalized)) return "documentMessageTableLine";
+  if ((/[：:]$/.test(normalized) && normalized.length <= 18) || /^(要点|结构|来源|Sources|Key points|Outline)[：:]?$/i.test(normalized)) {
+    return "documentMessageSectionTitle";
+  }
+  if (index === 0 || /^(我已打开|I’ve opened|PDF 上传失败|摘要失败|追问失败|正在)/.test(normalized)) {
+    return "documentMessageLead";
+  }
+  return "documentMessageParagraph";
+}
+
+function renderDocumentMessageBody(body, text, options = {}) {
+  const value = (text || "").trim();
+  body.dataset.documentRender = "true";
+  body.dataset.documentKind = options.kind || "";
+  body.replaceChildren();
+  const lines = value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (!lines.length) {
+    body.textContent = " ";
+    return;
+  }
+  lines.forEach((line, index) => {
+    const className = documentLineClass(line, index);
+    if (!className) return;
+    const row = document.createElement("span");
+    row.className = className;
+    if (className === "documentMessageBullet") {
+      appendDocumentInlineText(row, normalizeDocumentDisplayLine(line).replace(/^[\-•]\s+/, ""));
+    } else if (className === "documentMessageTableLine") {
+      const cells = normalizeDocumentDisplayLine(line)
+        .replace(/^\|/, "")
+        .replace(/\|$/, "")
+        .split("|")
+        .map((cell) => cell.trim())
+        .filter(Boolean);
+      if (/^-+$/.test(cells.join("").replace(/\s+/g, ""))) return;
+      cells.slice(0, 3).forEach((cell) => {
+        const chip = document.createElement("span");
+        chip.className = "documentMessageCell";
+        appendDocumentInlineText(chip, cell);
+        row.appendChild(chip);
+      });
+    } else {
+      appendDocumentInlineText(row, normalizeDocumentDisplayLine(line));
+    }
+    if (row.childNodes.length) body.appendChild(row);
+  });
+}
+
+function setMessageBodyText(body, text, options = {}) {
+  if (!body) return;
+  const kind = options.kind || "";
+  if (options.role === "file" || documentMessageKind(kind)) {
+    renderDocumentMessageBody(body, text, options);
+    return;
+  }
+  delete body.dataset.documentRender;
+  delete body.dataset.documentKind;
+  body.textContent = (text || "").trim() || " ";
+}
+
 function appendConversationMessage(role, text, options = {}) {
   if (!els.conversationStream) return "";
   const value = (text || "").trim();
@@ -1023,17 +1404,88 @@ function appendConversationMessage(role, text, options = {}) {
   meta.textContent = options.label || conversationRoleLabel(role);
   const body = document.createElement("p");
   body.className = "messageText";
-  body.textContent = value || " ";
+  setMessageBodyText(body, value || " ", { ...options, role });
   item.append(meta, body);
   if (Array.isArray(options.actions) && options.actions.length) {
     const actions = document.createElement("div");
     actions.className = "messageActions";
-    options.actions.forEach((action) => actions.appendChild(action));
+    actions.setAttribute("role", "group");
+    actions.setAttribute("aria-label", currentLanguage === "en" ? "Message actions" : "消息操作");
+    options.actions.forEach((action, index) => actions.appendChild(decorateMessageActionButton(action, index)));
+    const feedback = document.createElement("p");
+    feedback.className = "messageActionFeedback";
+    feedback.dataset.tone = "idle";
+    feedback.setAttribute("role", "status");
+    feedback.setAttribute("aria-live", "polite");
+    feedback.textContent = currentLanguage === "en" ? "Choose an action when ready." : "需要时选择一个操作。";
+    actions.appendChild(feedback);
     item.appendChild(actions);
   }
   els.conversationStream.appendChild(item);
   scheduleConversationScroll({ force: options.forceScroll, allowed: shouldScroll });
   return id;
+}
+
+function messageActionVariant(button, index = 0) {
+  const text = String(button && button.textContent ? button.textContent : "").trim().toLowerCase();
+  if (text.includes("采纳") || text.includes("accept") || text.includes("确认")) return "primary";
+  if (text.includes("删除") || text.includes("拒绝") || text.includes("remove") || text.includes("delete")) return "danger";
+  return index === 0 ? "primary" : "neutral";
+}
+
+function messageActionKey(button, index = 0) {
+  const existing = button && (button.dataset.actionKey || button.dataset.action);
+  const text = String(existing || (button && button.textContent) || "").trim().toLowerCase();
+  if (text.includes("采纳") || text.includes("accept") || text.includes("确认")) return "accept";
+  if (text.includes("稍后") || text.includes("later") || text.includes("delay")) return "later";
+  if (text.includes("删除") || text.includes("拒绝") || text.includes("remove") || text.includes("delete")) return "dismiss";
+  return `action-${index + 1}`;
+}
+
+function messageActionSelectedText(label, actionKey = "") {
+  const key = String(actionKey || "").trim().toLowerCase();
+  const value = String(label || "").trim();
+  if (currentLanguage === "en") {
+    if (key === "accept") return "Accepted. I’ll keep this direction.";
+    if (key === "later") return "Saved for later.";
+    if (key === "dismiss") return "Dismissed.";
+    return value ? `Done. ${value}` : "Done.";
+  }
+  if (key === "accept") return "已采纳，我会按这个方向处理。";
+  if (key === "later") return "已放到稍后处理。";
+  if (key === "dismiss") return "已忽略这条建议。";
+  return value ? `已处理：${value}` : "已处理。";
+}
+
+function decorateMessageActionButton(button, index = 0) {
+  if (!button) return document.createTextNode("");
+  const visibleText = button.textContent.trim() || `action-${index + 1}`;
+  const actionKey = messageActionKey(button, index);
+  button.dataset.action = button.dataset.action || visibleText;
+  button.dataset.actionKey = actionKey;
+  button.dataset.variant = button.dataset.variant || messageActionVariant(button, index);
+  button.dataset.defaultLabel = visibleText;
+  button.setAttribute("aria-pressed", button.getAttribute("aria-pressed") || "false");
+  button.setAttribute("aria-label", button.getAttribute("aria-label") || visibleText);
+  button.addEventListener("click", () => {
+    const group = button.closest(".messageActions");
+    if (!group) return;
+    group.dataset.selectedAction = button.dataset.action || visibleText;
+    group.dataset.selectedKey = button.dataset.actionKey || actionKey;
+    group.dataset.state = "selected";
+    const message = button.closest(".message");
+    if (message) message.dataset.actionState = "selected";
+    group.querySelectorAll("button").forEach((node) => {
+      node.setAttribute("aria-pressed", node === button ? "true" : "false");
+      node.dataset.selected = node === button ? "true" : "false";
+    });
+    const feedback = group.querySelector(".messageActionFeedback");
+    if (feedback) {
+      feedback.dataset.tone = "success";
+      feedback.textContent = messageActionSelectedText(button.dataset.defaultLabel || visibleText, button.dataset.actionKey || actionKey);
+    }
+  });
+  return button;
 }
 
 function findConversationMessage(id) {
@@ -1047,8 +1499,13 @@ function updateConversationMessage(id, text, options = {}) {
   const shouldScroll = shouldAutoScrollConversation({ force: options.forceScroll });
   const item = findConversationMessage(id);
   if (!item) return false;
+  if (options.role) item.className = `message ${options.role}`;
+  if (options.kind) item.dataset.kind = options.kind;
   const body = item.querySelector(".messageText");
-  if (body) body.textContent = (text || "").trim() || " ";
+  if (body) {
+    const role = options.role || (item.classList.contains("file") ? "file" : item.classList.contains("user") ? "user" : item.classList.contains("system") ? "system" : "assistant");
+    setMessageBodyText(body, (text || "").trim() || " ", { ...options, role, kind: options.kind || item.dataset.kind || "" });
+  }
   if (options.label) {
     const meta = item.querySelector(".messageMeta");
     if (meta) meta.textContent = options.label;
@@ -1069,6 +1526,24 @@ function appendUserConversation(text, options = {}) {
 
 function appendAssistantConversation(text, options = {}) {
   return appendConversationMessage("assistant", text, options);
+}
+
+function showConnectionRecoveryHint(key, fallback) {
+  const message = textFor(key, fallback);
+  setSttHint(message);
+  setSubtitle(message, { speaker: "IRIS", resetFlow: true });
+  const label = textFor("role.system", "状态");
+  if (
+    connectionStatusMessageId
+    && updateConversationMessage(connectionStatusMessageId, message, { role: "system", label, forceScroll: true })
+  ) {
+    return;
+  }
+  connectionStatusMessageId = appendConversationMessage("system", message, {
+    kind: "connection_status",
+    label,
+    forceScroll: true
+  });
 }
 
 function serverTtsFailureCount(profile) {
@@ -1127,6 +1602,12 @@ function historyMessageLabel(role, time) {
 
 async function loadConversationHistory() {
   if (conversationHistoryLoaded || conversationHistoryLoading || !window.fetch || !els.conversationStream) return;
+  if (shouldSkipConversationHistory()) {
+    conversationHistoryLoaded = true;
+    ensureAssistantConversationAnchor();
+    logLine("conversation history skipped for screenshot QA");
+    return;
+  }
   conversationHistoryLoading = true;
   try {
     const response = await fetch(backendUrl("/client/v1/conversation/history?since_hours=24&limit=60"), {
@@ -1283,6 +1764,13 @@ function textFor(key, fallback = "") {
   return fallback || key;
 }
 
+function formatTextFor(key, fallback = "", values = {}) {
+  return Object.entries(values).reduce(
+    (text, [name, value]) => text.replace(new RegExp(`\\{${name}\\}`, "g"), String(value ?? "")),
+    textFor(key, fallback)
+  );
+}
+
 function stateCopyFor(visualState) {
   const langCopy = VOICE_COPY[currentLanguage] || VOICE_COPY.zh;
   return langCopy[visualState] || langCopy.idle || VOICE_COPY.zh.idle;
@@ -1300,6 +1788,44 @@ function syncLanguageControls() {
     els.accessLanguage.textContent = currentLanguage === "zh" ? "EN" : "中";
     els.accessLanguage.setAttribute("aria-label", currentLanguage === "zh" ? "Switch to English" : "切换到中文");
     els.accessLanguage.setAttribute("title", currentLanguage === "zh" ? "Switch to English" : "切换到中文");
+  }
+  syncAccessQuickControls();
+}
+
+function themeLabelFor(theme) {
+  const labels = {
+    zh: {
+      "minimal-white": "极简白",
+      "soft-gray": "素雅灰",
+      "classic-blue": "经典蓝",
+      "pure-black": "极致黑",
+      "aurora-glass": "流光玻璃"
+    },
+    en: {
+      "minimal-white": "Minimal white",
+      "soft-gray": "Soft gray",
+      "classic-blue": "Classic blue",
+      "pure-black": "Pure black",
+      "aurora-glass": "Aurora glass"
+    }
+  };
+  return (labels[currentLanguage] || labels.zh)[normalizedTheme(theme)] || theme;
+}
+
+function syncAccessQuickControls() {
+  const activeTheme = normalizedTheme(document.documentElement.dataset.theme || selectedTheme());
+  if (els.accessTheme) {
+    els.accessTheme.dataset.activeTheme = activeTheme;
+    els.accessTheme.setAttribute("aria-pressed", activeTheme === "minimal-white" ? "false" : "true");
+    const label = currentLanguage === "en"
+      ? `Theme: ${themeLabelFor(activeTheme)}. Tap to change.`
+      : `当前主题：${themeLabelFor(activeTheme)}。点击切换。`;
+    els.accessTheme.setAttribute("aria-label", label);
+    els.accessTheme.setAttribute("title", label);
+  }
+  if (els.accessLanguage) {
+    els.accessLanguage.dataset.language = currentLanguage;
+    els.accessLanguage.setAttribute("aria-pressed", currentLanguage === "en" ? "true" : "false");
   }
 }
 
@@ -1319,11 +1845,47 @@ function applyLanguage(language, { persist = true, refreshState = true } = {}) {
     node.setAttribute("title", textFor(node.dataset.i18nTitle, node.getAttribute("title") || ""));
   });
   syncLanguageControls();
-  if (els.mic) els.mic.textContent = micMuted ? textFor("action.unmuteMic", "取消静音") : textFor("action.microphone", "麦克风");
-  if (els.speaker) els.speaker.textContent = speakerMuted ? textFor("action.unmuteSpeaker", "打开扬声器") : textFor("action.muteSpeaker", "静音扬声器");
+  refreshAccessStatusLanguage();
+  refreshAccessRevealButton();
+  refreshDiagnosticsStatusLanguage();
+  refreshModelStatusLanguage();
+  refreshVoiceProfileLabels();
+  syncAudioSettingButtons();
+  syncComposerSendAvailability();
+  renderWebTtsRoute();
+  renderWebTtsAudibility();
+  if (lastMemoryControlPayload && els.memoryList && typeof renderMemoryControlCenter === "function") {
+    renderMemoryControlCenter(lastMemoryControlPayload);
+  }
+  if (currentDocumentId && typeof setDocumentStatus === "function") {
+    setDocumentStatus(currentDocumentStatusLine() || "PDF", "ready");
+    refreshDocumentReadyPresentation();
+  }
   updateDockControls(currentVisualState);
   if (persist) safeStorageSet(LANGUAGE_KEY, currentLanguage);
   if (refreshState) setState(currentRawState || "idle", { preserveSubtitle: true });
+}
+
+function syncAudioSettingButtons() {
+  let micLabel = "";
+  let speakerLabel = "";
+  if (els.mic) {
+    micLabel = micMuted ? textFor("action.micMuted", "麦克风关") : textFor("action.micOn", "麦克风开");
+    els.mic.textContent = micLabel;
+    els.mic.dataset.state = micMuted ? "off" : "on";
+    els.mic.setAttribute("aria-pressed", micMuted ? "true" : "false");
+    els.mic.setAttribute("aria-label", micLabel);
+    els.mic.setAttribute("title", micLabel);
+  }
+  if (els.speaker) {
+    speakerLabel = speakerMuted ? textFor("action.soundMuted", "已静音") : textFor("action.soundOn", "扬声器开");
+    els.speaker.textContent = speakerLabel;
+    els.speaker.dataset.state = speakerMuted ? "off" : "on";
+    els.speaker.setAttribute("aria-pressed", speakerMuted ? "true" : "false");
+    els.speaker.setAttribute("aria-label", speakerLabel);
+    els.speaker.setAttribute("title", speakerLabel);
+  }
+  refreshVoiceControlCard({ micLabel, speakerLabel });
 }
 
 function initLanguageSettings() {
@@ -1378,6 +1940,7 @@ function applyTheme(theme, { persist = true } = {}) {
     });
   }
   if (persist) safeStorageSet(THEME_KEY, next);
+  syncAccessQuickControls();
 }
 
 function cycleTheme() {
@@ -1405,11 +1968,72 @@ function modelDisplayName(model) {
     "deepseek-v4-flash": "DeepSeek V4 Flash",
     "deepseek-v4-pro": "DeepSeek V4 Pro"
   };
-  return labels[model] || model || "未知模型";
+  return labels[model] || model || (currentLanguage === "en" ? "Unknown model" : "未知模型");
 }
 
-function setModelStatus(text) {
-  if (els.modelStatus) els.modelStatus.textContent = text || " ";
+function modelStatusTone(statusKey) {
+  if (statusKey === "model.status.loading" || statusKey === "model.status.switching") return "loading";
+  if (statusKey === "model.status.loadFailed" || statusKey === "model.status.switchFailed") return "error";
+  if (statusKey === "model.status.current") return "success";
+  if (statusKey === "model.status.none") return "warning";
+  return "info";
+}
+
+function setModelCardTitle(text = "") {
+  if (!els.modelCardTitle) return;
+  const value = String(text || "").trim() || textFor("model.cardTitle", "回答模型");
+  els.modelCardTitle.textContent = value;
+  els.modelCardTitle.title = value;
+}
+
+function setModelStatus(text, { statusKey = "", values = {} } = {}) {
+  const value = text || " ";
+  const tone = modelStatusTone(statusKey);
+  if (els.modelStatus) {
+    els.modelStatus.textContent = value;
+    els.modelStatus.title = value;
+    els.modelStatus.dataset.tone = tone;
+  }
+  if (els.modelCard) els.modelCard.dataset.tone = tone;
+  if (els.modelCardMeta) {
+    els.modelCardMeta.textContent = value;
+    els.modelCardMeta.title = value;
+  }
+  if (statusKey) {
+    if (els.modelStatus) els.modelStatus.dataset.statusKey = statusKey;
+    if (els.modelCardMeta) els.modelCardMeta.dataset.statusKey = statusKey;
+    modelStatusMeta = { key: statusKey, values: { ...values } };
+  } else {
+    if (els.modelStatus) delete els.modelStatus.dataset.statusKey;
+    if (els.modelCardMeta) delete els.modelCardMeta.dataset.statusKey;
+    modelStatusMeta = { key: "", values: {} };
+  }
+}
+
+function setModelStatusKey(statusKey, fallback, values = {}) {
+  setModelStatus(formatTextFor(statusKey, fallback, values), { statusKey, values });
+}
+
+function setCurrentModelStatus(model) {
+  const id = String(model || "").trim();
+  if (!id) {
+    setModelCardTitle(textFor("model.cardTitle", "回答模型"));
+    setModelStatusKey("model.status.none", "No model available.");
+    return;
+  }
+  setModelCardTitle(modelDisplayName(id));
+  setModelStatusKey("model.status.current", `Current: ${modelDisplayName(id)}`, {
+    name: modelDisplayName(id),
+    id
+  });
+}
+
+function refreshModelStatusLanguage() {
+  if (!modelStatusMeta.key) return;
+  const selected = els.modelSelect ? String(els.modelSelect.value || "").trim() : "";
+  if (selected) setModelCardTitle(modelDisplayName(selected));
+  else setModelCardTitle(textFor("model.cardTitle", "回答模型"));
+  setModelStatusKey(modelStatusMeta.key, els.modelStatus ? els.modelStatus.textContent || " " : " ", modelStatusMeta.values);
 }
 
 function populateModelOptions(models, currentModel) {
@@ -1425,12 +2049,12 @@ function populateModelOptions(models, currentModel) {
   });
   if (currentModel) els.modelSelect.value = currentModel;
   const selected = els.modelSelect.value || currentModel || "";
-  setModelStatus(selected ? `当前：${modelDisplayName(selected)}（${selected}）` : "没有可用模型。");
+  setCurrentModelStatus(selected);
 }
 
 async function loadModelSettings() {
   if (!els.modelSelect || !window.fetch) return;
-  setModelStatus("读取当前模型中。");
+  setModelStatusKey("model.status.loading", "Reading current model.");
   try {
     const response = await fetch(backendUrl("/voice/models"), {
       method: "GET",
@@ -1444,7 +2068,9 @@ async function loadModelSettings() {
     }
     populateModelOptions(payload.models || [], payload.current_model || "");
   } catch (err) {
-    setModelStatus(`模型读取失败：${err.message || "unknown"}`);
+    setModelStatusKey("model.status.loadFailed", `Model load failed: ${err.message || "unknown"}`, {
+      reason: err.message || "unknown"
+    });
     logLine(`model load failed ${err.message || ""}`.trim());
     throw err;
   }
@@ -1454,7 +2080,11 @@ async function switchModelFromMenu(model) {
   const target = String(model || "").trim();
   if (!target || !window.fetch) return;
   const previous = els.modelSelect ? els.modelSelect.value : "";
-  setModelStatus(`正在切换到 ${modelDisplayName(target)}。`);
+  setModelCardTitle(modelDisplayName(target));
+  setModelStatusKey("model.status.switching", `Switching to ${modelDisplayName(target)}.`, {
+    name: modelDisplayName(target),
+    id: target
+  });
   try {
     const response = await fetch(backendUrl("/voice/models/current"), {
       method: "POST",
@@ -1471,13 +2101,21 @@ async function switchModelFromMenu(model) {
     }
     const current = payload.current_model || target;
     if (els.modelSelect) els.modelSelect.value = current;
-    setModelStatus(`当前：${modelDisplayName(current)}（${current}）`);
-    appendAssistantConversation(payload.message || `已切换为 ${current}`, { kind: "model_control" });
+    setCurrentModelStatus(current);
+    const currentName = modelDisplayName(current);
+    appendAssistantConversation(formatTextFor("model.message.switched", `Switched to ${currentName}`, {
+      id: current,
+      name: currentName
+    }), { kind: "model_control" });
     logLine(`model switched ${current}`);
   } catch (err) {
     if (els.modelSelect && previous) els.modelSelect.value = previous;
-    setModelStatus(`切换失败：${err.message || "unknown"}`);
-    appendAssistantConversation(`模型切换失败：${err.message || "unknown"}`, { kind: "model_control_error" });
+    setModelStatusKey("model.status.switchFailed", `Switch failed: ${err.message || "unknown"}`, {
+      reason: err.message || "unknown"
+    });
+    appendAssistantConversation(formatTextFor("model.message.switchFailed", `Model switch failed: ${err.message || "unknown"}`, {
+      reason: err.message || "unknown"
+    }), { kind: "model_control_error" });
     logLine(`model switch failed ${err.message || ""}`.trim());
   }
 }
@@ -1509,7 +2147,7 @@ const PresenceController = (() => {
     error: "error",
     disconnected: "offline",
     microphone_error: "permission_required",
-    stt_error: "error",
+    stt_error: "stt_error",
     tts_error: "error",
     auth_error: "error"
   };
@@ -1555,6 +2193,59 @@ function selectedVoiceProfile() {
   return normalizedVoiceProfile(currentVoiceProfile || (els.voiceProfile && els.voiceProfile.value) || DEFAULT_VOICE_PROFILE);
 }
 
+function rememberVoiceProfileLabel(profile) {
+  const id = String((profile && profile.id) || "").trim();
+  if (!id) return;
+  const existing = serverVoiceProfileLabels.get(id) || VOICE_PROFILE_LABELS[id] || {};
+  serverVoiceProfileLabels.set(id, {
+    zh: profile.display_name_zh || profile.display_name || existing.zh || id,
+    en: profile.display_name_en || profile.english_name || profile.name_en || existing.en || existing.zh || profile.display_name || id
+  });
+}
+
+function voiceProfileLabel(profileId, fallback = "") {
+  const id = String(profileId || "").trim();
+  const labels = serverVoiceProfileLabels.get(id) || VOICE_PROFILE_LABELS[id];
+  if (!labels) return fallback || id;
+  return labels[currentLanguage] || labels.zh || labels.en || fallback || id;
+}
+
+function refreshVoiceProfileLabels() {
+  if (!els.voiceProfile) return;
+  Array.from(els.voiceProfile.options).forEach((option) => {
+    option.textContent = voiceProfileLabel(option.value, option.textContent || option.value);
+  });
+  refreshVoiceControlCard();
+}
+
+function voiceControlTone() {
+  if (speakerMuted && micMuted) return "error";
+  if (speakerMuted || micMuted) return "warning";
+  return "success";
+}
+
+function refreshVoiceControlCard(labels = {}) {
+  if (!els.voiceControlCard) return;
+  const selected = selectedVoiceProfile();
+  const voiceName = voiceProfileLabel(selected, selected);
+  const micLabel = labels.micLabel || (micMuted ? textFor("action.micMuted", "麦克风关") : textFor("action.micOn", "麦克风开"));
+  const speakerLabel = labels.speakerLabel || (speakerMuted ? textFor("action.soundMuted", "已静音") : textFor("action.soundOn", "扬声器开"));
+  const meta = formatTextFor("voice.controlMeta", "{mic} · {speaker}", {
+    mic: micLabel,
+    speaker: speakerLabel
+  });
+  const tone = voiceControlTone();
+  els.voiceControlCard.dataset.tone = tone;
+  if (els.voiceControlTitle) {
+    els.voiceControlTitle.textContent = voiceName;
+    els.voiceControlTitle.title = voiceName;
+  }
+  if (els.voiceControlMeta) {
+    els.voiceControlMeta.textContent = meta;
+    els.voiceControlMeta.title = meta;
+  }
+}
+
 function initVoiceProfileSettings() {
   if (!els.voiceProfile) return;
   const persisted = safeStorageGet("jarvis_voice_profile", null);
@@ -1570,11 +2261,13 @@ function initVoiceProfileSettings() {
     safeStorageSet("jarvis_voice_profile", nextValue);
     persistedVoiceProfile = nextValue;
   }
+  refreshVoiceProfileLabels();
   els.voiceProfile.addEventListener("change", () => {
     const previous = currentVoiceProfile;
     const selected = normalizedVoiceProfile(els.voiceProfile.value);
     els.voiceProfile.value = selected;
     currentVoiceProfile = selected;
+    refreshVoiceControlCard();
     if (persistedVoiceProfile !== selected) {
       safeStorageSet("jarvis_voice_profile", selected);
       persistedVoiceProfile = selected;
@@ -1593,10 +2286,11 @@ function populateVoiceProfileOptions(profiles) {
     .sort((a, b) => Number(a.sort_order || 100) - Number(b.sort_order || 100) || String(a.id).localeCompare(String(b.id)))
     .forEach((profile) => {
       supportedVoiceProfiles.add(profile.id);
+      rememberVoiceProfileLabel(profile);
       if (existing.has(profile.id)) return;
       const option = document.createElement("option");
       option.value = profile.id;
-      option.textContent = profile.display_name || profile.id;
+      option.textContent = voiceProfileLabel(profile.id, profile.display_name || profile.id);
       els.voiceProfile.appendChild(option);
       existing.add(profile.id);
     });
@@ -1604,6 +2298,8 @@ function populateVoiceProfileOptions(profiles) {
   const selected = supportedVoiceProfiles.has(persisted) ? persisted : selectedVoiceProfile();
   currentVoiceProfile = normalizedVoiceProfile(selected);
   els.voiceProfile.value = currentVoiceProfile;
+  refreshVoiceProfileLabels();
+  refreshVoiceControlCard();
 }
 
 function normalizedVolume(value) {
@@ -1900,18 +2596,23 @@ function updateDockControls(visualState) {
         ? "stop"
         : "start";
     els.dockMic.dataset.mode = mode;
+    els.dockMic.dataset.active = active ? "true" : "false";
     els.dockMic.classList.toggle("active", active);
     els.dockMic.classList.toggle("muted", micMuted);
-    els.dockMic.setAttribute(
-      "aria-label",
-      micMuted
-        ? textFor("action.unmuteMic", "取消麦克风静音")
-        : mode === "interrupt"
-          ? textFor("action.interrupt", "打断 Iris")
-          : mode === "stop"
-            ? textFor("action.stopVoice", "结束语音")
-            : textFor("action.voiceInput", "语音输入")
-    );
+    els.dockMic.setAttribute("aria-pressed", active ? "true" : "false");
+    const label = micMuted
+      ? textFor("action.unmuteMic", "取消麦克风静音")
+      : mode === "interrupt"
+        ? textFor("action.interrupt", "打断 Iris")
+        : mode === "stop"
+          ? textFor("action.stopVoice", "结束语音")
+          : textFor("action.voiceInput", "语音输入");
+    els.dockMic.setAttribute("aria-label", label);
+    els.dockMic.setAttribute("title", label);
+    if (els.voiceInputStatus) {
+      els.voiceInputStatus.dataset.mode = mode;
+      els.voiceInputStatus.dataset.active = active ? "true" : "false";
+    }
   }
 }
 
@@ -1924,19 +2625,102 @@ function setDockText(text) {
 
 function openDetails() {
   if (!els.detailSheet) return;
+  detailsReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : els.detailsToggle;
   els.detailSheet.classList.add("open");
   els.detailSheet.setAttribute("aria-hidden", "false");
+  if (els.detailsToggle) els.detailsToggle.setAttribute("aria-expanded", "true");
   document.body.classList.add("detailsOpen");
+  window.setTimeout(() => {
+    if (els.closeDetails) els.closeDetails.focus({ preventScroll: true });
+    else els.detailSheet.focus({ preventScroll: true });
+  }, 40);
   if (els.memoryRefresh && !memoryControlLoaded && !memoryControlLoading) {
     refreshMemoryControlCenter().catch((err) => logLine(err.message || "memory refresh failed"));
   }
 }
 
-function closeDetails() {
+function closeDetails({ restoreFocus = true } = {}) {
   if (!els.detailSheet) return;
   els.detailSheet.classList.remove("open");
   els.detailSheet.setAttribute("aria-hidden", "true");
+  if (els.detailsToggle) els.detailsToggle.setAttribute("aria-expanded", "false");
   document.body.classList.remove("detailsOpen");
+  const focusTarget = detailsReturnFocus;
+  if (restoreFocus && focusTarget && document.contains(focusTarget)) {
+    window.setTimeout(() => focusTarget.focus({ preventScroll: true }), 0);
+  }
+  detailsReturnFocus = null;
+}
+
+function getSettingsScrollContainer() {
+  if (!els.detailSheet) return null;
+  const settingsList = els.detailSheet.querySelector(".settingsList");
+  if (settingsList instanceof HTMLElement) {
+    const style = getComputedStyle(settingsList);
+    const scrollable = /auto|scroll/i.test(style.overflowY) && settingsList.scrollHeight > settingsList.clientHeight + 1;
+    if (scrollable) return settingsList;
+  }
+  return els.detailSheet;
+}
+
+function settingsScrollTopInset(scrollContainer) {
+  if (!scrollContainer) return 0;
+  const style = getComputedStyle(scrollContainer);
+  let inset = Math.max(12, Number.parseFloat(style.paddingTop) || 0);
+  if (scrollContainer === els.detailSheet) {
+    const header = els.detailSheet.querySelector(".sheetHeader");
+    if (header instanceof HTMLElement) {
+      const sheetRect = els.detailSheet.getBoundingClientRect();
+      const headerRect = header.getBoundingClientRect();
+      inset = Math.max(inset, headerRect.bottom - sheetRect.top + 10);
+    }
+  }
+  return inset;
+}
+
+function alignSettingsGroupInSheet(group) {
+  if (!group || !els.detailSheet) return;
+  const summary = group.querySelector("summary") || group;
+  const scrollContainer = getSettingsScrollContainer();
+  if (!scrollContainer) return;
+  const containerRect = scrollContainer.getBoundingClientRect();
+  const summaryRect = summary.getBoundingClientRect();
+  const topInset = settingsScrollTopInset(scrollContainer);
+  const delta = summaryRect.top - containerRect.top - topInset;
+  if (Math.abs(delta) < 2) return;
+  scrollContainer.scrollTo({
+    top: Math.max(0, scrollContainer.scrollTop + delta),
+    behavior: "auto"
+  });
+}
+
+function scrollSettingsGroupIntoView(group, { delay = 80 } = {}) {
+  if (!group || !group.open || !els.detailSheet || !document.body.classList.contains("detailsOpen")) return;
+  const run = () => {
+    if (!group.open || !document.contains(group)) return;
+    alignSettingsGroupInSheet(group);
+    window.setTimeout(() => alignSettingsGroupInSheet(group), 80);
+  };
+  window.setTimeout(() => requestAnimationFrame(run), delay);
+}
+
+function closeSiblingSettingsGroups(activeGroup) {
+  if (!activeGroup || !els.detailSheet) return;
+  els.detailSheet.querySelectorAll("details.settingsGroup").forEach((group) => {
+    if (group !== activeGroup && group.open) group.open = false;
+  });
+}
+
+function initSettingsGroupAutoScroll() {
+  if (!els.detailSheet) return;
+  els.detailSheet.querySelectorAll("details.settingsGroup").forEach((group) => {
+    group.addEventListener("toggle", () => {
+      if (group.open) {
+        closeSiblingSettingsGroups(group);
+        scrollSettingsGroupIntoView(group);
+      }
+    });
+  });
 }
 
 let renderedLogLines = [];
@@ -1973,6 +2757,100 @@ function logLine(text) {
   pendingLogLines.unshift(`${new Date().toLocaleTimeString()} ${text}`);
   if (pendingLogLines.length > LOG_RENDER_LIMIT) pendingLogLines.length = LOG_RENDER_LIMIT;
   scheduleLogRender();
+}
+
+function currentDiagnosticsLogLines() {
+  return pendingLogLines.concat(renderedLogLines).slice(0, LOG_RENDER_LIMIT);
+}
+
+function setDiagnosticsStatus(text, tone = "info", statusKey = "") {
+  if (!els.diagnosticsStatus) return;
+  const visibleText = String(text || "").trim();
+  els.diagnosticsStatus.textContent = text || " ";
+  els.diagnosticsStatus.dataset.tone = ["info", "success", "warning", "error", "loading"].includes(tone) ? tone : "info";
+  els.diagnosticsStatus.dataset.visible = visibleText ? "true" : "false";
+  if (statusKey) els.diagnosticsStatus.dataset.statusKey = statusKey;
+  else delete els.diagnosticsStatus.dataset.statusKey;
+}
+
+function refreshDiagnosticsStatusLanguage() {
+  if (!els.diagnosticsStatus) return;
+  const statusKey = els.diagnosticsStatus.dataset.statusKey || "";
+  if (!statusKey) return;
+  setDiagnosticsStatus(textFor(statusKey, els.diagnosticsStatus.textContent || " "), els.diagnosticsStatus.dataset.tone || "info", statusKey);
+}
+
+function diagnosticsSnapshot() {
+  return {
+    version: VOICE_UI_VERSION,
+    webVersion: WEB_VERSION,
+    browserTarget: BROWSER_TARGET,
+    theme: document.body.dataset.theme || "",
+    language: currentLanguage,
+    visualState: currentVisualState,
+    rawState: currentRawState,
+    voiceProfile: selectedVoiceProfile(),
+    model: els.modelSelect ? els.modelSelect.value : "",
+    ttsRoute: els.webTtsRoute ? els.webTtsRoute.textContent.trim() : "",
+    audibility: els.webTtsAudibility ? els.webTtsAudibility.textContent.trim() : "",
+    document: currentDocumentId ? {
+      id: currentDocumentId,
+      name: currentDocumentName,
+      status: currentDocumentStatusLine()
+    } : null,
+    recentEvents: currentDiagnosticsLogLines()
+  };
+}
+
+function diagnosticsText() {
+  return JSON.stringify(diagnosticsSnapshot(), null, 2);
+}
+
+async function writeDiagnosticsClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return true;
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  textarea.style.top = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const ok = document.execCommand && document.execCommand("copy");
+  textarea.remove();
+  if (!ok) throw new Error("clipboard_unavailable");
+  return true;
+}
+
+async function copyDiagnostics() {
+  if (!els.diagnosticsCopy) return;
+  els.diagnosticsCopy.disabled = true;
+  els.diagnosticsCopy.dataset.loading = "true";
+  els.diagnosticsCopy.setAttribute("aria-busy", "true");
+  setDiagnosticsStatus(textFor("debug.copying", "正在复制"), "loading", "debug.copying");
+  try {
+    await writeDiagnosticsClipboard(diagnosticsText());
+    setDiagnosticsStatus(textFor("debug.copySuccess", "已复制当前诊断摘要。"), "success", "debug.copySuccess");
+  } catch (err) {
+    setDiagnosticsStatus(textFor("debug.copyFailed", "复制失败，请稍后再试。"), "error", "debug.copyFailed");
+    logLine(`diagnostics copy failed ${err.message || ""}`.trim());
+  } finally {
+    els.diagnosticsCopy.disabled = false;
+    els.diagnosticsCopy.removeAttribute("data-loading");
+    els.diagnosticsCopy.setAttribute("aria-busy", "false");
+  }
+}
+
+function clearDiagnosticsLog() {
+  renderedLogLines = [];
+  pendingLogLines = [];
+  if (logRenderFrame) cancelAnimationFrame(logRenderFrame);
+  logRenderFrame = 0;
+  if (els.log) els.log.replaceChildren();
+  setDiagnosticsStatus(textFor("debug.clearSuccess", "日志已清空。"), "success", "debug.clearSuccess");
 }
 
 function saveToken() {
@@ -2041,32 +2919,204 @@ function authHeaders() {
   return token ? { "X-Jarvis-Token": token } : {};
 }
 
-function setAccessStatus(text) {
-  if (els.accessStatus) els.accessStatus.textContent = text || " ";
+function setAccessStatus(text, tone = "info", statusKey = "") {
+  const normalizedTone = ["info", "warning", "loading", "error", "success"].includes(tone) ? tone : "info";
+  if (els.accessGate) els.accessGate.dataset.accessState = normalizedTone;
+  if (els.accessForm) els.accessForm.dataset.tone = normalizedTone;
+  if (els.accessToken) {
+    els.accessToken.dataset.tone = normalizedTone;
+    els.accessToken.setAttribute("aria-invalid", ["warning", "error"].includes(normalizedTone) ? "true" : "false");
+  }
+  if (els.accessStatus) {
+    const visibleText = String(text || "").trim();
+    els.accessStatus.textContent = text || " ";
+    els.accessStatus.dataset.tone = normalizedTone;
+    els.accessStatus.dataset.visible = visibleText ? "true" : "false";
+    if (statusKey) els.accessStatus.dataset.statusKey = statusKey;
+    else delete els.accessStatus.dataset.statusKey;
+    els.accessStatus.title = visibleText;
+  }
+}
+
+function refreshAccessStatusLanguage() {
+  if (!els.accessStatus) return;
+  const statusKey = els.accessStatus.dataset.statusKey || "";
+  if (!statusKey) return;
+  setAccessStatus(textFor(statusKey, els.accessStatus.textContent || " "), els.accessStatus.dataset.tone || "info", statusKey);
+}
+
+function setAccessCodeVisible(visible, { focusInput = false } = {}) {
+  if (!els.accessToken || !els.accessReveal) return;
+  const isVisible = Boolean(visible);
+  els.accessToken.type = isVisible ? "text" : "password";
+  els.accessReveal.dataset.visible = isVisible ? "true" : "false";
+  els.accessReveal.setAttribute("aria-pressed", isVisible ? "true" : "false");
+  const label = isVisible
+    ? textFor("access.hideCode", "隐藏访问口令")
+    : textFor("access.showCode", "显示访问口令");
+  els.accessReveal.setAttribute("aria-label", label);
+  els.accessReveal.setAttribute("title", label);
+  if (focusInput) focusAccessToken(0);
+}
+
+function refreshAccessRevealButton() {
+  setAccessCodeVisible(Boolean(els.accessToken && els.accessToken.type === "text"));
+}
+
+function toggleAccessCodeVisibility() {
+  if (!els.accessToken) return;
+  setAccessCodeVisible(els.accessToken.type !== "text", { focusInput: true });
+}
+
+function clearAccessSlowNoticeTimer() {
+  if (!accessSlowNoticeTimer) return;
+  window.clearTimeout(accessSlowNoticeTimer);
+  accessSlowNoticeTimer = 0;
+}
+
+function startAccessSlowNoticeTimer() {
+  clearAccessSlowNoticeTimer();
+  accessSlowNoticeTimer = window.setTimeout(() => {
+    accessSlowNoticeTimer = 0;
+    const stillSubmitting = Boolean(
+      els.accessGate
+      && els.accessGate.dataset.submitting === "true"
+      && els.accessSubmit
+      && els.accessSubmit.dataset.loading === "true"
+    );
+    if (!stillSubmitting) return;
+    setAccessStatus(textFor("access.slow", "连接有点慢，我还在确认。"), "loading", "access.slow");
+  }, 4000);
+}
+
+function setAccessSubmitLoading(isLoading) {
+  if (!els.accessSubmit) return;
+  if (!isLoading) clearAccessSlowNoticeTimer();
+  els.accessSubmit.disabled = Boolean(isLoading);
+  els.accessSubmit.setAttribute("aria-busy", isLoading ? "true" : "false");
+  if (els.accessReveal) {
+    els.accessReveal.disabled = Boolean(isLoading);
+    els.accessReveal.setAttribute("aria-disabled", isLoading ? "true" : "false");
+  }
+  if (els.accessForm) els.accessForm.setAttribute("aria-busy", isLoading ? "true" : "false");
+  if (els.accessGate) {
+    if (isLoading) els.accessGate.dataset.submitting = "true";
+    else delete els.accessGate.dataset.submitting;
+  }
+  if (isLoading) {
+    els.accessSubmit.dataset.loading = "true";
+    els.accessSubmit.textContent = textFor("access.submitLoading", "正在确认身份");
+    startAccessSlowNoticeTimer();
+  } else {
+    els.accessSubmit.removeAttribute("data-loading");
+    els.accessSubmit.textContent = textFor("access.submit", "进入 Iris");
+  }
+}
+
+function accessFailureKey(error) {
+  const message = String((error && error.message) || "").trim();
+  const lower = message.toLowerCase();
+  if (lower.includes("http 5") || lower.includes("session_token_missing")) {
+    return "access.unavailable";
+  }
+  if (
+    !message
+    || lower.includes("invalid")
+    || lower.includes("access")
+    || lower.includes("token")
+    || lower.includes("key")
+    || lower.includes("unauthorized")
+    || lower.includes("forbidden")
+    || lower.includes("401")
+    || lower.includes("403")
+  ) {
+    return "access.failed";
+  }
+  if (lower.includes("network") || lower.includes("fetch") || lower.includes("failed to fetch")) {
+    return "access.offline";
+  }
+  return "access.checkKey";
+}
+
+function accessFailureMessage(error) {
+  return textFor(accessFailureKey(error), textFor("access.checkKey", "请再检查一次访问口令。"));
+}
+
+function resetAccessFieldFeedback() {
+  if (!els.accessGate || !els.accessToken) return;
+  const state = els.accessGate.dataset.accessState || "info";
+  if (!["warning", "error"].includes(state)) return;
+  els.accessToken.setAttribute("aria-invalid", "false");
+  setAccessStatus(" ", "info");
+}
+
+function setAccessInputFocused(focused) {
+  const value = focused ? "true" : "false";
+  if (els.accessGate) els.accessGate.dataset.inputFocused = value;
+  if (els.accessForm) els.accessForm.dataset.focused = value;
+  if (els.accessToken) els.accessToken.dataset.focused = value;
+}
+
+function syncAccessInputFocusState() {
+  setAccessInputFocused(Boolean(els.accessToken && document.activeElement === els.accessToken));
+}
+
+function focusAccessToken(delay = 0) {
+  if (!els.accessToken) return;
+  window.setTimeout(() => {
+    els.accessToken.focus();
+    syncAccessInputFocusState();
+  }, delay);
+}
+
+function shouldAutoFocusAccessInput() {
+  const coarsePointer = typeof window.matchMedia === "function"
+    && window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+  return !coarsePointer && window.innerWidth >= 720;
+}
+
+function setMainSurfaceLocked(isLocked) {
+  if (!els.home) return;
+  if (isLocked) {
+    els.home.setAttribute("aria-hidden", "true");
+    els.home.setAttribute("inert", "");
+  } else {
+    els.home.removeAttribute("aria-hidden");
+    els.home.removeAttribute("inert");
+  }
 }
 
 function completeSessionLogin(token, expiresAt) {
   rememberSessionToken(token, expiresAt || "");
+  setAccessStatus(" ", "success");
   hideAccessGate();
   loadConversationHistory().catch((err) => logLine(err.message || "conversation history failed"));
   setState("idle");
-  setAccessStatus(" ");
+  setAccessStatus(" ", "info");
 }
 
-function showAccessGate(reason = "") {
+function showAccessGate(reason = "", tone = "info", statusKey = "") {
   if (!els.accessGate) return;
+  clearAccessSlowNoticeTimer();
   els.accessGate.hidden = false;
+  els.accessGate.setAttribute("aria-hidden", "false");
   document.body.classList.add("accessLocked");
-  if (reason) setAccessStatus(reason);
-  if (els.accessSubmit) els.accessSubmit.textContent = textFor("access.submit", "进入");
-  if (els.accessToken) window.setTimeout(() => els.accessToken.focus(), 60);
+  setMainSurfaceLocked(true);
+  setAccessStatus(reason || " ", reason ? tone : "info", reason ? statusKey : "");
+  setAccessSubmitLoading(false);
+  syncAccessQuickControls();
+  if (shouldAutoFocusAccessInput()) focusAccessToken(60);
 }
 
 function hideAccessGate() {
   if (!els.accessGate) return;
+  clearAccessSlowNoticeTimer();
   els.accessGate.hidden = true;
+  els.accessGate.setAttribute("aria-hidden", "true");
   document.body.classList.remove("accessLocked");
-  setAccessStatus(" ");
+  setMainSurfaceLocked(false);
+  setAccessStatus(" ", "info");
+  setAccessInputFocused(false);
 }
 
 function maybePromptForAccess() {
@@ -2074,13 +3124,13 @@ function maybePromptForAccess() {
     hideAccessGate();
     return;
   }
-  showAccessGate(textFor("access.required", "请先输入访问密钥。"));
+  showAccessGate("", "info");
 }
 
 function handleUnauthorizedResponse(response) {
   if (!response || response.status !== 401) return false;
   saveToken();
-  showAccessGate(textFor("access.expired", "登录已过期，请重新输入访问密钥。"));
+  showAccessGate(textFor("access.expired", "登录已过期，请重新输入访问口令。"), "warning", "access.expired");
   return true;
 }
 
@@ -2101,7 +3151,18 @@ async function requestAccessSession(accessKey) {
 }
 
 function memoryTypeLabel(type) {
-  const labels = {
+  const labels = currentLanguage === "en" ? {
+    preference: "Preference",
+    goal: "Goal",
+    project: "Project",
+    relationship: "Relationship",
+    health_context: "Health",
+    schedule_preference: "Schedule",
+    communication_style: "Style",
+    fact: "Fact",
+    assistant_commitment: "Commitment",
+    temporary_state: "Temporary"
+  } : {
     preference: "偏好",
     goal: "目标",
     project: "项目",
@@ -2113,26 +3174,151 @@ function memoryTypeLabel(type) {
     assistant_commitment: "承诺",
     temporary_state: "临时"
   };
-  return labels[type] || type || "记忆";
+  return labels[type] || type || (currentLanguage === "en" ? "Memory" : "记忆");
 }
 
 function memorySourceLabel(item) {
-  if (!item) return "未知";
-  if (item.user_confirmed) return "用户确认";
-  if (item.source === "user_message") return "用户提供";
-  if (item.source === "user_correction") return "用户修正";
-  return item.source || "模型整理";
+  const en = currentLanguage === "en";
+  if (!item) return en ? "Unknown" : "未知";
+  if (item.user_confirmed) return en ? "Confirmed" : "用户确认";
+  if (item.source === "user_message") return en ? "From you" : "用户提供";
+  if (item.source === "user_correction") return en ? "Corrected" : "用户修正";
+  return item.source || (en ? "Iris organized" : "模型整理");
 }
 
-function setMemoryStatus(text) {
-  if (els.memoryStatus) els.memoryStatus.textContent = text || " ";
+function memoryActionReadableName(action) {
+  const labels = currentLanguage === "en" ? {
+    confirm_pending: "Review approved",
+    cancel_pending: "Review dismissed",
+    preview_confirm: "Ready to approve",
+    preview_correct: "Edit preview ready",
+    preview_delete: "Delete preview ready",
+    open_correct: "Editing memory",
+    collapse_editor: "Editor closed",
+    confirm: "Memory approved",
+    correct: "Memory edited",
+    delete: "Memory deleted"
+  } : {
+    confirm_pending: "已确认这条记忆",
+    cancel_pending: "已取消这条记忆",
+    preview_confirm: "确认预览已准备好",
+    preview_correct: "修改预览已准备好",
+    preview_delete: "删除预览已准备好",
+    open_correct: "正在修正记忆",
+    collapse_editor: "已收起编辑器",
+    confirm: "已确认记忆",
+    correct: "已修正记忆",
+    delete: "已删除记忆"
+  };
+  return labels[action] || action || (currentLanguage === "en" ? "memory action" : "记忆操作");
+}
+
+function readableMemoryStatusText(text) {
+  let value = String(text || "").replace(/\s+/g, " ").trim();
+  Object.keys({
+    confirm_pending: true,
+    cancel_pending: true,
+    preview_confirm: true,
+    preview_correct: true,
+    preview_delete: true,
+    open_correct: true,
+    collapse_editor: true
+  }).forEach((action) => {
+    value = value.split(action).join(memoryActionReadableName(action));
+  });
+  return value;
+}
+
+function memoryStatusNavText(text, tone) {
+  const value = readableMemoryStatusText(text);
+  const counts = value.match(/(\d+)\s*条事件.*?(\d+)\s*条摘要.*?(\d+)\s*条待确认/);
+  if (counts) return currentLanguage === "en" ? `${counts[1]} memories · ${counts[3]} to review` : `${counts[1]} 条记忆 · ${counts[3]} 条待确认`;
+  if (tone === "loading") return currentLanguage === "en" ? "Syncing memory" : "正在同步记忆";
+  if (tone === "success") return currentLanguage === "en" ? "Memory updated" : "记忆已更新";
+  if (tone === "warning") return currentLanguage === "en" ? "Memory needs review" : "有记忆待确认";
+  if (tone === "error") return currentLanguage === "en" ? "Memory sync failed" : "记忆同步失败";
+  return value.length > 18 ? `${value.slice(0, 18)}...` : value;
+}
+
+function memoryOverviewParts(text, tone) {
+  const value = readableMemoryStatusText(text);
+  const counts = value.match(/(\d+)\s*条事件.*?(\d+)\s*条摘要.*?(\d+)\s*条待确认/);
+  const en = currentLanguage === "en";
+  if (counts) {
+    return {
+      kicker: en ? "Memory Vault" : "记忆库",
+      title: en ? `${counts[1]} events · ${counts[2]} summaries` : `${counts[1]} 条事件 · ${counts[2]} 条摘要`,
+      detail: Number(counts[3]) > 0
+        ? (en ? `${counts[3]} need review. Iris will preview before writing.` : `${counts[3]} 条需要你确认，确认前会先生成预览。`)
+        : (en ? "No pending review right now." : "当前没有待确认项。")
+    };
+  }
+  if (tone === "loading") {
+    return { kicker: en ? "Working" : "正在处理", title: en ? "Syncing memory" : "记忆正在同步", detail: value || (en ? "One moment." : "请稍等一下。") };
+  }
+  if (tone === "success") {
+    return { kicker: en ? "Done" : "已完成", title: en ? "Memory updated" : "记忆已更新", detail: value || (en ? "The latest change has been saved." : "最新变更已经写入。") };
+  }
+  if (tone === "warning") {
+    return { kicker: en ? "Review" : "需要确认", title: en ? "Memory needs your review" : "有记忆需要你看一眼", detail: value || (en ? "Iris writes it only after you confirm." : "确认后才会写入长期记忆。") };
+  }
+  if (tone === "error") {
+    return { kicker: en ? "Sync failed" : "同步失败", title: en ? "Memory did not sync" : "记忆暂时没同步成功", detail: value || (en ? "Try again later." : "稍后可以再试一次。") };
+  }
+  return {
+    kicker: en ? "Memory Vault" : "记忆库",
+    title: en ? "Ready to sync" : "准备同步",
+    detail: value || (en ? "Preferences, projects, and conversation cues live here." : "偏好、项目和对话线索会在这里整理。")
+  };
+}
+
+function renderMemoryOverview(text, tone) {
+  if (!els.memoryOverview) return;
+  const parts = memoryOverviewParts(text, tone);
+  els.memoryOverview.dataset.tone = tone || "info";
+  els.memoryOverview.replaceChildren();
+
+  const kicker = document.createElement("span");
+  kicker.className = "memoryOverviewKicker";
+  kicker.textContent = parts.kicker;
+
+  const title = document.createElement("strong");
+  title.textContent = parts.title;
+
+  const detail = document.createElement("span");
+  detail.textContent = parts.detail;
+
+  els.memoryOverview.append(kicker, title, detail);
+}
+
+function memoryStatusTone(text) {
+  const value = readableMemoryStatusText(text).toLowerCase();
+  if (value.includes("失败") || value.includes("错误") || value.includes("不可用") || value.includes("failed") || value.includes("error")) return "error";
+  if (value.includes("读取中") || value.includes("处理中") || value.includes("确认中") || value.includes("取消中") || value.includes("生成") || value.includes("正在") || value.includes("loading")) return "loading";
+  if (value.includes("待处理") || value.includes("待确认") || value.includes("请先") || value.includes("等待") || value.includes("pending")) return "warning";
+  if (value.includes("已") || value.includes("完成") || value.includes("成功") || value.includes("触发") || value.includes("done") || value.includes("success")) return "success";
+  return "info";
+}
+
+function setMemoryStatus(text, tone = "") {
+  const value = readableMemoryStatusText(text || " ");
+  const normalizedTone = tone || memoryStatusTone(value);
+  if (els.memoryStatus) {
+    els.memoryStatus.textContent = memoryStatusNavText(value, normalizedTone);
+    els.memoryStatus.title = value;
+    els.memoryStatus.dataset.tone = normalizedTone;
+    els.memoryStatus.dataset.detail = value;
+  }
+  renderMemoryOverview(value, normalizedTone);
+  if (els.memoryList) els.memoryList.dataset.tone = normalizedTone;
 }
 
 function renderMemoryEmpty(text) {
   if (!els.memoryList) return;
   const item = document.createElement("p");
   item.className = "memoryEmpty";
-  item.textContent = text || "暂无记忆";
+  item.textContent = text || (currentLanguage === "en" ? "No memory to show yet." : "暂无记忆");
+  item.dataset.tone = memoryStatusTone(item.textContent);
   els.memoryList.replaceChildren(item);
 }
 
@@ -2140,16 +3326,101 @@ function memoryActionSnippet(content, maxLength = 44) {
   return String(content || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
 
+function memoryConfidenceLabel(confidence) {
+  const value = Number(confidence);
+  if (!Number.isFinite(value)) return "";
+  const percent = `${Math.max(0, Math.min(100, Math.round(value * 100)))}%`;
+  return currentLanguage === "en" ? `${percent} confidence` : `可信度 ${percent}`;
+}
+
 function memoryActionAllowed(item, action) {
   const actions = item && item.available_actions && typeof item.available_actions === "object" ? item.available_actions : {};
   return Boolean(actions[action]);
 }
 
-function setMemoryButtonsDisabled(container, disabled) {
+function memoryActionConfig(action) {
+  const configs = {
+    confirm_pending: { variant: "success", priority: "primary", loadingLabel: currentLanguage === "en" ? "Confirming" : "确认中", status: currentLanguage === "en" ? "Confirming this memory" : "正在确认这条记忆" },
+    cancel_pending: { variant: "danger", priority: "danger", loadingLabel: currentLanguage === "en" ? "Cancelling" : "取消中", status: currentLanguage === "en" ? "Cancelling pending memory" : "正在取消待确认记忆" },
+    preview_confirm: { variant: "success", priority: "primary", loadingLabel: currentLanguage === "en" ? "Previewing" : "预览中", status: currentLanguage === "en" ? "Building confirm preview" : "正在生成确认预览" },
+    preview_correct: { variant: "primary", priority: "primary", loadingLabel: currentLanguage === "en" ? "Previewing" : "预览中", status: currentLanguage === "en" ? "Building edit preview" : "正在生成修改预览" },
+    preview_delete: { variant: "danger", priority: "danger", loadingLabel: currentLanguage === "en" ? "Previewing" : "预览中", status: currentLanguage === "en" ? "Building delete preview" : "正在生成删除预览" },
+    open_correct: { variant: "neutral", priority: "secondary" },
+    collapse_editor: { variant: "neutral", priority: "secondary" }
+  };
+  return configs[action] || { variant: "neutral", priority: "secondary", loadingLabel: currentLanguage === "en" ? "Working" : "处理中", status: currentLanguage === "en" ? "Working" : "处理中" };
+}
+
+function decorateMemoryActionButton(button, action, label = "") {
+  if (!button) return button;
+  const config = memoryActionConfig(action);
+  const visibleText = button.textContent.trim() || action;
+  const accessibleLabel = label || visibleText;
+  button.dataset.action = action;
+  button.dataset.variant = config.variant;
+  button.dataset.priority = config.priority || "secondary";
+  button.dataset.defaultLabel = visibleText;
+  button.setAttribute("aria-label", accessibleLabel);
+  button.title = accessibleLabel;
+  return button;
+}
+
+function setMemoryActionLoading(button, loading) {
+  if (!button) return;
+  const config = memoryActionConfig(button.dataset.action || "");
+  if (loading) {
+    if (!button.dataset.defaultLabel) button.dataset.defaultLabel = button.textContent.trim();
+    button.dataset.loading = "true";
+    button.setAttribute("aria-busy", "true");
+    button.textContent = config.loadingLabel || "处理中";
+  } else {
+    button.removeAttribute("data-loading");
+    button.removeAttribute("aria-busy");
+    if (button.dataset.defaultLabel) button.textContent = button.dataset.defaultLabel;
+  }
+}
+
+function setMemoryButtonsDisabled(container, disabled, activeButton = null) {
   if (!container) return;
+  container.dataset.busy = disabled ? "true" : "false";
+  container.setAttribute("aria-busy", disabled ? "true" : "false");
   container.querySelectorAll("button, textarea").forEach((node) => {
-    node.disabled = Boolean(disabled);
+    if (disabled) {
+      if (!node.dataset.wasDisabled) node.dataset.wasDisabled = node.disabled ? "true" : "false";
+      node.disabled = true;
+      if (node === activeButton && node.tagName === "BUTTON") setMemoryActionLoading(node, true);
+    } else {
+      node.disabled = node.dataset.wasDisabled === "true";
+      delete node.dataset.wasDisabled;
+      if (node.tagName === "BUTTON") setMemoryActionLoading(node, false);
+    }
   });
+}
+
+async function runMemoryActionWithFeedback(action, item, options = {}) {
+  const container = options.container || null;
+  const trigger = options.trigger || null;
+  const config = memoryActionConfig(action);
+  const busyStartedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const keepBusyVisible = async () => {
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const remaining = MEMORY_ACTION_MIN_BUSY_MS - (now - busyStartedAt);
+    if (remaining > 0) await new Promise((resolve) => window.setTimeout(resolve, remaining));
+  };
+  setMemoryStatus(config.status || "处理中", "loading");
+  setMemoryButtonsDisabled(container, true, trigger);
+  try {
+    const payload = await requestMemoryAction(action, item, options);
+    await keepBusyVisible();
+    if (container && container.isConnected) setMemoryButtonsDisabled(container, false);
+    return payload;
+  } catch (err) {
+    await keepBusyVisible();
+    const prefix = options.errorPrefix || (currentLanguage === "en" ? "Action failed" : "操作失败");
+    setMemoryStatus(`${prefix}：${err.message || (currentLanguage === "en" ? "Network unavailable" : "网络不可用")}`, "error");
+    setMemoryButtonsDisabled(container, false);
+    return null;
+  }
 }
 
 async function requestMemoryAction(action, item, options = {}) {
@@ -2174,7 +3445,7 @@ async function requestMemoryAction(action, item, options = {}) {
     handleUnauthorizedResponse(response);
     throw new Error(payload.detail || `HTTP ${response.status}`);
   }
-  if (payload && payload.reply) setMemoryStatus(payload.reply.replace(/\s+/g, " ").slice(0, 140));
+  if (payload && payload.reply) setMemoryStatus(payload.reply.replace(/\s+/g, " ").slice(0, 140), "success");
   if (payload && payload.message && payload.message.reply) {
     appendConversationMessage("assistant", payload.message.reply);
   }
@@ -2184,88 +3455,109 @@ async function requestMemoryAction(action, item, options = {}) {
 
 function renderMemoryPendingCard(pending) {
   if (!pending || !pending.has_pending) return null;
+  const en = currentLanguage === "en";
   const pendingItem = Array.isArray(pending.items) && pending.items.length ? pending.items[0] : {};
   const card = document.createElement("article");
   card.className = "memoryPending";
+  card.dataset.state = "pending";
+  card.setAttribute("aria-label", en ? "Pending memory action" : "待确认记忆操作");
+
+  const top = document.createElement("div");
+  top.className = "memoryCardTop";
 
   const title = document.createElement("p");
   title.className = "memoryMeta";
-  title.textContent = "待确认记忆操作";
+  title.textContent = en ? "Needs review" : "待你确认";
+
+  const badge = document.createElement("span");
+  badge.className = "memoryBadge";
+  badge.textContent = en ? "Manual write" : "不会自动写入";
+
+  top.append(title, badge);
 
   const detail = document.createElement("p");
   detail.className = "memoryContent";
-  detail.textContent = pendingItem.content_preview || pendingItem.action || "有一条记忆操作等待确认";
+  detail.textContent = pendingItem.content_preview || (pendingItem.action ? memoryActionReadableName(pendingItem.action) : "") || (en ? "A memory action is waiting for review." : "有一条记忆操作等待确认");
+
+  const hint = document.createElement("p");
+  hint.className = "memoryHint";
+  hint.textContent = en ? "Iris writes it only after you confirm. Cancel if it feels wrong." : "确认后才会进入长期记忆；不合适可以直接取消。";
 
   const actions = document.createElement("div");
   actions.className = "memoryActions";
 
   const confirm = document.createElement("button");
   confirm.type = "button";
-  confirm.textContent = "确认";
-  confirm.addEventListener("click", async () => {
-    setMemoryButtonsDisabled(card, true);
-    try {
-      await requestMemoryAction("confirm_pending", null);
-    } catch (err) {
-      setMemoryStatus(`确认失败：${err.message || "网络不可用"}`);
-      setMemoryButtonsDisabled(card, false);
-    }
+  confirm.textContent = en ? "Confirm" : "确认";
+  decorateMemoryActionButton(confirm, "confirm_pending", en ? "Confirm pending memory" : "确认待处理记忆");
+  confirm.addEventListener("click", () => {
+    runMemoryActionWithFeedback("confirm_pending", null, {
+      container: card,
+      trigger: confirm,
+      errorPrefix: en ? "Confirm failed" : "确认失败"
+    });
   });
 
   const cancel = document.createElement("button");
   cancel.type = "button";
-  cancel.textContent = "取消";
+  cancel.textContent = en ? "Cancel" : "取消";
   cancel.className = "danger";
-  cancel.addEventListener("click", async () => {
-    setMemoryButtonsDisabled(card, true);
-    try {
-      await requestMemoryAction("cancel_pending", null);
-    } catch (err) {
-      setMemoryStatus(`取消失败：${err.message || "网络不可用"}`);
-      setMemoryButtonsDisabled(card, false);
-    }
+  decorateMemoryActionButton(cancel, "cancel_pending", en ? "Cancel pending memory" : "取消待处理记忆");
+  cancel.addEventListener("click", () => {
+    runMemoryActionWithFeedback("cancel_pending", null, {
+      container: card,
+      trigger: cancel,
+      errorPrefix: en ? "Cancel failed" : "取消失败"
+    });
   });
 
   actions.append(confirm, cancel);
-  card.append(title, detail, actions);
+  card.append(top, detail, hint, actions);
   return card;
 }
 
 function renderMemoryCorrectionEditor(row, item) {
   if (!row || row.querySelector(".memoryInlineEditor")) return;
+  const en = currentLanguage === "en";
   const editor = document.createElement("div");
   editor.className = "memoryInlineEditor";
+  editor.dataset.state = "editing";
+  editor.setAttribute("aria-label", en ? "Edit this memory" : "修正这条记忆");
 
   const input = document.createElement("textarea");
   input.rows = 3;
   input.value = item && item.content ? String(item.content) : "";
-  input.setAttribute("aria-label", "新的记忆内容");
+  input.setAttribute("aria-label", en ? "New memory content" : "新的记忆内容");
 
   const actions = document.createElement("div");
   actions.className = "memoryActions";
 
   const preview = document.createElement("button");
   preview.type = "button";
-  preview.textContent = "生成修改预览";
+  preview.textContent = en ? "Preview edit" : "生成修改预览";
+  decorateMemoryActionButton(preview, "preview_correct", en ? "Preview memory edit" : "生成修改预览");
   preview.addEventListener("click", async () => {
     const newContent = input.value.trim();
     if (!newContent || newContent === String(item.content || "").trim()) {
-      setMemoryStatus("请先输入新的记忆内容");
+      setMemoryStatus(en ? "Please edit the memory content first" : "请先输入新的记忆内容", "warning");
       return;
     }
-    setMemoryButtonsDisabled(editor, true);
-    try {
-      await requestMemoryAction("preview_correct", item, { newContent });
-    } catch (err) {
-      setMemoryStatus(`修改预览失败：${err.message || "网络不可用"}`);
-      setMemoryButtonsDisabled(editor, false);
-    }
+    runMemoryActionWithFeedback("preview_correct", item, {
+      container: editor,
+      trigger: preview,
+      newContent,
+      errorPrefix: en ? "Edit preview failed" : "修改预览失败"
+    });
   });
 
   const cancel = document.createElement("button");
   cancel.type = "button";
-  cancel.textContent = "收起";
-  cancel.addEventListener("click", () => editor.remove());
+  cancel.textContent = en ? "Close" : "收起";
+  decorateMemoryActionButton(cancel, "collapse_editor", en ? "Close edit field" : "收起修正编辑器");
+  cancel.addEventListener("click", () => {
+    editor.remove();
+    setMemoryStatus(en ? "Edit field closed" : "已收起修正编辑器", "info");
+  });
 
   actions.append(preview, cancel);
   editor.append(input, actions);
@@ -2273,18 +3565,18 @@ function renderMemoryCorrectionEditor(row, item) {
   window.setTimeout(() => input.focus(), 40);
 }
 
-async function requestMemoryPreview(action, item, container) {
-  setMemoryButtonsDisabled(container, true);
-  try {
-    await requestMemoryAction(action, item);
-  } catch (err) {
-    setMemoryStatus(`操作失败：${err.message || "网络不可用"}`);
-    setMemoryButtonsDisabled(container, false);
-  }
+async function requestMemoryPreview(action, item, container, trigger = null) {
+  await runMemoryActionWithFeedback(action, item, {
+    container,
+    trigger,
+    errorPrefix: currentLanguage === "en" ? "Action failed" : "操作失败"
+  });
 }
 
 function renderMemoryControlCenter(payload) {
   if (!els.memoryList) return;
+  lastMemoryControlPayload = payload || null;
+  const en = currentLanguage === "en";
   const events = Array.isArray(payload && payload.events) ? payload.events : [];
   const counts = payload && payload.event_counts ? payload.event_counts : {};
   const digest = payload && payload.digest ? payload.digest : {};
@@ -2295,22 +3587,33 @@ function renderMemoryControlCenter(payload) {
   const digestTotal = Object.values(digestCounts).reduce((total, value) => total + (Number(value) || 0), 0);
   const actionCounts = summary.action_counts || {};
   const pendingCount = pending && pending.has_pending ? Number(pending.count || 1) : 0;
-  setMemoryStatus(`事件 ${activeCount} 条 · 摘要 ${digestTotal} 条 · 待处理 ${pendingCount + Number(actionCounts.confirmable || 0)} 条`);
+  setMemoryStatus(`${activeCount} 条事件 · ${digestTotal} 条摘要 · ${pendingCount + Number(actionCounts.confirmable || 0)} 条待确认`);
   const fragment = document.createDocumentFragment();
   const pendingCard = renderMemoryPendingCard(pending);
   if (pendingCard) fragment.appendChild(pendingCard);
   if (!events.length && !pendingCard) {
-    renderMemoryEmpty("暂无可展示的事件记忆");
+    renderMemoryEmpty(en ? "No event memory to show yet." : "暂无可展示的事件记忆");
     return;
   }
   events.slice(-24).reverse().forEach((item) => {
     const row = document.createElement("article");
     row.className = "memoryItem";
+    row.dataset.state = memoryActionAllowed(item, "confirm") ? "needs-confirmation" : "active";
+    row.dataset.memoryType = item.type || "unknown";
+
+    const top = document.createElement("div");
+    top.className = "memoryCardTop";
 
     const meta = document.createElement("p");
     meta.className = "memoryMeta";
-    const confidence = item.confidence === null || item.confidence === undefined ? "" : ` · ${Number(item.confidence).toFixed(2)}`;
-    meta.textContent = `${memoryTypeLabel(item.type)} · ${memorySourceLabel(item)}${confidence}`;
+    const confidence = memoryConfidenceLabel(item.confidence);
+    meta.textContent = [memoryTypeLabel(item.type), memorySourceLabel(item), confidence].filter(Boolean).join(" · ");
+
+    const badge = document.createElement("span");
+    badge.className = "memoryBadge";
+    badge.textContent = row.dataset.state === "needs-confirmation" ? (en ? "Review" : "待确认") : (en ? "Synced" : "已同步");
+
+    top.append(meta, badge);
 
     const content = document.createElement("p");
     content.className = "memoryContent";
@@ -2319,7 +3622,7 @@ function renderMemoryControlCenter(payload) {
     const source = document.createElement("p");
     source.className = "memorySource";
     const parts = [item.channel || "", item.timestamp ? item.timestamp.replace("T", " ").slice(0, 16) : ""].filter(Boolean);
-    source.textContent = parts.join(" · ");
+    source.textContent = parts.length ? `${en ? "Source" : "来源"} ${parts.join(" · ")}` : `${en ? "Source" : "来源"} Iris`;
 
     const actions = document.createElement("div");
     actions.className = "memoryActions";
@@ -2327,26 +3630,32 @@ function renderMemoryControlCenter(payload) {
     if (memoryActionAllowed(item, "confirm")) {
       const confirm = document.createElement("button");
       confirm.type = "button";
-      confirm.textContent = "确认";
-      confirm.addEventListener("click", () => requestMemoryPreview("preview_confirm", item, row));
+      confirm.textContent = en ? "Confirm" : "确认";
+      decorateMemoryActionButton(confirm, "preview_confirm", en ? "Preview confirming this memory" : "预览确认这条记忆");
+      confirm.addEventListener("click", () => requestMemoryPreview("preview_confirm", item, row, confirm));
       actions.append(confirm);
     }
 
     const correct = document.createElement("button");
     correct.type = "button";
-    correct.textContent = "修正";
+    correct.textContent = en ? "Edit" : "修正";
+    decorateMemoryActionButton(correct, "open_correct", en ? "Edit this memory" : "修正这条记忆");
     correct.disabled = !memoryActionAllowed(item, "correct");
-    correct.addEventListener("click", () => renderMemoryCorrectionEditor(row, item));
+    correct.addEventListener("click", () => {
+      setMemoryStatus(en ? "Editing this memory" : "正在修正这条记忆", "info");
+      renderMemoryCorrectionEditor(row, item);
+    });
 
     const remove = document.createElement("button");
     remove.type = "button";
-    remove.textContent = "删除";
+    remove.textContent = en ? "Delete" : "删除";
     remove.className = "danger";
+    decorateMemoryActionButton(remove, "preview_delete", en ? "Preview deleting this memory" : "预览删除这条记忆");
     remove.disabled = !memoryActionAllowed(item, "delete");
-    remove.addEventListener("click", () => requestMemoryPreview("preview_delete", item, row));
+    remove.addEventListener("click", () => requestMemoryPreview("preview_delete", item, row, remove));
 
     actions.append(correct, remove);
-    row.append(meta, content, source, actions);
+    row.append(top, content, source, actions);
     fragment.appendChild(row);
   });
   els.memoryList.replaceChildren(fragment);
@@ -2356,7 +3665,10 @@ async function refreshMemoryControlCenter(options = {}) {
   if (!els.memoryRefresh || !els.memoryList || memoryControlLoading) return;
   memoryControlLoading = true;
   els.memoryRefresh.disabled = true;
-  if (!options.force) setMemoryStatus("读取中");
+  els.memoryRefresh.dataset.loading = "true";
+  els.memoryRefresh.setAttribute("aria-busy", "true");
+  els.memoryList.setAttribute("aria-busy", "true");
+  if (!options.force) setMemoryStatus(currentLanguage === "en" ? "Reading memory" : "读取中", "loading");
   try {
     const params = new URLSearchParams({ limit: "80", user_id: "default", channel: "web", client_id: voiceClientId() });
     const query = els.memorySearch ? els.memorySearch.value.trim() : "";
@@ -2374,12 +3686,15 @@ async function refreshMemoryControlCenter(options = {}) {
     renderMemoryControlCenter(payload);
     memoryControlLoaded = true;
   } catch (err) {
-    setMemoryStatus(`读取失败：${err.message || "网络不可用"}`);
-    renderMemoryEmpty("记忆读取失败");
+    setMemoryStatus(`${currentLanguage === "en" ? "Read failed" : "读取失败"}：${err.message || (currentLanguage === "en" ? "Network unavailable" : "网络不可用")}`, "error");
+    renderMemoryEmpty(currentLanguage === "en" ? "Memory could not be loaded." : "记忆读取失败");
     logLine(`memory refresh failed ${err.message || ""}`.trim());
   } finally {
     memoryControlLoading = false;
     els.memoryRefresh.disabled = false;
+    els.memoryRefresh.removeAttribute("data-loading");
+    els.memoryRefresh.removeAttribute("aria-busy");
+    els.memoryList.setAttribute("aria-busy", "false");
   }
 }
 
@@ -2398,36 +3713,241 @@ function clearMemorySearchSchedule() {
   memorySearchTimer = 0;
 }
 
-function setDocumentStatus(text) {
-  if (els.documentStatus) els.documentStatus.textContent = text || " ";
-  if (els.documentContextBar) els.documentContextBar.hidden = !currentDocumentId && !(text || "").trim();
+function setDocumentStatus(text, tone = "info", title = "") {
+  const normalizedTone = ["info", "loading", "ready", "warning", "error"].includes(tone) ? tone : "info";
+  const value = text || " ";
+  if (els.documentStatus) {
+    els.documentStatus.textContent = value;
+    const titleValue = title || (currentDocumentSummaryData && ["ready", "loading"].includes(normalizedTone)
+      ? currentDocumentStatusTitleLine()
+      : value.trim());
+    els.documentStatus.title = titleValue;
+  }
+  if (els.documentContextBar) {
+    els.documentContextBar.hidden = !currentDocumentId && !value.trim();
+    els.documentContextBar.dataset.tone = normalizedTone;
+    els.documentContextBar.dataset.hasDocument = currentDocumentId ? "true" : "false";
+  }
+  syncComposerSendAvailability();
 }
 
 function setDocumentAnswer(text) {
   if (els.documentAnswer) els.documentAnswer.textContent = text || " ";
 }
 
-function setDocumentBusy(busy) {
-  if (els.documentUpload) els.documentUpload.disabled = Boolean(busy);
-  if (els.documentSummarize) els.documentSummarize.disabled = Boolean(busy || !currentDocumentId);
-  if (els.documentAsk) els.documentAsk.disabled = Boolean(busy || !currentDocumentId);
+function setDocumentUploadStatus(text = "", tone = "info", visible = false) {
+  const normalizedTone = ["info", "loading", "ready", "warning", "error"].includes(tone) ? tone : "info";
+  const value = String(text || "").trim();
+  const shouldShow = Boolean(visible && value);
+  if (els.documentUploadStatus) {
+    els.documentUploadStatus.textContent = shouldShow ? value : " ";
+    els.documentUploadStatus.title = shouldShow ? value : "";
+    els.documentUploadStatus.dataset.tone = normalizedTone;
+    els.documentUploadStatus.dataset.visible = shouldShow ? "true" : "false";
+    els.documentUploadStatus.hidden = !shouldShow;
+  }
+  const composer = els.documentUpload ? els.documentUpload.closest(".unifiedComposer") : null;
+  if (composer) {
+    composer.dataset.uploadStatusVisible = shouldShow ? "true" : "false";
+    if (shouldShow) composer.dataset.uploadTone = normalizedTone;
+    else delete composer.dataset.uploadTone;
+  }
 }
 
-function documentSummaryLine(doc) {
+function setDocumentBusy(busy) {
+  if (els.documentContextBar) els.documentContextBar.dataset.busy = busy ? "true" : "false";
+  const composer = els.documentUpload ? els.documentUpload.closest(".unifiedComposer") : null;
+  if (composer) composer.dataset.documentBusy = busy ? "true" : "false";
+  if (els.documentUpload) {
+    els.documentUpload.disabled = Boolean(busy);
+    els.documentUpload.setAttribute("aria-busy", busy ? "true" : "false");
+    if (busy) {
+      els.documentUpload.dataset.loading = "true";
+      els.documentUpload.dataset.mode = "uploading";
+      els.documentUpload.setAttribute("aria-label", textFor("document.uploadingPdfAria", "正在上传 PDF"));
+      els.documentUpload.setAttribute("title", textFor("document.uploadingPdfAria", "正在上传 PDF"));
+      setDocumentUploadStatus(textFor("document.uploadingPdfAria", "正在上传 PDF"), "loading", true);
+    } else {
+      els.documentUpload.removeAttribute("data-loading");
+      els.documentUpload.dataset.mode = "idle";
+      els.documentUpload.setAttribute("aria-label", textFor("action.uploadFile", "上传文件"));
+      els.documentUpload.setAttribute("title", textFor("action.uploadFile", "上传文件"));
+      if (!composer || composer.dataset.uploadSelecting !== "true") setDocumentUploadStatus("", "info", false);
+    }
+  }
+  if (els.documentSummarize) els.documentSummarize.disabled = Boolean(busy || !currentDocumentId);
+  if (els.documentAsk) els.documentAsk.disabled = Boolean(busy || !currentDocumentId);
+  syncComposerSendAvailability();
+}
+
+function setDocumentUploadSelecting(selecting) {
+  if (!els.documentUpload) return;
+  const composer = els.documentUpload.closest(".unifiedComposer");
+  if (composer) composer.dataset.uploadSelecting = selecting ? "true" : "false";
+  if (els.documentUpload.disabled && selecting) return;
+  if (selecting) {
+    els.documentUpload.dataset.mode = "selecting";
+    els.documentUpload.setAttribute("aria-pressed", "true");
+    setDocumentUploadStatus(
+      `${textFor("document.selectingPdf", "选择一份 PDF 文件")} · ${textFor("document.selectingPdfHint", "正在打开文件选择器。")}`,
+      "info",
+      true
+    );
+  } else {
+    els.documentUpload.dataset.mode = "idle";
+    els.documentUpload.setAttribute("aria-pressed", "false");
+    if (!composer || composer.dataset.documentBusy !== "true") setDocumentUploadStatus("", "info", false);
+  }
+}
+
+function documentStatusLabel(status) {
+  if (!status) return "";
+  if (status === "parsed") return currentLanguage === "en" ? "Ready" : "已就绪";
+  return currentLanguage === "en" ? `Status: ${status}` : `状态：${status}`;
+}
+
+function documentParserLabel(parser) {
+  if (!parser) return "";
+  return currentLanguage === "en" ? `Parser: ${parser}` : `解析器：${parser}`;
+}
+
+function documentPageCountLabel(count) {
+  const value = Number(count);
+  if (!Number.isFinite(value) || value <= 0) return "";
+  if (currentLanguage === "en") return `${value} ${value === 1 ? "page" : "pages"}`;
+  return `${value} 页`;
+}
+
+function documentCharCountLabel(count) {
+  const value = Number(count);
+  if (!Number.isFinite(value)) return "";
+  if (currentLanguage === "en") return `${value} chars`;
+  return `${value} 字符`;
+}
+
+function normalizeDocumentSummaryData(doc) {
+  if (!doc) return null;
+  return {
+    id: doc.id || currentDocumentId || "",
+    filename: doc.filename || currentDocumentName || "PDF",
+    status: doc.status || "parsed",
+    parser: doc.parser || "",
+    page_count: Number.isFinite(Number(doc.page_count)) ? Number(doc.page_count) : null,
+    char_count: Number.isFinite(Number(doc.char_count)) ? Number(doc.char_count) : null
+  };
+}
+
+function rememberDocumentSummaryData(doc) {
+  currentDocumentSummaryData = normalizeDocumentSummaryData(doc);
+  if (currentDocumentSummaryData) {
+    currentDocumentName = currentDocumentSummaryData.filename || currentDocumentName;
+    currentDocumentSummary = documentSummaryLine(currentDocumentSummaryData);
+  }
+  return currentDocumentStatusLine();
+}
+
+function currentDocumentStatusLine() {
+  if (currentDocumentSummaryData) {
+    currentDocumentSummary = documentSummaryLine(currentDocumentSummaryData);
+    return documentContextSummaryLine(currentDocumentSummaryData);
+  }
+  return currentDocumentSummary || currentDocumentName || "";
+}
+
+function currentDocumentStatusTitleLine() {
+  if (currentDocumentSummaryData) {
+    return documentSummaryLine(currentDocumentSummaryData, { includeParser: false, includeCharCount: false });
+  }
+  return currentDocumentSummary || currentDocumentName || "";
+}
+
+function documentSummaryLine(doc, options = {}) {
   if (!doc) return "";
+  const includeFilename = options.includeFilename !== false;
+  const includeParser = options.includeParser !== false;
+  const includeCharCount = options.includeCharCount !== false;
   const parts = [
-    doc.filename || currentDocumentName || "PDF",
-    doc.status ? `状态：${doc.status}` : "",
-    doc.parser ? `解析器：${doc.parser}` : "",
-    Number.isFinite(Number(doc.page_count)) && Number(doc.page_count) > 0 ? `${doc.page_count} 页` : "",
-    Number.isFinite(Number(doc.char_count)) ? `${doc.char_count} 字符` : ""
+    includeFilename ? doc.filename || currentDocumentName || "PDF" : "",
+    documentStatusLabel(doc.status),
+    includeParser ? documentParserLabel(doc.parser) : "",
+    documentPageCountLabel(doc.page_count),
+    includeCharCount ? documentCharCountLabel(doc.char_count) : ""
   ].filter(Boolean);
   return parts.join(" · ");
 }
 
+function documentContextSummaryLine(doc) {
+  if (!doc) return "";
+  const parts = [
+    doc.filename || currentDocumentName || "PDF",
+    documentStatusLabel(doc.status)
+  ].filter(Boolean);
+  return parts.join(" · ");
+}
+
+function documentReadableSummaryLine(doc) {
+  if (!doc) return "";
+  const sizeParts = [
+    documentPageCountLabel(doc.page_count)
+  ].filter(Boolean);
+  const status = doc.status ? documentStatusLabel(doc.status) : documentStatusLabel("parsed");
+  return sizeParts.length ? `${status} · ${sizeParts.join(" · ")}` : status;
+}
+
+function documentLabeledValue(key, fallback, value) {
+  return `${textFor(key, fallback)}${value}`;
+}
+
+function documentAcceptedLine(docOrName) {
+  const name = typeof docOrName === "string"
+    ? docOrName
+    : ((docOrName && docOrName.filename) || currentDocumentName || "PDF");
+  const line = documentLabeledValue("document.accepted", currentLanguage === "en" ? "I’ve opened " : "我已打开：", name);
+  return currentLanguage === "en" ? `${line}.` : `${line}。`;
+}
+
+function documentFileReadyLine() {
+  return textFor("document.fileReady", currentLanguage === "en" ? "PDF connected" : "PDF 已连接");
+}
+
+function documentReadyAnswerText(doc, warnings = currentDocumentWarnings) {
+  if (!doc) return "";
+  return [
+    documentAcceptedLine(doc),
+    documentReadableSummaryLine(doc),
+    Array.isArray(warnings) && warnings.length ? warnings.join("\n") : ""
+  ].filter(Boolean).join("\n");
+}
+
+function refreshDocumentReadyPresentation() {
+  if (!currentDocumentId || currentDocumentAnswerMode !== "ready" || !currentDocumentSummaryData) return;
+  const answer = documentReadyAnswerText(currentDocumentSummaryData);
+  const fileReady = documentFileReadyLine();
+  setDocumentAnswer(answer);
+  if (currentDocumentReadyFileMessageId) {
+    updateConversationMessage(currentDocumentReadyFileMessageId, fileReady, {
+      label: textFor("role.file", "文件"),
+      role: "file",
+      kind: "document_ready"
+    });
+  }
+  if (currentDocumentReadyAssistantMessageId) {
+    updateConversationMessage(currentDocumentReadyAssistantMessageId, answer, {
+      label: "Iris",
+      role: "assistant",
+      kind: "document_ready"
+    });
+  }
+}
+
 async function uploadCurrentDocument() {
   if (!canUseBackendNow()) {
-    showAccessGate(textFor("access.required", "请先输入访问密钥。"));
+    showAccessGate(textFor("access.required", "请先输入访问口令。"), "warning", "access.required");
+    return;
+  }
+  if (documentUploadInFlight) {
+    logLine("document upload ignored while another upload is in flight");
+    if (els.documentPdf) els.documentPdf.value = "";
     return;
   }
   if (!els.documentPdf || !els.documentPdf.files || !els.documentPdf.files.length) {
@@ -2436,16 +3956,23 @@ async function uploadCurrentDocument() {
   }
   const file = els.documentPdf.files[0];
   if (!file || (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf")) {
-    setDocumentStatus("这里只接收 PDF 文件。");
+    setDocumentStatus(textFor("document.onlyPdf", "这里只接收 PDF 文件。"), "warning");
+    if (els.documentPdf) els.documentPdf.value = "";
     return;
   }
+  documentUploadInFlight = true;
   currentDocumentId = "";
   currentDocumentName = file.name;
   currentDocumentSummary = "";
+  currentDocumentSummaryData = null;
+  currentDocumentWarnings = [];
+  currentDocumentAnswerMode = "";
+  currentDocumentReadyFileMessageId = "";
+  currentDocumentReadyAssistantMessageId = "";
   setDocumentBusy(true);
-  setDocumentStatus(`正在上传并解析：${file.name}`);
+  setDocumentStatus(documentLabeledValue("document.uploading", "正在上传并解析：", file.name), "loading");
   setDocumentAnswer(" ");
-  appendConversationMessage("file", `正在接收：${file.name}`, { kind: "uploading" });
+  const uploadMessageId = appendConversationMessage("file", documentLabeledValue("document.receiving", "正在接收：", file.name), { kind: "uploading" });
   const url = backendUrl(`/client/v1/documents/upload?filename=${encodeURIComponent(file.name)}&client_id=${encodeURIComponent(voiceClientId())}`);
   try {
     const response = await fetch(url, {
@@ -2463,19 +3990,33 @@ async function uploadCurrentDocument() {
       throw new Error(payload.detail && typeof payload.detail === "string" ? payload.detail : `upload_failed_${response.status}`);
     }
     currentDocumentId = payload.id || "";
-    currentDocumentSummary = documentSummaryLine(payload);
-    setDocumentStatus(documentSummaryLine(payload));
-    const warnings = Array.isArray(payload.warnings) && payload.warnings.length ? `\n${payload.warnings.join("\n")}` : "";
-    const accepted = currentDocumentId ? `已接收 ${payload.filename || file.name}。\n${documentSummaryLine(payload)}${warnings}` : "上传完成，但没有拿到文档 ID。";
+    const summaryLine = rememberDocumentSummaryData(payload);
+    setDocumentStatus(summaryLine, currentDocumentId ? "ready" : "warning");
+    currentDocumentWarnings = Array.isArray(payload.warnings) ? payload.warnings.filter(Boolean) : [];
+    const accepted = currentDocumentId
+      ? documentReadyAnswerText(currentDocumentSummaryData || payload)
+      : textFor("document.uploadMissingId", "上传完成，但没有拿到文档 ID。");
+    currentDocumentAnswerMode = currentDocumentId ? "ready" : "warning";
     setDocumentAnswer(accepted);
-    appendAssistantConversation(accepted, { kind: "document_ready" });
+    currentDocumentReadyFileMessageId = uploadMessageId;
+    updateConversationMessage(uploadMessageId, documentFileReadyLine(), { label: textFor("role.file", "文件"), role: "file", kind: "document_ready" });
+    currentDocumentReadyAssistantMessageId = appendAssistantConversation(accepted, { kind: "document_ready" });
   } catch (err) {
     currentDocumentId = "";
     currentDocumentSummary = "";
-    setDocumentStatus(`PDF 上传失败：${err.message || "unknown"}`);
-    appendAssistantConversation(`PDF 上传失败：${err.message || "unknown"}`, { kind: "document_error" });
+    currentDocumentSummaryData = null;
+    currentDocumentWarnings = [];
+    currentDocumentAnswerMode = "error";
+    currentDocumentReadyFileMessageId = "";
+    currentDocumentReadyAssistantMessageId = "";
+    const errorText = documentLabeledValue("document.uploadFailed", "PDF 上传失败：", err.message || "unknown");
+    setDocumentStatus(errorText, "error");
+    if (!updateConversationMessage(uploadMessageId, errorText, { label: "Iris", role: "assistant", kind: "document_error" })) {
+      appendAssistantConversation(errorText, { kind: "document_error" });
+    }
     logLine(`document upload failed ${err.message || ""}`.trim());
   } finally {
+    documentUploadInFlight = false;
     if (els.documentPdf) els.documentPdf.value = "";
     setDocumentBusy(false);
   }
@@ -2483,16 +4024,20 @@ async function uploadCurrentDocument() {
 
 async function summarizeCurrentDocument() {
   if (!canUseBackendNow()) {
-    showAccessGate(textFor("access.required", "请先输入访问密钥。"));
+    showAccessGate(textFor("access.required", "请先输入访问口令。"), "warning", "access.required");
     return;
   }
   if (!currentDocumentId) {
-    setDocumentStatus("先上传并解析一份 PDF。");
+    setDocumentStatus(textFor("document.noDocument", "先上传并解析一份 PDF。"), "warning");
     return;
   }
   setDocumentBusy(true);
-  setDocumentAnswer("正在整理摘要...");
-  const pendingId = appendAssistantConversation("正在整理这份 PDF 的摘要...", { kind: "document_pending" });
+  currentDocumentAnswerMode = "summary";
+  if (currentDocumentSummaryData || currentDocumentSummary || currentDocumentName) {
+    setDocumentStatus(currentDocumentStatusLine() || currentDocumentName, "loading");
+  }
+  setDocumentAnswer(textFor("document.summarizePendingShort", "正在整理摘要..."));
+  const pendingId = appendAssistantConversation(textFor("document.summarizePending", "正在整理这份 PDF 的摘要..."), { kind: "document_pending" });
   try {
     const response = await fetch(backendUrl(`/client/v1/documents/${encodeURIComponent(currentDocumentId)}/summarize`), {
       method: "POST",
@@ -2507,20 +4052,26 @@ async function summarizeCurrentDocument() {
       throw new Error(payload.detail || `summarize_failed_${response.status}`);
     }
     const points = Array.isArray(payload.key_points) && payload.key_points.length
-      ? `\n\n要点：\n${payload.key_points.map((item) => `- ${item}`).join("\n")}`
+      ? `\n\n${textFor("document.summaryPoints", "要点")}：\n${payload.key_points.map((item) => `- ${item}`).join("\n")}`
       : "";
     const outline = Array.isArray(payload.outline) && payload.outline.length
-      ? `\n\n结构：\n${payload.outline.map((item) => `- ${item}`).join("\n")}`
+      ? `\n\n${textFor("document.summaryOutline", "结构")}：\n${payload.outline.map((item) => `- ${item}`).join("\n")}`
       : "";
-    const text = `${payload.summary || "没有生成摘要。"}${points}${outline}`;
+    const text = `${payload.summary || textFor("document.summaryEmpty", "没有生成摘要。")}${points}${outline}`;
     setDocumentAnswer(text);
-    if (!updateConversationMessage(pendingId, text, { label: "Iris · PDF 摘要" })) {
-      appendAssistantConversation(text, { label: "Iris · PDF 摘要", kind: "document_summary" });
+    if (!updateConversationMessage(pendingId, text, { label: textFor("document.summaryLabel", "Iris · PDF 摘要"), kind: "document_summary" })) {
+      const summaryId = appendAssistantConversation(text, { label: textFor("document.summaryLabel", "Iris · PDF 摘要"), kind: "document_summary" });
+      revealConversationMessage(summaryId);
+    } else {
+      revealConversationMessage(pendingId);
     }
-    if (payload.document) setDocumentStatus(documentSummaryLine(payload.document));
+    if (payload.document) setDocumentStatus(rememberDocumentSummaryData(payload.document), "ready");
+    else if (currentDocumentSummaryData || currentDocumentSummary || currentDocumentName) setDocumentStatus(currentDocumentStatusLine() || currentDocumentName, "ready");
   } catch (err) {
-    setDocumentAnswer(`摘要失败：${err.message || "unknown"}`);
-    updateConversationMessage(pendingId, `摘要失败：${err.message || "unknown"}`, { label: "Iris" });
+    const errorText = documentLabeledValue("document.summaryFailed", "摘要失败：", err.message || "unknown");
+    setDocumentStatus(errorText, "error");
+    setDocumentAnswer(errorText);
+    updateConversationMessage(pendingId, errorText, { label: "Iris" });
     logLine(`document summarize failed ${err.message || ""}`.trim());
   } finally {
     setDocumentBusy(false);
@@ -2529,22 +4080,28 @@ async function summarizeCurrentDocument() {
 
 async function askCurrentDocument(questionOverride = "") {
   if (!canUseBackendNow()) {
-    showAccessGate(textFor("access.required", "请先输入访问密钥。"));
+    showAccessGate(textFor("access.required", "请先输入访问口令。"), "warning", "access.required");
     return;
   }
   if (!currentDocumentId) {
-    setDocumentStatus("先上传并解析一份 PDF。");
+    setDocumentStatus(textFor("document.noDocument", "先上传并解析一份 PDF。"), "warning");
     return;
   }
   const question = (questionOverride || (els.documentQuestion && els.documentQuestion.value ? els.documentQuestion.value : "")).trim();
   if (!question) {
-    setDocumentAnswer("先输入一个想问这份 PDF 的问题。");
+    const hint = textFor("document.askMissingQuestion", "先输入一个想问这份 PDF 的问题。");
+    setDocumentStatus(hint, "warning");
+    setDocumentAnswer(hint);
     return;
   }
   setDocumentBusy(true);
-  setDocumentAnswer("正在从文档里找相关内容...");
+  currentDocumentAnswerMode = "answer";
+  if (currentDocumentSummaryData || currentDocumentSummary || currentDocumentName) {
+    setDocumentStatus(currentDocumentStatusLine() || currentDocumentName, "loading");
+  }
+  setDocumentAnswer(textFor("document.askPendingShort", "正在从文档里找相关内容..."));
   appendUserConversation(question, { force: true });
-  const pendingId = appendAssistantConversation("正在从当前 PDF 里找相关内容...", { kind: "document_pending" });
+  const pendingId = appendAssistantConversation(textFor("document.askPending", "正在从当前 PDF 里找相关内容..."), { kind: "document_pending" });
   try {
     const response = await fetch(backendUrl(`/client/v1/documents/${encodeURIComponent(currentDocumentId)}/ask`), {
       method: "POST",
@@ -2561,16 +4118,22 @@ async function askCurrentDocument(questionOverride = "") {
       throw new Error(payload.detail || `ask_failed_${response.status}`);
     }
     const citations = Array.isArray(payload.citations) && payload.citations.length
-      ? `\n\n来源：${payload.citations.map((item) => item.citation_label || (item.page ? `第 ${item.page} 页` : item.chunk_id)).filter(Boolean).join("、")}`
+      ? `\n\n${textFor("document.askSources", "来源")}：${payload.citations.map((item) => item.citation_label || (item.page ? textFor("document.askPage", "第 {page} 页").replace("{page}", item.page) : item.chunk_id)).filter(Boolean).join("、")}`
       : "";
-    const text = `${payload.answer || "没有找到可回答的内容。"}${citations}`;
+    const text = `${payload.answer || textFor("document.askEmpty", "没有找到可回答的内容。")}${citations}`;
     setDocumentAnswer(text);
-    if (!updateConversationMessage(pendingId, text, { label: "Iris · PDF" })) {
-      appendAssistantConversation(text, { label: "Iris · PDF", kind: "document_answer" });
+    if (!updateConversationMessage(pendingId, text, { label: textFor("document.answerLabel", "Iris · PDF"), kind: "document_answer" })) {
+      const answerId = appendAssistantConversation(text, { label: textFor("document.answerLabel", "Iris · PDF"), kind: "document_answer" });
+      revealConversationMessage(answerId);
+    } else {
+      revealConversationMessage(pendingId);
     }
+    if (currentDocumentSummaryData || currentDocumentSummary || currentDocumentName) setDocumentStatus(currentDocumentStatusLine() || currentDocumentName, "ready");
   } catch (err) {
-    setDocumentAnswer(`追问失败：${err.message || "unknown"}`);
-    updateConversationMessage(pendingId, `追问失败：${err.message || "unknown"}`, { label: "Iris" });
+    const errorText = documentLabeledValue("document.askFailed", "追问失败：", err.message || "unknown");
+    setDocumentStatus(errorText, "error");
+    setDocumentAnswer(errorText);
+    updateConversationMessage(pendingId, errorText, { label: "Iris" });
     logLine(`document ask failed ${err.message || ""}`.trim());
   } finally {
     setDocumentBusy(false);
@@ -2607,6 +4170,60 @@ function scheduleTtsRoutePersist(text) {
   ttsRoutePersistTimer = window.setTimeout(flushTtsRoutePersist, TTS_ROUTE_PERSIST_FALLBACK_MS);
 }
 
+function readableTtsRouteSource(source = "") {
+  const value = String(source || "").trim();
+  const en = currentLanguage === "en";
+  const labels = {
+    qa_screenshot: en ? "Web test" : "Web 测试",
+    desktop_qa_screenshot: en ? "Desktop Web test" : "桌面 Web 测试",
+    web_tts_audibility_test: en ? "Voice check" : "发声检查",
+    web_tts_test: en ? "Voice check" : "发声检查",
+    server_audio: en ? "Iris voice playback" : "Iris 语音播放",
+    voice_reply: en ? "Iris reply" : "Iris 回答"
+  };
+  if (labels[value]) return labels[value];
+  if (/qa|screenshot/i.test(value)) {
+    return /desktop/i.test(value) ? (en ? "Desktop Web test" : "桌面 Web 测试") : (en ? "Web test" : "Web 测试");
+  }
+  if (!value || value === "unknown") return en ? "Iris Web" : "Iris Web";
+  return value.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function readableTtsProvider(provider = "") {
+  const value = String(provider || "").trim();
+  const labels = {
+    edge_tts: "Edge TTS",
+    edge: "Edge TTS",
+    server_http_tts: "Edge TTS",
+    qa_tts: "Edge TTS",
+    web_audio: currentLanguage === "en" ? "Web audio" : "Web 音频"
+  };
+  if (labels[value]) return labels[value];
+  if (/qa|screenshot|test/i.test(value)) return "Edge TTS";
+  if (!value || value === "unknown") return "Edge TTS";
+  return value.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function readableTtsRouteSummary(route = {}) {
+  const summary = String(route.summary || "").trim();
+  if (!summary) return "";
+  if (/QA|qa_|desktop_qa|screenshot/i.test(summary)) {
+    return currentLanguage === "en" ? "Test playback was triggered." : "测试播报已触发。";
+  }
+  return summary;
+}
+
+function buildTtsRouteText(route = lastTtsRoute) {
+  if (!route || route.provider === "none") return textFor("tts.noRoute", "还没有播报记录。");
+  const summary = readableTtsRouteSummary(route);
+  return [
+    `${textFor("tts.routeSource", "来源")}：${readableTtsRouteSource(route.source)}`,
+    `${textFor("tts.routeProvider", "服务")}：${readableTtsProvider(route.provider)}`,
+    `${textFor("tts.routeVoice", "音色")}：${voiceProfileLabel(route.voiceProfile || selectedVoiceProfile(), selectedVoiceProfile())}`,
+    summary
+  ].filter(Boolean).join("\n");
+}
+
 function rememberTtsRoute(route) {
   lastTtsRoute = {
     provider: route.provider || "unknown",
@@ -2614,12 +4231,7 @@ function rememberTtsRoute(route) {
     source: route.source || "unknown",
     summary: route.summary || ""
   };
-  const readable = [
-    `来源：${lastTtsRoute.source}`,
-    `Provider：${lastTtsRoute.provider}`,
-    `音色：${lastTtsRoute.voiceProfile}`,
-    lastTtsRoute.summary
-  ].filter(Boolean).join("\n");
+  const readable = buildTtsRouteText(lastTtsRoute);
   currentTtsRouteText = readable;
   scheduleTtsRoutePersist(readable);
   renderWebTtsRoute();
@@ -2658,7 +4270,7 @@ function recordWebSocketSendFailure(error, context = "event") {
   logLine(`WebSocket send failed ${context} #${websocketSendFailures}${detail}`.trim());
   suspendVoiceCaptureAfterSendFailure();
   setState("disconnected");
-  setSttHint("语音连接刚才断开了。网络恢复后再点一次就好。");
+  showConnectionRecoveryHint("connection.dropped", "语音连接刚才断开了。网络恢复后再点一次就好。");
   flushLogRenderNow();
   return false;
 }
@@ -2709,6 +4321,18 @@ function suspendVoiceCaptureAfterSocketClose(reason = "socket_close") {
   releaseVoiceCaptureResources(reason);
 }
 
+function suspendVoiceCaptureAfterSttFatal(reason = "stt_error") {
+  running = false;
+  serverSttEnabled = false;
+  serverSttRequested = false;
+  localSpeaking = false;
+  sttFatal = true;
+  releaseVoiceCaptureResources(reason);
+  send({ type: "stop_session" });
+  closeVoiceSocket(reason);
+  setState("stt_error");
+}
+
 function shutdownVoiceSessionForPageHide() {
   cancelUserPartialRender();
   cancelAgentReplyRender();
@@ -2729,7 +4353,7 @@ async function sendTextPrompt(text) {
   const final = (text || "").trim();
   if (!final) return;
   if (!canUseBackendNow()) {
-    showAccessGate(textFor("access.required", "请先输入访问密钥。"));
+    showAccessGate(textFor("access.required", "请先输入访问口令。"), "warning", "access.required");
     return;
   }
   const requestId = textPromptSeq + 1;
@@ -2767,6 +4391,7 @@ async function sendTextPrompt(text) {
     });
     if (requestId !== textPromptSeq) {
       logLine("stale text prompt skipped");
+      flushLogRenderNow();
       return;
     }
     const payload = await response.json().catch(() => ({}));
@@ -2789,6 +4414,7 @@ async function sendTextPrompt(text) {
     const message = `文字发送失败：${err.message || "网络不可用"}`;
     appendAssistantConversation(message, { kind: "error" });
     logLine(message);
+    flushLogRenderNow();
     setState("error");
     setSttHint("文字发送失败。网络恢复后再试一次。");
     return;
@@ -2813,23 +4439,25 @@ function prepareTextInputTurn() {
 
 function handleTextPromptCommand(text, options = {}) {
   const final = (text || "").trim();
-  if (!final) return;
+  if (!final) return Promise.resolve(false);
   if (options.clearManualInput && els.manual) els.manual.value = "";
   if (options.documentAware && currentDocumentId) {
-    askCurrentDocument(final).catch((err) => {
+    return askCurrentDocument(final).catch((err) => {
       const message = `文档追问失败：${err.message || "PDF 不可用"}`;
       logLine(message);
       appendAssistantConversation(message, { kind: "document_error" });
+      return false;
     });
-    return;
   }
-  sendTextPrompt(final).catch((err) => {
+  return sendTextPrompt(final).catch((err) => {
     const message = `文字发送失败：${err.message || "语音连接不可用"}`;
     logLine(message);
+    flushLogRenderNow();
     if (currentRawState !== "auth_error") {
       setState("disconnected");
       setSttHint("文字发送失败。网络恢复后再试一次。");
     }
+    return false;
   });
 }
 
@@ -2861,22 +4489,89 @@ function clearComposerResizeSchedule() {
   composerResizeFrame = 0;
 }
 
-function handleComposerSubmit() {
+function composerHasText() {
+  return Boolean(els.manual && String(els.manual.value || "").trim());
+}
+
+function composerCanSubmit() {
+  const documentBusy = Boolean(els.documentContextBar && els.documentContextBar.dataset.busy === "true");
+  return !documentBusy && composerHasText();
+}
+
+function syncComposerSendAvailability() {
+  if (!els.manualSend) return;
+  const isLoading = els.manualSend.dataset.loading === "true";
+  const hasText = composerHasText();
+  const canSubmit = composerCanSubmit();
+  const hasDocument = Boolean(currentDocumentId);
+  els.manualSend.dataset.empty = hasText ? "false" : "true";
+  els.manualSend.dataset.canSubmit = canSubmit ? "true" : "false";
+  els.manualSend.dataset.documentLinked = hasDocument ? "true" : "false";
+  els.manualSend.dataset.stateLabel = canSubmit
+    ? (hasDocument ? "document-question-ready" : "message-ready")
+    : (hasDocument ? "document-question-empty" : "message-empty");
+  if (!isLoading) {
+    els.manualSend.disabled = !canSubmit;
+    els.manualSend.dataset.mode = canSubmit
+      ? (hasDocument ? "document-question" : "ready")
+      : (hasDocument ? "document-idle" : "idle");
+    els.manualSend.textContent = hasDocument && hasText ? "?" : "↑";
+  }
+  const label = hasDocument
+    ? (hasText
+      ? textFor("composer.askDocument", "追问当前 PDF")
+      : textFor("composer.askDocumentDisabled", "输入问题后追问当前 PDF"))
+    : (hasText ? textFor("action.send", "发送") : textFor("action.sendDisabled", "输入内容后发送"));
+  els.manualSend.setAttribute("aria-label", label);
+  els.manualSend.setAttribute("title", label);
+}
+
+function setComposerSendLoading(isLoading) {
+  if (!els.manualSend) return;
+  const composer = els.manualSend.closest(".unifiedComposer");
+  if (composer) composer.dataset.sending = isLoading ? "true" : "false";
+  els.manualSend.disabled = Boolean(isLoading);
+  els.manualSend.setAttribute("aria-busy", isLoading ? "true" : "false");
+  if (isLoading) {
+    els.manualSend.dataset.loading = "true";
+    els.manualSend.dataset.mode = "sending";
+    els.manualSend.dataset.stateLabel = "sending";
+    els.manualSend.textContent = "•";
+  } else {
+    els.manualSend.removeAttribute("data-loading");
+    els.manualSend.textContent = "↑";
+    syncComposerSendAvailability();
+  }
+}
+
+async function keepComposerFeedbackVisible(startedAt) {
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const remaining = COMPOSER_ACTION_MIN_BUSY_MS - (now - startedAt);
+  if (remaining > 0) await new Promise((resolve) => window.setTimeout(resolve, remaining));
+}
+
+async function handleComposerSubmit() {
   const text = (els.manual && els.manual.value ? els.manual.value : "").trim();
   if (!text) {
-    if (currentDocumentId) summarizeCurrentDocument().catch((err) => logLine(err.message || "document summarize failed"));
     return;
   }
+  const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+  setComposerSendLoading(true);
   if (els.manual) {
     els.manual.value = "";
     resizeComposerInput({ immediate: true });
   }
-  handleTextPromptCommand(text, { documentAware: true });
+  try {
+    await handleTextPromptCommand(text, { documentAware: true });
+  } finally {
+    await keepComposerFeedbackVisible(startedAt);
+    setComposerSendLoading(false);
+  }
 }
 
 async function connect() {
   if (!canUseBackendNow()) {
-    showAccessGate(textFor("access.required", "请先输入访问密钥。"));
+    showAccessGate(textFor("access.required", "请先输入访问口令。"), "warning", "access.required");
     return false;
   }
   if (ws && ws.readyState === WebSocket.OPEN && voiceSocketAuthenticated) return true;
@@ -2893,7 +4588,7 @@ async function connect() {
     logLine(`WebSocket create failed${detail}`.trim());
     running = false;
     setState("disconnected");
-    setSttHint("语音连接还没建立成功。网络恢复后再点一次就好。");
+    showConnectionRecoveryHint("connection.failed", "语音连接还没建立成功。网络恢复后再点一次就好。");
     return false;
   }
   ws = socket;
@@ -2908,7 +4603,7 @@ async function connect() {
       const timeoutReason = socket.readyState === WebSocket.CONNECTING ? "connect_timeout" : "auth_timeout";
       logLine(timeoutReason === "connect_timeout" ? "WebSocket connect timeout" : "WebSocket auth timeout");
       setState("disconnected");
-      setSttHint("连接超时。网络恢复后再点一次就好。");
+      showConnectionRecoveryHint(timeoutReason === "connect_timeout" ? "connection.timeout" : "connection.failed", "连接超时。网络恢复后再点一次就好。");
       try {
         socket.close(1000, timeoutReason);
       } catch {}
@@ -2972,7 +4667,7 @@ async function connect() {
         return;
       }
       setState("disconnected");
-      setSttHint("语音连接刚才断开了。网络恢复后再点一次就好。");
+      showConnectionRecoveryHint("connection.dropped", "语音连接刚才断开了。网络恢复后再点一次就好。");
       logLine("WebSocket error");
       try {
         socket.close(1000, "socket_error");
@@ -3020,13 +4715,13 @@ async function start() {
   unlockTts().catch(() => {});
   running = true;
   speakerMuted = false;
-  els.speaker.textContent = "静音扬声器";
+  syncAudioSettingButtons();
   els.partial.textContent = "";
   els.final.textContent = "";
   els.reply.textContent = "";
   cancelUserPartialRender();
   cancelAgentReplyRender();
-  setSubtitle("我在，慢慢说。", { speaker: "IRIS" });
+  setSubtitle(textFor("voice.startListening", "我在，慢慢说。"), { speaker: "IRIS" });
   setSttHint("");
   sttFatal = false;
   browserSttUnavailable = false;
@@ -3043,7 +4738,7 @@ async function start() {
     running = false;
     if (currentRawState !== "auth_error") {
       setState("disconnected");
-      setSttHint("语音连接还没建立成功，我没有开始录音。请点“重连”或重新开始。");
+      showConnectionRecoveryHint("connection.failed", textFor("voice.connectFailedHint", "语音连接还没建立成功，我没有开始录音。请点“重连”或重新开始。"));
     }
     return;
   }
@@ -3063,7 +4758,7 @@ async function start() {
     releaseVoiceCaptureResources("socket_closed_after_microphone_start");
     if (!authFailed) {
       setState("disconnected");
-      setSttHint("语音连接刚才断开了。网络恢复后再点一次就好。");
+      showConnectionRecoveryHint("connection.dropped", "语音连接刚才断开了。网络恢复后再点一次就好。");
     }
     return;
   }
@@ -3224,15 +4919,14 @@ function fallbackToBrowserStt(reason) {
   sttFatal = false;
   stopPcmStreamer();
   if (browserSttUnavailable) {
-    sttFatal = true;
-    setState("stt_error");
+    suspendVoiceCaptureAfterSttFatal("browser_stt_unavailable");
     setSttHint("浏览器语音识别启动失败，Iris 云端识别也暂不可用。你可以先用手动输入。");
     logLine(`STT browser unavailable: ${reason || "unknown"}`);
     return;
   }
   const Ctor = speechRecognitionCtor();
   if (!Ctor) {
-    setState("stt_error");
+    suspendVoiceCaptureAfterSttFatal("speech_recognition_unavailable");
     setSttHint("这台设备既没有可用的浏览器语音识别，Iris 云端识别也暂不可用。你可以先用手动输入。");
     logLine(`STT no fallback: ${reason || "unknown"}`);
     return;
@@ -3421,13 +5115,19 @@ function startRecognition() {
       return;
     }
 
-    if (["not-allowed", "audio-capture"].includes(code)) {
-      sttFatal = true;
-      setState("stt_error");
+    if (["not-allowed", "audio-capture"].includes(code) && canFallbackToServerStt()) {
+      browserSttUnavailable = true;
+      setSttHint("浏览器语音识别不可用，正在切换 Iris 云端识别。");
+      requestServerStt(code);
       return;
     }
 
-    setState("stt_error");
+    if (["not-allowed", "audio-capture"].includes(code)) {
+      suspendVoiceCaptureAfterSttFatal(code);
+      return;
+    }
+
+    suspendVoiceCaptureAfterSttFatal(code);
   };
   recognition.onend = () => {
     recognitionActive = false;
@@ -3459,7 +5159,7 @@ function startRecognition() {
       if (!send({ type: "final_transcript", text: final })) {
         logLine("final transcript send skipped");
         setState("disconnected");
-        setSttHint("语音连接刚才断开了。网络恢复后再点一次就好。");
+        showConnectionRecoveryHint("connection.dropped", "语音连接刚才断开了。网络恢复后再点一次就好。");
         return;
       }
       setState("thinking");
@@ -3660,16 +5360,43 @@ async function speak(text, turnId, responseId) {
 function renderWebTtsAudibility() {
   if (!els.webTtsAudibility) return;
   if (!currentWebTtsAudibilityText) {
-    currentWebTtsAudibilityText = safeStorageGet(TTS_AUDIBILITY_KEY, "未确认");
+    currentWebTtsAudibilityText = safeStorageGet(TTS_AUDIBILITY_KEY, textFor("tts.unconfirmed", "未确认"));
     persistedWebTtsAudibilityText = currentWebTtsAudibilityText;
   }
-  els.webTtsAudibility.textContent = currentWebTtsAudibilityText || "未确认";
+  const value = currentWebTtsAudibilityText || textFor("tts.unconfirmed", "未确认");
+  const tone = webTtsAudibilityTone(value);
+  els.webTtsAudibility.textContent = value;
+  els.webTtsAudibility.title = value;
+  els.webTtsAudibility.dataset.tone = tone;
+  const box = els.webTtsAudibility.closest(".audibilityBox");
+  if (box) box.dataset.tone = tone;
+  if (els.webTtsHeard) els.webTtsHeard.setAttribute("aria-pressed", tone === "success" ? "true" : "false");
+  if (els.webTtsNotHeard) els.webTtsNotHeard.setAttribute("aria-pressed", tone === "error" ? "true" : "false");
+}
+
+function webTtsAudibilityTone(text) {
+  const value = String(text || "").toLowerCase();
+  if (!value.trim() || value.includes("未确认") || value.includes("not confirmed")) return "info";
+  if (value.includes("等待") || value.includes("正在") || value.includes("waiting") || value.includes("connecting") || value.includes("pending") || value.includes("syncing")) return "loading";
+  if (value.includes("失败") || value.includes("未听到") || value.includes("没听到") || value.includes("no sound") || value.includes("failed")) return "error";
+  if (value.includes("已确认") || value.includes("已同步") || value.includes("confirmed") || value.includes("audible") || value.includes("heard") || value.includes("synced")) return "success";
+  return "info";
+}
+
+function setWebTtsButtonLoading(button, loading) {
+  if (!button) return;
+  button.disabled = Boolean(loading);
+  if (loading) button.dataset.loading = "true";
+  else button.removeAttribute("data-loading");
 }
 
 function renderWebTtsRoute() {
   if (!els.webTtsRoute) return;
+  if (lastTtsRoute.provider && lastTtsRoute.provider !== "none") {
+    currentTtsRouteText = buildTtsRouteText(lastTtsRoute);
+  }
   if (!currentTtsRouteText) {
-    currentTtsRouteText = safeStorageGet(TTS_ROUTE_KEY, "还没有播报记录。");
+    currentTtsRouteText = safeStorageGet(TTS_ROUTE_KEY, textFor("tts.noRoute", "还没有播报记录。"));
     persistedTtsRouteText = currentTtsRouteText;
   }
   els.webTtsRoute.textContent = currentTtsRouteText;
@@ -3706,15 +5433,15 @@ function scheduleWebTtsAudibilityPersist(text) {
 }
 
 function rememberWebTtsAudibility(value, { persist = true } = {}) {
-  currentWebTtsAudibilityText = (value || "").trim() || "未确认";
+  currentWebTtsAudibilityText = (value || "").trim() || textFor("tts.unconfirmed", "未确认");
   renderWebTtsAudibility();
   if (persist) scheduleWebTtsAudibilityPersist(currentWebTtsAudibilityText);
 }
 
 function recordWebTtsAudibility(heard) {
   const value = heard
-    ? "已确认听到：Web 最近一次测试播报可被人耳听见。"
-    : "未听到：请检查媒体音量、静音开关、蓝牙输出、浏览器自动播放权限和 Edge TTS 音频播放链路。";
+    ? textFor("tts.heardStatus", "已确认听到：Web 最近一次测试播报可被人耳听见。")
+    : textFor("tts.notHeardStatus", "未听到：请检查媒体音量、静音开关、蓝牙输出、浏览器自动播放权限和 Edge TTS 音频播放链路。");
   rememberWebTtsAudibility(value);
   setSubtitle(value, { speaker: "IRIS", resetFlow: true });
   logLine(`web TTS audibility ${heard ? "heard" : "not_heard"}`);
@@ -3723,6 +5450,7 @@ function recordWebTtsAudibility(heard) {
 
 async function reportWebTtsAudibility(heard, note) {
   if (!window.fetch) return false;
+  const routeSummary = readableTtsRouteSummary(lastTtsRoute);
   const response = await fetch(backendUrl("/voice/audibility"), {
     method: "POST",
     keepalive: true,
@@ -3735,7 +5463,7 @@ async function reportWebTtsAudibility(heard, note) {
       heard,
       voice_profile: lastTtsRoute.voiceProfile || selectedVoiceProfile(),
       tts_provider: lastTtsRoute.provider || "web_client",
-      route_summary: [lastTtsRoute.summary, currentWebTtsAudibilityText || ""].filter(Boolean).join("\n"),
+      route_summary: [routeSummary, currentWebTtsAudibilityText || ""].filter(Boolean).join("\n"),
       note: note || ""
     })
   });
@@ -3748,6 +5476,16 @@ async function reportWebTtsAudibility(heard, note) {
   return true;
 }
 
+function readableWebTtsAudibilityDetail(detail = "") {
+  const lines = String(detail || "")
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const safeLines = lines.filter((line) => !/\bqa\b|qa_|jarvis_|screenshot/i.test(line));
+  if (safeLines.length) return safeLines.join("\n");
+  return lines.length ? (currentLanguage === "en" ? "Test playback details were recorded." : "测试播报记录已保存。") : "";
+}
+
 function cancelWebTtsAudibilitySync() {
   webTtsAudibilitySyncSeq += 1;
   if (!activeWebTtsAudibilitySyncAbortController) return;
@@ -3757,10 +5495,18 @@ function cancelWebTtsAudibilitySync() {
 
 function summarizeWebTtsAudibilityEvent(event) {
   if (!event) return "";
-  const heard = event.heard ? "已确认听到" : "未听到";
-  const created = event.created_at || "时间未知";
-  const detail = event.note || event.route_summary || "";
-  return [`${heard}：服务器最近一次 Web 测试播报记录（${created}）。`, detail].filter(Boolean).join("\n");
+  const heard = event.heard
+    ? textFor("tts.syncEventHeard", "已确认听到")
+    : textFor("tts.syncEventNotHeard", "未听到");
+  const created = event.created_at || (currentLanguage === "en" ? "unknown time" : "时间未知");
+  const detail = readableWebTtsAudibilityDetail(event.note || event.route_summary || "");
+  return [
+    formatTextFor("tts.syncEventLine", "{status}：服务器最近一次 Web 测试播报记录（{created}）。", {
+      status: heard,
+      created
+    }),
+    detail
+  ].filter(Boolean).join("\n");
 }
 
 async function syncWebTtsAudibility() {
@@ -3771,7 +5517,7 @@ async function syncWebTtsAudibility() {
   const abortController = typeof AbortController !== "undefined" ? new AbortController() : null;
   activeWebTtsAudibilitySyncAbortController = abortController;
   const isCurrentSync = () => webTtsAudibilitySyncSeq === requestId && (!abortController || !abortController.signal.aborted);
-  const pending = "正在同步服务器最近一次 Web 听感记录。";
+  const pending = textFor("tts.syncPending", "正在同步服务器最近一次 Web 听感记录。");
   rememberWebTtsAudibility(pending);
   try {
     const response = await fetch(backendUrl("/voice/audibility/latest?limit=1"), {
@@ -3792,7 +5538,7 @@ async function syncWebTtsAudibility() {
       return false;
     }
     const event = Array.isArray(payload.events) ? payload.events[0] : null;
-    const value = summarizeWebTtsAudibilityEvent(event) || "服务器还没有 Web 听感记录。";
+    const value = summarizeWebTtsAudibilityEvent(event) || textFor("tts.syncEmpty", "服务器还没有 Web 听感记录。");
     rememberWebTtsAudibility(value);
     setSubtitle(value, { speaker: "IRIS", resetFlow: true });
     logLine(`web audibility synced · ${event && event.event_id ? event.event_id : "empty"}`);
@@ -3811,21 +5557,27 @@ async function syncWebTtsAudibility() {
 }
 
 async function startWebTtsAudibilityTest() {
-  const value = "等待确认：请听浏览器是否播出了刚才这句测试语音。";
+  const value = textFor("tts.testPending", "等待确认：请听浏览器是否播出了刚才这句测试语音。");
+  const utterance = textFor("tts.testUtterance", "Iris Web 发声测试。现在使用你选择的 Edge TTS 音色。");
   rememberWebTtsAudibility(value);
-  setSubtitle("Iris Web 发声测试。现在使用你选择的 Edge TTS 音色。", {
+  setSubtitle(utterance, {
     speaker: "IRIS",
     resetFlow: true
   });
   speakerMuted = false;
-  if (els.speaker) els.speaker.textContent = "静音扬声器";
+  syncAudioSettingButtons();
   await unlockTts().catch(() => {});
   const testId = `web-tts-audibility-${Date.now()}`;
-  await speak(
-    "Iris Web 发声测试。现在使用你选择的 Edge TTS 音色。",
-    testId,
-    testId
-  );
+  setWebTtsButtonLoading(els.webTtsTest, true);
+  try {
+    await speak(
+      utterance,
+      testId,
+      testId
+    );
+  } finally {
+    setWebTtsButtonLoading(els.webTtsTest, false);
+  }
 }
 
 function shouldTryServerTts() {
@@ -4086,7 +5838,47 @@ async function handleReconnectCommand() {
   const connected = await connect();
   if (!connected && currentRawState !== "auth_error") {
     setState("disconnected");
-    setSttHint("语音连接还没建立成功。网络恢复后再点一次就好。");
+    showConnectionRecoveryHint("connection.failed", "语音连接还没建立成功。网络恢复后再点一次就好。");
+  }
+}
+
+function markMaintenanceAction(button) {
+  if (!button) return;
+  const group = button.closest(".maintenanceGrid");
+  if (group) {
+    group.dataset.lastAction = button.dataset.actionRole || button.id || "";
+    group.querySelectorAll("button").forEach((node) => {
+      if (node === button) node.dataset.lastAction = "true";
+      else node.removeAttribute("data-last-action");
+    });
+  } else {
+    button.dataset.lastAction = "true";
+  }
+}
+
+function setMaintenanceActionLoading(button, loading) {
+  if (!button) return;
+  if (loading) {
+    button.dataset.loading = "true";
+    button.setAttribute("aria-busy", "true");
+  } else {
+    button.removeAttribute("data-loading");
+    button.removeAttribute("aria-busy");
+  }
+}
+
+async function runMaintenanceActionWithFeedback(button, action) {
+  if (!button || button.dataset.loading === "true") return;
+  const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+  markMaintenanceAction(button);
+  setMaintenanceActionLoading(button, true);
+  try {
+    await Promise.resolve(action());
+  } finally {
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const remaining = MAINTENANCE_ACTION_MIN_BUSY_MS - (now - startedAt);
+    if (remaining > 0) await new Promise((resolve) => window.setTimeout(resolve, remaining));
+    setMaintenanceActionLoading(button, false);
   }
 }
 
@@ -4094,20 +5886,27 @@ async function handleAccessSubmit(event) {
   if (event) event.preventDefault();
   const accessKey = els.accessToken && els.accessToken.value ? els.accessToken.value.trim() : "";
   if (!accessKey) {
-    showAccessGate(textFor("access.empty", "请输入访问密钥。"));
+    showAccessGate(textFor("access.empty", "请输入访问口令。"), "warning", "access.empty");
+    focusAccessToken(40);
     return;
   }
-  if (els.accessSubmit) els.accessSubmit.disabled = true;
+  if (typeof navigator !== "undefined" && navigator && navigator.onLine === false) {
+    showAccessGate(textFor("access.offline", "当前网络不可用，请稍后重试。"), "warning", "access.offline");
+    return;
+  }
+  setAccessSubmitLoading(true);
   try {
-    setAccessStatus(textFor("access.verifying", "正在验证访问密钥。"));
+    setAccessStatus(textFor("access.verifying", "正在确认你的私人空间。"), "loading", "access.verifying");
     const session = await requestAccessSession(accessKey);
     if (els.accessToken) els.accessToken.value = "";
+    setAccessCodeVisible(false);
     completeSessionLogin(session.session_token, session.expires_at);
     loadModelSettings().catch((err) => logLine(err.message || "model settings failed"));
   } catch (err) {
-    showAccessGate(`${textFor("access.failed", "连接失败：")}${err.message || textFor("access.checkKey", "请检查访问密钥")}`);
+    const failureKey = accessFailureKey(err);
+    showAccessGate(textFor(failureKey, accessFailureMessage(err)), "error", failureKey);
   } finally {
-    if (els.accessSubmit) els.accessSubmit.disabled = false;
+    setAccessSubmitLoading(false);
   }
 }
 
@@ -4133,8 +5932,33 @@ if (els.detailsToggle) els.detailsToggle.addEventListener("click", openDetails);
 if (els.closeDetails) els.closeDetails.addEventListener("click", closeDetails);
 if (els.accessForm) {
   els.accessForm.addEventListener("submit", (event) => {
-    handleAccessSubmit(event).catch((err) => showAccessGate(`${textFor("access.failed", "连接失败：")}${err.message || "unknown"}`));
+    handleAccessSubmit(event).catch((err) => {
+      const failureKey = accessFailureKey(err);
+      showAccessGate(textFor(failureKey, accessFailureMessage(err)), "error", failureKey);
+    });
   });
+}
+if (els.accessToken) {
+  els.accessToken.addEventListener("input", resetAccessFieldFeedback);
+  els.accessToken.addEventListener("focus", () => setAccessInputFocused(true));
+  els.accessToken.addEventListener("blur", () => setAccessInputFocused(false));
+}
+if (els.accessReveal) {
+  els.accessReveal.addEventListener("click", toggleAccessCodeVisibility);
+}
+if (els.diagnosticsCopy) {
+  els.diagnosticsCopy.addEventListener("click", () => {
+    copyDiagnostics().catch((err) => {
+      setDiagnosticsStatus(textFor("debug.copyFailed", "复制失败，请稍后再试。"), "error", "debug.copyFailed");
+      logLine(err.message || "diagnostics copy failed");
+      els.diagnosticsCopy.disabled = false;
+      els.diagnosticsCopy.removeAttribute("data-loading");
+      els.diagnosticsCopy.setAttribute("aria-busy", "false");
+    });
+  });
+}
+if (els.diagnosticsClear) {
+  els.diagnosticsClear.addEventListener("click", clearDiagnosticsLog);
 }
 if (els.memoryRefresh) {
   els.memoryRefresh.addEventListener("click", () => {
@@ -4164,19 +5988,79 @@ if (els.detailSheet) {
   els.detailSheet.addEventListener("click", (event) => {
     if (event.target === els.detailSheet) closeDetails();
   });
+  els.detailSheet.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") return;
+    const summary = event.target instanceof HTMLElement ? event.target.closest("summary.navSummary") : null;
+    const group = summary ? summary.closest("details.settingsGroup") : null;
+    if (!summary || !group || !els.detailSheet.contains(summary)) return;
+    event.preventDefault();
+    group.open = !group.open;
+    if (group.open) scrollSettingsGroupIntoView(group);
+  });
+  initSettingsGroupAutoScroll();
 }
+function clearFormKeyboardFocus() {
+  document.querySelectorAll("[data-form-keyboard-focus]").forEach((node) => {
+    node.removeAttribute("data-form-keyboard-focus");
+  });
+}
+function syncFormKeyboardFocus(target) {
+  const el = target instanceof HTMLElement ? target : null;
+  if (!el || !el.matches("input:not([type='file']), select, textarea")) return;
+  if (document.body.classList.contains("keyboardInput")) {
+    el.setAttribute("data-form-keyboard-focus", "true");
+  }
+}
+document.addEventListener("keydown", (event) => {
+  if (["Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", " "].includes(event.key)) {
+    document.body.classList.add("keyboardInput");
+    syncFormKeyboardFocus(document.activeElement);
+  }
+  if (event.key !== "Escape" || !document.body.classList.contains("detailsOpen")) return;
+  event.preventDefault();
+  closeDetails();
+});
+document.addEventListener("pointerdown", () => {
+  document.body.classList.remove("keyboardInput");
+  if (els.detailsToggle) els.detailsToggle.removeAttribute("data-keyboard-focus");
+  clearFormKeyboardFocus();
+}, { passive: true });
+if (els.detailsToggle) {
+  els.detailsToggle.addEventListener("focusin", () => {
+    if (document.body.classList.contains("keyboardInput")) {
+      els.detailsToggle.setAttribute("data-keyboard-focus", "true");
+    }
+  });
+  els.detailsToggle.addEventListener("focusout", () => {
+    els.detailsToggle.removeAttribute("data-keyboard-focus");
+  });
+}
+document.addEventListener("focusin", (event) => {
+  syncFormKeyboardFocus(event.target);
+  if (event.target === els.accessToken) setAccessInputFocused(true);
+}, true);
+document.addEventListener("focusout", (event) => {
+  const target = event.target instanceof HTMLElement ? event.target : null;
+  if (target === els.accessToken) setAccessInputFocused(false);
+  if (!target || !target.matches("input, select, textarea")) return;
+  target.removeAttribute("data-form-keyboard-focus");
+}, true);
 els.reconnect.addEventListener("click", () => {
-  handleReconnectCommand().catch((err) => {
+  runMaintenanceActionWithFeedback(els.reconnect, handleReconnectCommand).catch((err) => {
     logLine(err.message || "reconnect failed");
     setState("disconnected");
-    setSttHint("语音连接还没建立成功。网络恢复后再点一次就好。");
+    showConnectionRecoveryHint("connection.failed", "语音连接还没建立成功。网络恢复后再点一次就好。");
   });
 });
-els.stop.addEventListener("click", () => handleStopCommand("manual_stop"));
+els.stop.addEventListener("click", () => {
+  runMaintenanceActionWithFeedback(els.stop, () => handleStopCommand("manual_stop")).catch((err) => {
+    logLine(err.message || "stop failed");
+  });
+});
 els.mic.addEventListener("click", () => {
   micMuted = !micMuted;
   document.body.classList.toggle("micMuted", micMuted);
-  els.mic.textContent = micMuted ? textFor("action.unmuteMic", "取消静音") : textFor("action.microphone", "麦克风");
+  syncAudioSettingButtons();
   updateDockControls(currentVisualState);
   if (micMuted) stopRecognition();
   else if (running && shouldPreferServerStt()) requestServerStt("mic_unmuted");
@@ -4185,7 +6069,7 @@ els.mic.addEventListener("click", () => {
 });
 els.speaker.addEventListener("click", () => {
   speakerMuted = !speakerMuted;
-  els.speaker.textContent = speakerMuted ? textFor("action.unmuteSpeaker", "打开扬声器") : textFor("action.muteSpeaker", "静音扬声器");
+  syncAudioSettingButtons();
   if (speakerMuted) stopPlayback("speaker_muted");
   else unlockTts().catch(() => {});
 });
@@ -4202,22 +6086,27 @@ if (els.webTtsNotHeard) {
 }
 if (els.webTtsSync) {
   els.webTtsSync.addEventListener("click", () => {
-    syncWebTtsAudibility().catch((err) => {
-      const message = `听感同步失败：${err.message || "请检查 Tailnet 或 Token"}`;
-      rememberWebTtsAudibility(message);
-      logLine(message);
-    });
+    setWebTtsButtonLoading(els.webTtsSync, true);
+    syncWebTtsAudibility()
+      .catch((err) => {
+        const message = `听感同步失败：${err.message || "请检查 Tailnet 或 Token"}`;
+        rememberWebTtsAudibility(message);
+        logLine(message);
+      })
+      .finally(() => setWebTtsButtonLoading(els.webTtsSync, false));
   });
 }
 if (els.documentUpload) {
   els.documentUpload.addEventListener("click", () => {
+    setDocumentUploadSelecting(true);
+    window.setTimeout(() => setDocumentUploadSelecting(false), 760);
     if (els.documentPdf) els.documentPdf.click();
   });
 }
 if (els.documentPdf) {
   els.documentPdf.addEventListener("change", () => {
     uploadCurrentDocument().catch((err) => {
-      setDocumentStatus(`PDF 上传失败：${err.message || "unknown"}`);
+      setDocumentStatus(documentLabeledValue("document.uploadFailed", "PDF 上传失败：", err.message || "unknown"), "error");
       logLine(err.message || "document upload failed");
     });
   });
@@ -4225,7 +6114,9 @@ if (els.documentPdf) {
 if (els.documentSummarize) {
   els.documentSummarize.addEventListener("click", () => {
     summarizeCurrentDocument().catch((err) => {
-      setDocumentAnswer(`摘要失败：${err.message || "unknown"}`);
+      const errorText = documentLabeledValue("document.summaryFailed", "摘要失败：", err.message || "unknown");
+      setDocumentStatus(errorText, "error");
+      setDocumentAnswer(errorText);
       logLine(err.message || "document summarize failed");
     });
   });
@@ -4233,7 +6124,9 @@ if (els.documentSummarize) {
 if (els.documentAsk) {
   els.documentAsk.addEventListener("click", () => {
     askCurrentDocument().catch((err) => {
-      setDocumentAnswer(`追问失败：${err.message || "unknown"}`);
+      const errorText = documentLabeledValue("document.askFailed", "追问失败：", err.message || "unknown");
+      setDocumentStatus(errorText, "error");
+      setDocumentAnswer(errorText);
       logLine(err.message || "document ask failed");
     });
   });
@@ -4242,21 +6135,32 @@ if (els.documentQuestion) {
   els.documentQuestion.addEventListener("keydown", (event) => {
     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
       askCurrentDocument().catch((err) => {
-        setDocumentAnswer(`追问失败：${err.message || "unknown"}`);
+        const errorText = documentLabeledValue("document.askFailed", "追问失败：", err.message || "unknown");
+        setDocumentStatus(errorText, "error");
+        setDocumentAnswer(errorText);
         logLine(err.message || "document ask failed");
       });
     }
   });
 }
 els.manualSend.addEventListener("click", () => {
-  handleComposerSubmit();
+  handleComposerSubmit().catch((err) => {
+    setComposerSendLoading(false);
+    logLine(err.message || "composer submit failed");
+  });
 });
 if (els.manual) {
-  els.manual.addEventListener("input", resizeComposerInput);
+  els.manual.addEventListener("input", () => {
+    resizeComposerInput();
+    syncComposerSendAvailability();
+  });
   els.manual.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      handleComposerSubmit();
+      handleComposerSubmit().catch((err) => {
+        setComposerSendLoading(false);
+        logLine(err.message || "composer submit failed");
+      });
     }
   });
 }
@@ -4265,12 +6169,14 @@ loadToken();
 initVoiceClientId();
 initThemeSettings();
 initLanguageSettings();
+refreshAccessRevealButton();
 maybePromptForAccess();
 initModelSettings();
 initVoiceProfileSettings();
 initVolumeSettings();
 renderWebTtsAudibility();
 renderWebTtsRoute();
+syncComposerSendAvailability();
 syncViewportMetrics({ refreshSubtitle: false });
 if (canUseBackendNow()) {
   loadConversationHistory().catch((err) => logLine(err.message || "conversation history failed"));
@@ -4292,7 +6198,8 @@ if (els.conversationStream) {
     els.conversationStream.addEventListener(eventName, () => updateConversationPinnedState({ userIntent: true }), { passive: true });
   });
 }
-els.speaker.textContent = textFor("action.muteSpeaker", "静音扬声器");
+els.mic.textContent = textFor("action.micOn", "麦克风开");
+syncAudioSettingButtons();
 setState("idle");
 setSubtitle(textFor("voice.idleText", "我在。你可以直接说。"), { speaker: "IRIS" });
 logLine(WEB_VERSION);

@@ -41,6 +41,6 @@ https://zhiyu-ning.github.io/iris
 https://jarvis-alpha.tail36770b.ts.net
 ```
 
-浏览器会从这个后端调用 `/client/v1/*`、`/voice/tts` 和 `/voice/ws`。用户手动输入访问密钥，前端只把密钥发送给私有后端 `/voice/session-token` 换取短期 Iris session token；浏览器只在当前会话保存短期 token，不写入仓库。长期访问密钥首选配置为私有后端 `.env` 里的 `IRIS_ACCESS_KEY`，旧 `JARVIS_API_TOKEN` 仅作兼容，不能写进 Pages 仓库或前端源码。
+浏览器会从这个后端调用 `/client/v1/*`、`/voice/tts` 和 `/voice/ws`。用户手动输入访问口令，前端只把口令发送给私有后端 `/voice/session-token` 换取短期 Iris session token；浏览器只在当前会话保存短期 token，不写入仓库。长期访问密钥首选配置为私有后端 `.env` 里的 `IRIS_ACCESS_KEY`，旧 `JARVIS_API_TOKEN` 仅作兼容，不能写进 Pages 仓库或前端源码。
 
 本仓库由主项目构建生成，不在这里维护后端逻辑。
