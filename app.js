@@ -72,7 +72,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "320";
+const VOICE_UI_VERSION = "321";
 const IRIS_PUBLIC_CONFIG = Object.freeze({
   backendOrigin: "",
   appBasePath: "/voice",
@@ -210,7 +210,7 @@ function isPublicFrontendMode() {
 }
 
 function canUseBackendNow() {
-  return !isPublicFrontendMode() || Boolean(persistedVoiceToken);
+  return !isPublicFrontendMode() || Boolean(currentAuthToken());
 }
 
 const VISUAL_STATE_MAP = {
@@ -887,7 +887,7 @@ const MEMORY_ACTION_MIN_BUSY_MS = 720;
 const COMPOSER_ACTION_MIN_BUSY_MS = 260;
 const MAINTENANCE_ACTION_MIN_BUSY_MS = 280;
 
-const WEB_VERSION = "voice-ui-web-polish-v320-sound-first-screen-polish";
+const WEB_VERSION = "voice-ui-web-polish-v321-auth-session-qa-polish";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -2882,6 +2882,11 @@ function loadToken() {
   persistedVoiceToken = safeSessionGet(ACCESS_TOKEN_KEY, "");
 }
 
+function currentAuthToken() {
+  if (!persistedVoiceToken) loadToken();
+  return persistedVoiceToken || "";
+}
+
 function wsUrl() {
   return backendWsUrl("/voice/ws");
 }
@@ -2906,7 +2911,7 @@ function authEvent() {
   const clientId = voiceClientId();
   return {
     type: "auth",
-    token: persistedVoiceToken || "",
+    token: currentAuthToken(),
     client_type: "web",
     client_id: clientId,
     user_id: "default",
@@ -2915,7 +2920,7 @@ function authEvent() {
 }
 
 function authHeaders() {
-  const token = persistedVoiceToken || "";
+  const token = currentAuthToken();
   return token ? { "X-Jarvis-Token": token } : {};
 }
 
@@ -3120,7 +3125,7 @@ function hideAccessGate() {
 }
 
 function maybePromptForAccess() {
-  if (persistedVoiceToken || !isPublicFrontendMode()) {
+  if (currentAuthToken() || !isPublicFrontendMode()) {
     hideAccessGate();
     return;
   }
