@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=321" type="image/png" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=321" />
-    <link rel="manifest" href="/iris/manifest.json?v=321" />
-    <link rel="stylesheet" href="/iris/styles.css?v=321" />
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=348" type="image/png" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=348" />
+    <link rel="manifest" href="/iris/manifest.json?v=348" />
+    <link rel="stylesheet" href="/iris/styles.css?v=348" />
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -56,13 +56,15 @@
 
         <section class="controls dock unifiedComposer" aria-label="message composer">
           <p id="voiceInputStatus" class="voiceInputStatus" aria-live="polite" data-i18n="voice.inputting">正在语音输入</p>
-          <input id="documentPdfInput" class="fileInput" type="file" accept="application/pdf,.pdf" />
+          <input id="documentPdfInput" class="fileInput" type="file" accept="application/pdf,image/png,image/jpeg,image/webp,image/tiff,image/heic,image/heif,text/plain,text/markdown,text/csv,text/tab-separated-values,application/json,text/html,application/xml,application/rtf,message/rfc822,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.oasis.opendocument.text,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.presentation,.pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.heic,.heif,.txt,.log,.md,.markdown,.csv,.tsv,.json,.html,.htm,.xml,.rtf,.docx,.xlsx,.pptx,.odt,.ods,.odp,.eml" />
           <p id="documentUploadStatus" class="documentUploadStatus" role="status" aria-live="polite" aria-atomic="true" data-tone="info" data-visible="false"> </p>
           <button id="documentUploadButton" class="dockIcon attachButton" type="button" aria-label="上传文件" title="上传文件" data-i18n-aria-label="action.uploadFile" data-i18n-title="action.uploadFile">
             <span class="attachPlus" aria-hidden="true">+</span>
           </button>
           <div id="documentContextBar" class="documentContextBar" hidden data-tone="info">
             <span id="documentStatus" class="documentStatusText" role="status" aria-live="polite" data-i18n="document.disconnected">未连接文件</span>
+            <button id="documentJobCancelButton" class="documentJobAction" type="button" hidden>取消</button>
+            <button id="documentJobRetryButton" class="documentJobAction" type="button" hidden>重试</button>
             <button id="documentSummarizeButton" type="button" disabled data-i18n="document.summary">摘要</button>
           </div>
           <div class="composerField">
@@ -244,6 +246,31 @@
           </div>
         </details>
 
+        <details class="settingsGroup navGroup reviewGroup">
+          <summary class="navSummary">
+            <span class="navIcon reviewIcon" aria-hidden="true"></span>
+            <span class="navCopy">
+              <span class="navTitle" data-i18n="settings.review">审阅</span>
+              <span id="reviewWorkbenchStatus" class="navSub" role="status" aria-live="polite" data-tone="info" data-i18n="settings.reviewSub">动作 · 学习 · 待处理</span>
+            </span>
+          </summary>
+          <div class="groupBody reviewWorkbench">
+            <div class="reviewWorkbenchHeader">
+              <div id="reviewWorkbenchTabs" class="reviewTabs" role="tablist" aria-label="审阅范围" data-i18n-aria-label="review.tabsAria">
+                <button type="button" role="tab" aria-selected="true" data-review-filter="pending" data-i18n="review.pending">待处理</button>
+                <button type="button" role="tab" aria-selected="false" data-review-filter="all" data-i18n="review.all">全部</button>
+              </div>
+              <button id="reviewWorkbenchRefreshButton" class="reviewRefreshButton" type="button" data-i18n="action.refresh">刷新</button>
+            </div>
+            <div id="reviewWorkbenchOverview" class="reviewOverview" role="status" aria-live="polite" data-tone="info">
+              <span class="reviewOverviewKicker">REVIEW QUEUE</span>
+              <strong>准备同步</strong>
+              <span>所有外部动作和长期学习都会先经过这里。</span>
+            </div>
+            <div id="reviewWorkbenchList" class="reviewList" aria-live="polite"></div>
+          </div>
+        </details>
+
         <details class="settingsGroup navGroup soundGroup">
           <summary class="navSummary">
             <span class="navIcon voiceIcon" aria-hidden="true"></span>
@@ -350,7 +377,7 @@
         </div>
       </aside>
     </main>
-            <script src="/iris/public-config.js?v=321"></script>
-    <script src="/iris/app.js?v=321"></script>
+            <script src="/iris/public-config.js?v=348"></script>
+    <script src="/iris/app.js?v=348"></script>
   </body>
 </html>

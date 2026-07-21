@@ -57,8 +57,8 @@
   --control-hover-filter: brightness(1.018) saturate(1.06);
   --control-active-filter: brightness(0.985) saturate(1.02);
   --control-press-shadow: inset 0 2px 5px rgba(24, 42, 67, 0.08);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=321");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=321");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=348");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=348");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -78,12 +78,15 @@
   --dock-height: 66px;
   --dock-bottom: max(12px, env(safe-area-inset-bottom));
   --dock-clearance: calc(var(--dock-bottom) + var(--dock-height) - 18px);
-  --effective-dock-bottom: calc(var(--dock-bottom) + var(--viewport-bottom-offset));
+  --effective-dock-bottom: var(--dock-bottom);
   --effective-dock-clearance: calc(var(--effective-dock-bottom) + var(--dock-height) + 18px);
   --caption-max-height: 320px;
   --caption-quick-max-height: 210px;
   --viewport-top-offset: 0px;
   --viewport-bottom-offset: 0px;
+  --visual-viewport-page-top: 0px;
+  --visual-viewport-height: 100dvh;
+  --viewport-dock-gap: var(--dock-bottom);
 }
 
 :root[data-theme="soft-gray"] {
@@ -209,8 +212,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 22px 54px rgba(85, 91, 255, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=321");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=321");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=348");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=348");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -266,8 +269,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=321");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=321");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=348");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=348");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -279,6 +282,13 @@ html,
 body {
   height: 100%;
   min-height: 100%;
+}
+
+html {
+  width: 100%;
+  overflow: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -304,8 +314,8 @@ body:has(.documentContextBar:not([hidden])) {
 }
 
 body:has(.documentContextBar:not([hidden])) .conversationStream {
-  padding-bottom: calc(var(--dock-clearance) + 116px);
-  scroll-padding-bottom: calc(var(--dock-clearance) + 116px);
+  padding-bottom: var(--dock-clearance);
+  scroll-padding-bottom: var(--dock-clearance);
 }
 
 body::before,
@@ -1532,8 +1542,8 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding: 8px 2px calc(var(--dock-clearance) + 82px);
-  scroll-padding-bottom: calc(var(--dock-clearance) + 82px);
+  padding: 8px 2px var(--dock-clearance);
+  scroll-padding-bottom: var(--dock-clearance);
   scrollbar-width: thin;
   scrollbar-color: rgba(47, 140, 255, 0.22) transparent;
 }
@@ -1574,6 +1584,16 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 .conversationStream::-webkit-scrollbar-thumb {
   border-radius: 999px;
   background: color-mix(in srgb, var(--ink-dim) 7%, transparent);
+}
+
+@media (max-width: 899px) {
+  .conversationStream {
+    scrollbar-width: none;
+  }
+
+  .conversationStream::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .message {
@@ -2041,7 +2061,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=321");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=348");
 }
 
 .brandName {
@@ -2597,11 +2617,13 @@ body.detailsOpen .captionFloat {
 
 .dock {
   position: fixed;
-  left: 50%;
+  left: 0;
+  right: 0;
   bottom: var(--effective-dock-bottom);
   width: calc(100% - 38px);
   max-width: 520px;
-  transform: translateX(-50%);
+  margin-inline: auto;
+  transform: none;
   z-index: 20;
   display: grid;
   min-height: 48px;
@@ -2610,6 +2632,31 @@ body.detailsOpen .captionFloat {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+}
+
+body > .dock.unifiedComposer {
+  position: absolute;
+  top: calc(
+    var(--visual-viewport-page-top)
+    + var(--visual-viewport-height)
+    - var(--dock-height)
+    - var(--viewport-dock-gap)
+  );
+  bottom: auto;
+  width: calc(100vw - 28px);
+  max-width: 560px;
+  transform: none;
+  will-change: auto;
+}
+
+body.keyboardOpen {
+  --viewport-dock-gap: 12px;
+}
+
+body.accessLocked > .dock.unifiedComposer {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .dock.unifiedComposer {
@@ -2631,14 +2678,21 @@ body.detailsOpen .captionFloat {
     inset 0 1px 0 rgba(255, 255, 255, 0.68),
     0 18px 48px color-mix(in srgb, var(--shadow) 94%, transparent),
     0 2px 10px color-mix(in srgb, var(--shadow) 48%, transparent);
-  backdrop-filter: blur(24px) saturate(1.22);
-  -webkit-backdrop-filter: blur(24px) saturate(1.22);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   transition:
     min-height 180ms ease,
     border-color 180ms ease,
     box-shadow 180ms ease,
-    background 180ms ease,
-    transform 180ms ease;
+    background 180ms ease;
+}
+
+body.keyboardOpen .dock.unifiedComposer {
+  transition:
+    min-height 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
 }
 
 .dock.unifiedComposer:has(.documentContextBar:not([hidden])) {
@@ -2653,8 +2707,8 @@ body.detailsOpen .captionFloat {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
     0 18px 46px rgba(39, 62, 94, 0.12);
-  backdrop-filter: blur(22px) saturate(1.18);
-  -webkit-backdrop-filter: blur(22px) saturate(1.18);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .dock.unifiedComposer[data-upload-status-visible="true"]:not(:has(.documentContextBar:not([hidden]))) {
@@ -2669,8 +2723,8 @@ body.detailsOpen .captionFloat {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.72),
     0 18px 46px rgba(39, 62, 94, 0.12);
-  backdrop-filter: blur(22px) saturate(1.18);
-  -webkit-backdrop-filter: blur(22px) saturate(1.18);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .dock.unifiedComposer[data-upload-status-visible="true"]:has(.documentContextBar:not([hidden])) {
@@ -2865,7 +2919,7 @@ body[data-visual-state="thinking"] .dock.unifiedComposer,
   justify-self: stretch;
   min-height: 44px;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(58px, auto);
+  grid-template-columns: auto minmax(0, 1fr) repeat(3, minmax(0, auto));
   gap: 8px;
   align-items: center;
   padding: 5px 5px 5px 10px;
@@ -2897,7 +2951,7 @@ body[data-visual-state="thinking"] .dock.unifiedComposer,
 }
 
 .documentContextBar[data-has-document="true"]::before {
-  content: "PDF";
+  content: attr(data-document-badge);
   width: auto;
   height: 26px;
   min-width: 44px;
@@ -3019,6 +3073,16 @@ body[data-visual-state="thinking"] .dock.unifiedComposer,
     transform 160ms ease;
 }
 
+.documentContextBar .documentJobAction {
+  min-width: 54px;
+  color: color-mix(in srgb, var(--ink-soft) 88%, var(--accent));
+}
+
+.documentContextBar .documentJobAction[hidden],
+.documentContextBar #documentSummarizeButton[hidden] {
+  display: none;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .documentContextBar button:not(:disabled):hover {
     transform: translateY(-1px);
@@ -3037,9 +3101,14 @@ body[data-visual-state="thinking"] .dock.unifiedComposer,
   opacity: 0.72;
 }
 
-.documentContextBar[data-tone="loading"] button,
-.documentContextBar[data-tone="warning"] button,
-.documentContextBar[data-tone="error"]:not([data-has-document="true"]) button {
+.documentContextBar[data-busy="true"] .documentJobAction {
+  cursor: pointer;
+  opacity: 1;
+}
+
+.documentContextBar[data-tone="loading"] #documentSummarizeButton,
+.documentContextBar[data-tone="warning"] #documentSummarizeButton,
+.documentContextBar[data-tone="error"]:not([data-has-document="true"]) #documentSummarizeButton {
   display: none;
 }
 
@@ -3162,7 +3231,7 @@ body[data-visual-state="thinking"] .dock.unifiedComposer,
 }
 
 .sendButton[data-document-linked="true"]:not([data-loading="true"])::after {
-  content: "PDF";
+  content: attr(data-document-badge);
   position: absolute;
   left: 50%;
   top: -5px;
@@ -3678,6 +3747,21 @@ body.keyboardInput .navSummary:focus {
 .bookIcon::after {
   width: 1px;
   height: 19px;
+  background: currentColor;
+}
+
+.reviewIcon::before {
+  width: 20px;
+  height: 20px;
+  border: 2px solid currentColor;
+  border-radius: 72% 8% 72% 8%;
+  transform: rotate(45deg);
+}
+
+.reviewIcon::after {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   background: currentColor;
 }
 
@@ -5228,6 +5312,15 @@ button:disabled {
   }
 }
 
+@media (max-width: 899px) {
+  body.detailsOpen .dock.unifiedComposer,
+  body.detailsOpen > .dock.unifiedComposer {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
 @media (max-width: 350px) {
   .dock {
     gap: 6px;
@@ -6293,12 +6386,10 @@ button[aria-disabled="true"]:not([data-loading="true"]) {
   }
 
   body.detailsOpen .dock.unifiedComposer {
-    left: calc((100vw - var(--desktop-panel-width) - var(--desktop-panel-gap)) / 2);
-    width: min(
-      1120px,
-      calc(100vw - var(--desktop-panel-width) - var(--desktop-panel-gap) - var(--desktop-edge) - var(--desktop-edge))
-    );
-    max-width: none;
+    left: var(--desktop-edge);
+    right: calc(var(--desktop-panel-width) + var(--desktop-panel-gap) + var(--desktop-edge));
+    width: auto;
+    max-width: 920px;
   }
 
   body.detailsOpen .detailSheet {
@@ -6917,8 +7008,14 @@ body:has(.documentContextBar:not([hidden])) .dock.unifiedComposer {
   max-height: calc(100dvh - max(18px, env(safe-area-inset-top)) - max(14px, env(safe-area-inset-bottom)));
   z-index: 80;
   isolation: isolate;
-  transform: translate3d(-50%, 0, 0);
-  will-change: transform;
+  transform: none;
+  will-change: auto;
+}
+
+body:has(.documentContextBar:not([hidden])) > .dock.unifiedComposer {
+  position: absolute;
+  transform: none;
+  will-change: auto;
 }
 
 body:has(.documentContextBar:not([hidden])) .documentContextBar,
@@ -7097,7 +7194,7 @@ body:has(.documentContextBar:not([hidden])) .sendButton {
 
 .memoryActions {
   width: 100%;
-  min-height: 44px;
+  min-height: 46px;
   gap: 7px;
   margin-top: 6px;
   padding-bottom: 1px;
@@ -7105,7 +7202,7 @@ body:has(.documentContextBar:not([hidden])) .sendButton {
 
 .memoryActions button {
   min-width: 68px;
-  min-height: 44px;
+  min-height: 46px;
   padding-inline: 13px;
   border-radius: 999px;
   font-weight: 720;
@@ -7197,6 +7294,362 @@ body:has(.documentContextBar:not([hidden])) .sendButton {
   background:
     radial-gradient(circle at 10% 0%, rgba(105, 173, 243, 0.08), transparent 42%),
     rgba(255, 255, 255, 0.045);
+}
+
+/* v344 Parse-unit progress, partial recovery, and failed-unit retry. */
+.reviewWorkbench {
+  gap: 13px;
+}
+
+.reviewWorkbenchHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.reviewTabs {
+  display: inline-flex;
+  gap: 3px;
+  min-width: 0;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--line) 86%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--field-bg) 72%, transparent);
+}
+
+.reviewTabs button,
+.reviewRefreshButton {
+  min-height: 46px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 720;
+}
+
+.reviewTabs button {
+  min-width: 76px;
+  padding-inline: 15px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.reviewTabs button[aria-selected="true"] {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
+  background:
+    radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 48%),
+    color-mix(in srgb, var(--button-bg) 90%, var(--field-bg));
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--shadow) 9%, transparent);
+}
+
+.reviewRefreshButton {
+  flex: none;
+  min-width: 72px;
+  padding-inline: 13px;
+  color: color-mix(in srgb, var(--ink-dim) 88%, transparent);
+  border-color: color-mix(in srgb, var(--line) 72%, transparent);
+  background: color-mix(in srgb, var(--field-bg) 52%, transparent);
+  box-shadow: none;
+}
+
+.reviewRefreshButton:hover,
+.reviewRefreshButton:focus-visible {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--line));
+  background: color-mix(in srgb, var(--button-bg) 72%, var(--field-bg));
+}
+
+.reviewOverview {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  min-height: 104px;
+  padding: 17px 16px 17px 56px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, var(--line));
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 44%),
+    radial-gradient(circle at 100% 100%, color-mix(in srgb, var(--status-answering) 7%, transparent), transparent 46%),
+    color-mix(in srgb, var(--field-bg) 76%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 14px 34px color-mix(in srgb, var(--shadow) 9%, transparent);
+}
+
+.reviewOverview::before {
+  content: "";
+  position: absolute;
+  left: 19px;
+  top: 21px;
+  width: 20px;
+  height: 20px;
+  border: 2px solid color-mix(in srgb, var(--accent) 75%, var(--ink));
+  border-radius: 72% 8% 72% 8%;
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.reviewOverview::after {
+  content: "";
+  position: absolute;
+  left: 26px;
+  top: 28px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 78%, var(--status-answering));
+}
+
+.reviewOverviewKicker {
+  color: color-mix(in srgb, var(--ink-dim) 82%, transparent);
+  font-size: 9.5px;
+  font-weight: 780;
+  letter-spacing: 0.15em;
+}
+
+.reviewOverview strong {
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.24;
+}
+
+.reviewOverview span:last-child {
+  color: color-mix(in srgb, var(--ink-dim) 88%, transparent);
+  font-size: 12px;
+  line-height: 1.46;
+}
+
+.reviewList {
+  display: grid;
+  gap: 10px;
+  max-height: min(500px, 62dvh);
+  padding: 1px 3px 6px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.reviewItem,
+.reviewEmpty {
+  border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
+  border-radius: 23px;
+  background:
+    radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 42%),
+    color-mix(in srgb, var(--field-bg) 82%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 12px 30px color-mix(in srgb, var(--shadow) 9%, transparent);
+}
+
+.reviewItem {
+  display: grid;
+  gap: 8px;
+  padding: 15px;
+}
+
+.reviewItem[data-phase="needs-review"] {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+  background:
+    radial-gradient(circle at 5% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 44%),
+    color-mix(in srgb, var(--field-bg) 84%, transparent);
+}
+
+.reviewItem[data-phase="attention"] {
+  border-color: color-mix(in srgb, var(--status-error) 25%, var(--line));
+}
+
+.reviewCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.reviewKind,
+.reviewBadge {
+  font-size: 10px;
+  font-weight: 790;
+  letter-spacing: 0.085em;
+}
+
+.reviewKind {
+  color: color-mix(in srgb, var(--ink-dim) 86%, transparent);
+  text-transform: uppercase;
+}
+
+.reviewBadge {
+  flex: none;
+  padding: 5px 9px;
+  color: color-mix(in srgb, var(--accent) 76%, var(--ink));
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 7%, transparent);
+}
+
+.reviewItem[data-phase="attention"] .reviewBadge {
+  color: color-mix(in srgb, var(--status-error) 76%, var(--ink));
+}
+
+.reviewItem h3 {
+  margin: 2px 0 0;
+  color: var(--ink);
+  font-size: 15.5px;
+  line-height: 1.3;
+  letter-spacing: -0.012em;
+}
+
+.reviewMeta,
+.reviewHint,
+.reviewProvenance,
+.reviewDecisionConfirm p {
+  margin: 0;
+  color: color-mix(in srgb, var(--ink-dim) 88%, transparent);
+  font-size: 11.5px;
+  line-height: 1.48;
+  overflow-wrap: anywhere;
+}
+
+.reviewActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+
+.reviewCardActions {
+  margin-top: 2px;
+}
+
+.reviewActions button {
+  min-height: 42px;
+  padding-inline: 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 740;
+}
+
+.reviewActions button[data-role="primary"] {
+  color: var(--primary-action-text);
+  border-color: color-mix(in srgb, var(--accent) 52%, transparent);
+  background: var(--primary-action);
+  box-shadow: var(--access-action-shadow);
+}
+
+.reviewActions button[data-role="danger"] {
+  color: color-mix(in srgb, var(--status-error) 85%, var(--ink));
+  border-color: color-mix(in srgb, var(--status-error) 28%, var(--line));
+  background: color-mix(in srgb, var(--status-error) 8%, var(--field-bg));
+}
+
+.reviewActions button[data-role="quiet"] {
+  background: color-mix(in srgb, var(--button-bg) 56%, transparent);
+  box-shadow: none;
+}
+
+.reviewDetail {
+  display: grid;
+  gap: 10px;
+  margin-top: 3px;
+  padding: 13px;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--line));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--field-bg) 64%, transparent);
+}
+
+.reviewDetailHeading {
+  margin: 0;
+  color: color-mix(in srgb, var(--ink) 94%, transparent);
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.reviewDetailContent {
+  max-height: 260px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  color: color-mix(in srgb, var(--ink) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line) 86%, transparent);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--button-bg) 34%, transparent);
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.reviewDetail[data-preview-available="false"] .reviewDetailContent {
+  color: color-mix(in srgb, var(--status-error) 72%, var(--ink));
+  border-color: color-mix(in srgb, var(--status-error) 22%, var(--line));
+}
+
+.reviewDecisionConfirm {
+  display: grid;
+  gap: 10px;
+  margin-top: 2px;
+  padding: 13px;
+  border: 1px solid color-mix(in srgb, var(--status-thinking) 28%, var(--line));
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--status-thinking) 10%, transparent), transparent 44%),
+    color-mix(in srgb, var(--field-bg) 76%, transparent);
+}
+
+.reviewEmpty {
+  margin: 0;
+  padding: 19px 16px;
+  color: color-mix(in srgb, var(--ink-dim) 88%, transparent);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.reviewItem[data-busy="true"] {
+  opacity: 0.72;
+}
+
+:root[data-theme="pure-black"] .reviewOverview,
+:root[data-theme="pure-black"] .reviewItem,
+:root[data-theme="pure-black"] .reviewEmpty {
+  border-color: rgba(255, 255, 255, 0.11);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(105, 173, 243, 0.09), transparent 44%),
+    linear-gradient(180deg, rgba(37, 44, 57, 0.84), rgba(23, 28, 38, 0.76));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 16px 38px rgba(0, 0, 0, 0.25);
+}
+
+:root[data-theme="pure-black"] .reviewDetail,
+:root[data-theme="pure-black"] .reviewDecisionConfirm,
+:root[data-theme="pure-black"] .reviewDetailContent {
+  border-color: rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+@media (max-width: 480px) {
+  .reviewWorkbenchHeader {
+    align-items: stretch;
+  }
+
+  .reviewTabs {
+    flex: 1 1 auto;
+  }
+
+  .reviewTabs button {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .reviewRefreshButton {
+    min-width: 68px;
+  }
+
+  .reviewActions button {
+    flex: 1 1 auto;
+  }
 }
 
 /* v309 access gate polish: calmer first impression, lighter validation, clearer primary action. */
@@ -7746,6 +8199,161 @@ body:has(.documentContextBar:not([hidden])) .sendButton {
   background: rgba(255, 255, 255, 0.055);
 }
 
+@media (orientation: landscape) and (max-height: 500px) {
+  .accessGate {
+    place-items: start center;
+    padding: 10px max(72px, env(safe-area-inset-right)) 12px max(72px, env(safe-area-inset-left));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+
+  .accessGate::-webkit-scrollbar { display: none; }
+
+  .accessQuickControls {
+    left: max(18px, env(safe-area-inset-left));
+    right: max(18px, env(safe-area-inset-right));
+    top: max(10px, env(safe-area-inset-top));
+  }
+
+  .accessPanel {
+    width: min(360px, calc(100vw - 180px));
+    gap: 4px;
+    margin: 0 auto;
+    padding: 10px 18px 12px;
+    border-radius: 28px;
+  }
+
+  .accessBrandStack {
+    width: 50px;
+    height: 50px;
+  }
+
+  .accessMark {
+    width: 44px;
+    height: 44px;
+    border-radius: 15px;
+  }
+
+  .accessIntro {
+    gap: 1px;
+  }
+
+  .accessIntro > .eyebrow {
+    font-size: 8px;
+  }
+
+  .accessPanel h1 {
+    font-size: 31px;
+  }
+
+  .accessTagline {
+    font-size: 11.5px;
+  }
+
+  .accessCopy {
+    max-width: 320px;
+    font-size: 10.5px;
+    line-height: 1.25;
+  }
+
+  .accessSessionNote,
+  .accessProofRow,
+  .accessTrust {
+    display: none;
+  }
+
+  .accessForm {
+    gap: 3px;
+    margin-top: 1px;
+    padding: 4px;
+    border-radius: 18px;
+  }
+
+  .accessFieldLabel {
+    font-size: 9px;
+  }
+
+  .accessForm input {
+    min-height: 44px;
+    border-radius: 14px;
+  }
+
+  #accessStatus {
+    min-height: 27px;
+    padding: 5px 8px;
+    font-size: 10.5px;
+  }
+
+  .accessForm > button {
+    min-height: 46px;
+    border-radius: 15px;
+    font-size: 14px;
+  }
+}
+
+@media (orientation: portrait) and (max-height: 620px) {
+  .accessGate {
+    place-items: start center;
+    padding: 12px 20px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+
+  .accessGate::-webkit-scrollbar { display: none; }
+
+  .accessQuickControls {
+    top: 16px;
+  }
+
+  .accessPanel {
+    gap: 5px;
+    margin: 0 auto;
+    padding: 18px 20px 16px;
+    border-radius: 30px;
+  }
+
+  .accessBrandStack {
+    width: 64px;
+    height: 64px;
+  }
+
+  .accessMark {
+    width: 54px;
+    height: 54px;
+    border-radius: 18px;
+  }
+
+  .accessPanel h1 {
+    font-size: 38px;
+  }
+
+  .accessSessionNote,
+  .accessProofRow {
+    display: none;
+  }
+
+  .accessForm {
+    gap: 4px;
+    margin-top: 1px;
+    padding: 5px;
+  }
+
+  .accessForm input {
+    min-height: 49px;
+  }
+
+  #accessStatus {
+    min-height: 30px;
+    padding-block: 6px;
+  }
+
+  .accessForm > button {
+    min-height: 50px;
+  }
+}
+
 /* v311 settings anchor polish: expanded groups must stay below the sticky sheet header. */
 .detailSheet {
   scroll-padding-top: calc(92px + max(0px, env(safe-area-inset-top)));
@@ -7849,11 +8457,11 @@ body:has(.documentContextBar:not([hidden])) .sendButton {
 }
 
 .soundGroup #voiceProfileSelect {
-  min-height: 44px;
+  min-height: 46px;
 }
 
 .soundGroup .maintenanceGrid button {
-  min-height: 44px;
+  min-height: 46px;
 }
 
 .soundGroup .audibilityBox {
@@ -7911,5 +8519,100 @@ body:has(.documentContextBar:not([hidden])) .sendButton {
 .soundGroup .audibilityActions button[data-action-role="success"],
 .soundGroup .audibilityActions button[data-action-role="danger"],
 .soundGroup .audibilityActions button[data-action-role="secondary"] {
-  min-height: 44px;
+  min-height: 46px;
+}
+
+/* v322 quiet response feedback: secondary to the conversation, clear on focus. */
+.messageFeedbackControls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  margin: 8px 0 -3px;
+  color: color-mix(in srgb, var(--ink-dim) 62%, transparent);
+}
+
+.messageFeedbackIcon,
+.messageFeedbackRefinements button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.messageFeedbackIcon {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  padding: 5px;
+  place-items: center;
+  border-radius: 50%;
+  opacity: .48;
+  transition: opacity 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.messageFeedbackIcon svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.35;
+}
+
+.messageFeedbackControls:hover .messageFeedbackIcon,
+.messageFeedbackIcon:focus-visible,
+.messageFeedbackIcon[aria-pressed="true"] {
+  opacity: .92;
+}
+
+.messageFeedbackIcon:hover,
+.messageFeedbackIcon:focus-visible,
+.messageFeedbackIcon[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+  color: color-mix(in srgb, var(--accent) 72%, var(--ink) 28%);
+  outline: none;
+}
+
+.messageFeedbackRefinements {
+  display: flex;
+  gap: 5px;
+  margin-left: 3px;
+}
+
+.messageFeedbackRefinements[hidden] {
+  display: none;
+}
+
+.messageFeedbackRefinements button {
+  min-height: 25px;
+  padding: 3px 9px;
+  border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 10.5px;
+  letter-spacing: .01em;
+}
+
+.messageFeedbackRefinements button:hover,
+.messageFeedbackRefinements button:focus-visible,
+.messageFeedbackRefinements button[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--line) 66%);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  outline: none;
+}
+
+.messageFeedbackStatus {
+  min-width: 3em;
+  margin-left: 3px;
+  font-size: 10px;
+  opacity: .72;
+}
+
+:root[data-theme="pure-black"] .messageFeedbackIcon:hover,
+:root[data-theme="pure-black"] .messageFeedbackIcon:focus-visible,
+:root[data-theme="pure-black"] .messageFeedbackIcon[aria-pressed="true"] {
+  background: rgba(255, 255, 255, .07);
 }

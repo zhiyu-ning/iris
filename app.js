@@ -34,6 +34,11 @@ const els = {
   memoryOverview: document.getElementById("memoryOverview"),
   memoryStatus: document.getElementById("memoryStatus"),
   memoryList: document.getElementById("memoryList"),
+  reviewRefresh: document.getElementById("reviewWorkbenchRefreshButton"),
+  reviewTabs: document.getElementById("reviewWorkbenchTabs"),
+  reviewOverview: document.getElementById("reviewWorkbenchOverview"),
+  reviewStatus: document.getElementById("reviewWorkbenchStatus"),
+  reviewList: document.getElementById("reviewWorkbenchList"),
   modelCard: document.getElementById("modelControlCard"),
   modelCardTitle: document.getElementById("modelControlTitle"),
   modelCardMeta: document.getElementById("modelControlMeta"),
@@ -52,6 +57,8 @@ const els = {
   documentPdf: document.getElementById("documentPdfInput"),
   documentUpload: document.getElementById("documentUploadButton"),
   documentUploadStatus: document.getElementById("documentUploadStatus"),
+  documentJobCancel: document.getElementById("documentJobCancelButton"),
+  documentJobRetry: document.getElementById("documentJobRetryButton"),
   documentSummarize: document.getElementById("documentSummarizeButton"),
   documentQuestion: document.getElementById("documentQuestionInput"),
   documentAsk: document.getElementById("documentAskButton"),
@@ -72,7 +79,12 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "321";
+const VOICE_UI_VERSION = "348";
+const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
+  "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
+  "docx", "xlsx", "pptx", "odt", "ods", "odp", "eml",
+  "png", "jpg", "jpeg", "webp", "tif", "tiff", "heic", "heif"
+]);
 const IRIS_PUBLIC_CONFIG = Object.freeze({
   backendOrigin: "",
   appBasePath: "/voice",
@@ -104,6 +116,31 @@ const serverVoiceProfileLabels = new Map(Object.entries(VOICE_PROFILE_LABELS));
 const params = new URLSearchParams(window.location.search);
 const IS_QA_MODE = params.has("qa");
 const QA_HISTORY_ENABLED = params.get("qa_history") === "1";
+const responseAuthTokens = new WeakMap();
+const irisNativeFetch = typeof window.fetch === "function" ? window.fetch.bind(window) : null;
+
+function authTokenFromFetchRequest(input, init = {}) {
+  try {
+    const headersSource = init && Object.prototype.hasOwnProperty.call(init, "headers")
+      ? init.headers
+      : typeof Request !== "undefined" && input instanceof Request
+        ? input.headers
+        : undefined;
+    if (!headersSource || typeof Headers === "undefined") return "";
+    return String(new Headers(headersSource).get("X-Jarvis-Token") || "");
+  } catch {
+    return "";
+  }
+}
+
+if (irisNativeFetch) {
+  window.fetch = async (input, init = {}) => {
+    const requestToken = authTokenFromFetchRequest(input, init);
+    const response = await irisNativeFetch(input, init);
+    if (response && typeof response === "object") responseAuthTokens.set(response, requestToken);
+    return response;
+  };
+}
 if (params.has("reset_ui")) {
   Promise.all([
     "caches" in window ? caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))) : Promise.resolve(),
@@ -190,6 +227,16 @@ const IRIS_BACKEND_ORIGIN = normalizedOrigin(IRIS_PUBLIC_CONFIG.backendOrigin);
 function backendUrl(path) {
   const target = String(path || "");
   return IRIS_BACKEND_ORIGIN ? `${IRIS_BACKEND_ORIGIN}${target}` : target;
+}
+
+function documentApiUrl(path, query = {}) {
+  const url = new URL(backendUrl(path), window.location.href);
+  Object.entries(query).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && String(value) !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  });
+  return url.toString();
 }
 
 function backendWsUrl(path) {
@@ -466,6 +513,11 @@ const UI_TEXT = {
     "model.message.switchFailed": "模型切换失败：{reason}",
     "settings.memory": "记忆",
     "settings.memorySub": "偏好 · 项目 · 待确认",
+    "settings.review": "审阅",
+    "settings.reviewSub": "动作 · 学习 · 待处理",
+    "review.tabsAria": "审阅范围",
+    "review.pending": "待处理",
+    "review.all": "全部",
     "settings.sound": "声音",
     "settings.soundSub": "语音 · 播放 · 麦克风",
     "settings.voiceLabel": "Edge TTS 音色",
@@ -493,37 +545,40 @@ const UI_TEXT = {
     "action.stopVoice": "结束语音",
     "composer.placeholder": "输入内容...",
     "composer.aria": "输入内容",
-    "composer.askDocument": "追问当前 PDF",
-    "composer.askDocumentDisabled": "输入问题后追问当前 PDF",
+    "composer.askDocument": "追问当前文件",
+    "composer.askDocumentDisabled": "输入问题后追问当前文件",
     "document.disconnected": "未连接文件",
     "document.summary": "摘要",
     "document.ask": "追问",
-    "document.onlyPdf": "这里只接收 PDF 文件。",
-    "document.selectingPdf": "选择 PDF",
+    "document.onlyPdf": "暂不支持这种文件。请选择 PDF、图片、文本、Markdown、CSV、JSON、HTML、Office 或 OpenDocument 文件。",
+    "document.selectingPdf": "选择文件",
     "document.selectingPdfHint": "正在打开文件选择器",
-    "document.uploadingPdfAria": "正在上传 PDF",
+    "document.uploadingPdfAria": "正在上传文件",
     "document.uploading": "正在上传并解析：",
     "document.receiving": "正在接收：",
-    "document.fileReady": "PDF 已连接",
-    "document.accepted": "我已打开：",
+    "document.fileReady": "文件已读",
+    "document.accepted": "我读完了：",
     "document.uploadMissingId": "上传完成，但没有拿到文档 ID。",
-    "document.uploadFailed": "PDF 上传失败：",
-    "document.noDocument": "先上传并解析一份 PDF。",
+    "document.uploadFailed": "文件上传失败：",
+    "document.uploadVerifying": "连接中断，正在确认文件是否已经上传...",
+    "document.uploadVerifyLater": "暂时无法确认上传结果。网络恢复后会自动继续检查。",
+    "document.uploadIncomplete": "文件没有上传完整，请重新选择后再试。",
+    "document.noDocument": "先上传并解析一份文件。",
     "document.summarizePendingShort": "正在整理摘要...",
-    "document.summarizePending": "正在整理这份 PDF 的摘要...",
+    "document.summarizePending": "正在整理这份文件的摘要...",
     "document.summaryEmpty": "没有生成摘要。",
     "document.summaryPoints": "要点",
     "document.summaryOutline": "结构",
     "document.summaryFailed": "摘要失败：",
-    "document.askMissingQuestion": "先输入一个想问这份 PDF 的问题。",
+    "document.askMissingQuestion": "先输入一个想问这份文件的问题。",
     "document.askPendingShort": "正在从文档里找相关内容...",
-    "document.askPending": "正在从当前 PDF 里找相关内容...",
+    "document.askPending": "正在从当前文件里找相关内容...",
     "document.askEmpty": "没有找到可回答的内容。",
     "document.askSources": "来源",
     "document.askPage": "第 {page} 页",
     "document.askFailed": "追问失败：",
-    "document.summaryLabel": "Iris · PDF 摘要",
-    "document.answerLabel": "Iris · PDF",
+    "document.summaryLabel": "Iris · 文件摘要",
+    "document.answerLabel": "Iris · 文件",
     "memory.search": "搜索记忆",
     "memory.clearSearch": "清空记忆搜索",
     "tts.audibilityTitle": "发声听感确认",
@@ -634,6 +689,11 @@ const UI_TEXT = {
     "model.message.switchFailed": "Model switch failed: {reason}",
     "settings.memory": "Memory",
     "settings.memorySub": "Prefs · Projects · Review",
+    "settings.review": "Review",
+    "settings.reviewSub": "Actions · Learning · Pending",
+    "review.tabsAria": "Review scope",
+    "review.pending": "Pending",
+    "review.all": "All",
     "settings.sound": "Voice",
     "settings.soundSub": "Speech · Playback · Mic",
     "settings.voiceLabel": "Edge TTS voice",
@@ -661,37 +721,40 @@ const UI_TEXT = {
     "action.stopVoice": "Stop voice",
     "composer.placeholder": "Type a message...",
     "composer.aria": "Message input",
-    "composer.askDocument": "Ask current PDF",
-    "composer.askDocumentDisabled": "Type a question to ask current PDF",
+    "composer.askDocument": "Ask current file",
+    "composer.askDocumentDisabled": "Type a question to ask the current file",
     "document.disconnected": "No file connected",
     "document.summary": "Summary",
     "document.ask": "Ask",
-    "document.onlyPdf": "Only PDF files are supported.",
-    "document.selectingPdf": "Choose PDF",
+    "document.onlyPdf": "That file type is not supported. Choose PDF, image, text, Markdown, CSV, JSON, HTML, Office, or OpenDocument.",
+    "document.selectingPdf": "Choose file",
     "document.selectingPdfHint": "Opening file picker",
-    "document.uploadingPdfAria": "Uploading PDF",
+    "document.uploadingPdfAria": "Uploading file",
     "document.uploading": "Uploading and parsing: ",
     "document.receiving": "Receiving: ",
-    "document.fileReady": "PDF connected",
-    "document.accepted": "I’ve opened ",
+    "document.fileReady": "File read",
+    "document.accepted": "I’ve read ",
     "document.uploadMissingId": "Upload finished, but no document ID was returned.",
-    "document.uploadFailed": "PDF upload failed: ",
-    "document.noDocument": "Upload and parse a PDF first.",
+    "document.uploadFailed": "File upload failed: ",
+    "document.uploadVerifying": "Connection interrupted. Checking whether the file was uploaded...",
+    "document.uploadVerifyLater": "The upload result is still unknown. Iris will check again when the connection returns.",
+    "document.uploadIncomplete": "The file did not finish uploading. Please choose it again and retry.",
+    "document.noDocument": "Upload and parse a file first.",
     "document.summarizePendingShort": "Summarizing...",
-    "document.summarizePending": "Summarizing this PDF...",
+    "document.summarizePending": "Summarizing this file...",
     "document.summaryEmpty": "No summary was generated.",
     "document.summaryPoints": "Key points",
     "document.summaryOutline": "Outline",
     "document.summaryFailed": "Summary failed: ",
-    "document.askMissingQuestion": "Type a question for this PDF first.",
+    "document.askMissingQuestion": "Type a question for this file first.",
     "document.askPendingShort": "Looking through the document...",
-    "document.askPending": "Searching the current PDF...",
+    "document.askPending": "Searching the current file...",
     "document.askEmpty": "No answerable content was found.",
     "document.askSources": "Sources",
     "document.askPage": "Page {page}",
     "document.askFailed": "Question failed: ",
-    "document.summaryLabel": "Iris · PDF Summary",
-    "document.answerLabel": "Iris · PDF",
+    "document.summaryLabel": "Iris · File Summary",
+    "document.answerLabel": "Iris · File",
     "memory.search": "Search memory",
     "memory.clearSearch": "Clear memory search",
     "tts.audibilityTitle": "Voice audibility",
@@ -852,7 +915,13 @@ let currentDocumentWarnings = [];
 let currentDocumentAnswerMode = "";
 let currentDocumentReadyFileMessageId = "";
 let currentDocumentReadyAssistantMessageId = "";
+let documentContextVisible = false;
 let documentUploadInFlight = false;
+let documentUploadReconcileTimer = 0;
+let documentUploadReconcileRunning = false;
+let activeDocumentJobId = "";
+let activeDocumentUnitRetryId = "";
+let documentJobActive = false;
 let conversationMessageSeq = 0;
 let conversationHistoryLoaded = false;
 let conversationHistoryLoading = false;
@@ -865,8 +934,19 @@ let memoryControlLoaded = false;
 let memoryControlLoading = false;
 let memorySearchTimer = 0;
 let lastMemoryControlPayload = null;
+let memoryControlRequestSeq = 0;
+let activeMemoryAbortController = null;
+let reviewWorkbenchLoaded = false;
+let reviewWorkbenchLoading = false;
+let reviewWorkbenchFilter = "pending";
+let lastReviewWorkbenchPayload = null;
+const reviewDecisionKeys = new Map();
 let modelStatusMeta = { key: "", values: {} };
 let accessSlowNoticeTimer = 0;
+let proactiveScanTimer = 0;
+let proactiveScanInFlight = false;
+let proactiveScanLastAt = 0;
+const renderedProactiveKeys = new Set();
 
 const VAD = {
   startThresholdMs: 220,
@@ -883,15 +963,19 @@ const LOG_RENDER_LIMIT = 8;
 const TTS_ROUTE_PERSIST_FALLBACK_MS = 160;
 const CONVERSATION_BOTTOM_EPSILON_PX = 52;
 const CONVERSATION_USER_SCROLL_PAUSE_MS = 9000;
+const KEYBOARD_DOCK_GAP_PX = 12;
 const MEMORY_ACTION_MIN_BUSY_MS = 720;
 const COMPOSER_ACTION_MIN_BUSY_MS = 260;
 const MAINTENANCE_ACTION_MIN_BUSY_MS = 280;
+const PROACTIVE_SCAN_INTERVAL_MS = 15 * 60 * 1000;
+const PROACTIVE_SCAN_BUSY_RETRY_MS = 60 * 1000;
 
-const WEB_VERSION = "voice-ui-web-polish-v321-auth-session-qa-polish";
+const WEB_VERSION = "voice-ui-web-polish-v348-ui-stability";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
 const ACCESS_TOKEN_EXPIRES_KEY = "iris_access_token_expires_at";
+const ACCESS_SUBJECT_ID_KEY = "iris_access_subject_id";
 const THEME_KEY = "iris_voice_theme";
 const LANGUAGE_KEY = "iris_voice_language";
 const VOICE_CLIENT_ID_KEY = "jarvis_voice_client_id";
@@ -930,7 +1014,19 @@ function applyBrowserTargeting() {
   document.body.dataset.browserTarget = BROWSER_TARGET;
   document.body.classList.toggle("browserChrome", IS_CHROME_BROWSER);
   document.body.classList.toggle("browserUnsupported", BROWSER_TARGET === "unsupported");
+  document.body.classList.toggle("iosDevice", IS_IOS_DEVICE);
+  mountComposerViewportPortal();
   document.body.classList.toggle("pointerFine", Boolean(POINTER_FINE_QUERY && POINTER_FINE_QUERY.matches));
+}
+
+function mountComposerViewportPortal() {
+  if (!els.dock || els.dock.parentElement === document.body) return;
+  // A fixed descendant of the transformed app canvas can disappear from the
+  // compositor after input/document state changes. Keep one root-level layer
+  // positioned from visualViewport coordinates instead of position: fixed.
+  els.dock.dataset.viewportHost = "body";
+  els.dock.dataset.viewportMode = "visual-absolute";
+  document.body.appendChild(els.dock);
 }
 
 if (POINTER_FINE_QUERY) {
@@ -1015,6 +1111,53 @@ function clearOrientationViewportMetricsSchedule() {
   orientationViewportMetricsTimer = 0;
 }
 
+function calculateDockViewportTop(viewportPageTop, viewportHeight, dockHeight, gap = KEYBOARD_DOCK_GAP_PX) {
+  const top = Number(viewportPageTop);
+  const height = Number(viewportHeight);
+  const composerHeight = Number(dockHeight);
+  const safeGap = Number(gap);
+  if (![top, height, composerHeight, safeGap].every(Number.isFinite) || height <= 0 || composerHeight < 0) return 0;
+  return Math.max(0, Math.round(top + height - composerHeight - Math.max(0, safeGap)));
+}
+
+function visualViewportPageTop(viewport) {
+  const explicitPageTop = Number(viewport && viewport.pageTop);
+  if (Number.isFinite(explicitPageTop)) return Math.max(0, Math.round(explicitPageTop));
+  const offsetTop = Number(viewport && viewport.offsetTop) || 0;
+  return Math.max(0, Math.round((window.scrollY || 0) + offsetTop));
+}
+
+function syncComposerViewport(viewport) {
+  const rootStyle = document.documentElement.style;
+  const viewportHeight = Number(viewport && viewport.height)
+    || window.innerHeight
+    || document.documentElement.clientHeight
+    || 720;
+  const pageTop = visualViewportPageTop(viewport);
+  rootStyle.setProperty("--visual-viewport-page-top", `${pageTop}px`);
+  rootStyle.setProperty("--visual-viewport-height", `${Math.max(240, Math.round(viewportHeight))}px`);
+  if (!els.dock) return 0;
+  const dockHeight = Math.max(0, Math.ceil(els.dock.getBoundingClientRect().height || 0));
+  return calculateDockViewportTop(pageTop, viewportHeight, dockHeight, KEYBOARD_DOCK_GAP_PX);
+}
+
+function resetIosRootScroll(editableFocused) {
+  if (!IS_IOS_DEVICE || !editableFocused) return false;
+  const scrollingElement = document.scrollingElement;
+  const scrollTop = Math.max(
+    Number(window.scrollY || 0),
+    Number(scrollingElement && scrollingElement.scrollTop || 0),
+    Number(document.documentElement.scrollTop || 0),
+    Number(document.body.scrollTop || 0)
+  );
+  if (scrollTop <= 0) return false;
+  window.scrollTo(0, 0);
+  if (scrollingElement) scrollingElement.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  return true;
+}
+
 function syncViewportMetrics({ refreshSubtitle = true } = {}) {
   const viewport = window.visualViewport;
   const viewportHeight =
@@ -1022,7 +1165,7 @@ function syncViewportMetrics({ refreshSubtitle = true } = {}) {
     window.innerHeight ||
     document.documentElement.clientHeight ||
     720;
-  const safeHeight = Math.max(420, Math.round(viewportHeight));
+  const safeHeight = Math.max(240, Math.round(viewportHeight));
   const layoutHeight = window.innerHeight || document.documentElement.clientHeight || safeHeight;
   const activeElement = document.activeElement;
   const editableFocused = Boolean(
@@ -1038,24 +1181,26 @@ function syncViewportMetrics({ refreshSubtitle = true } = {}) {
   const rawViewportBottomOffset = Math.max(0, Math.round(layoutHeight - safeHeight - (viewport ? viewport.offsetTop || 0 : 0)));
   const viewportTopOffset = keyboardOpen ? rawViewportTopOffset : 0;
   const viewportBottomOffset = keyboardOpen ? rawViewportBottomOffset : 0;
-  const viewportSignature = `${safeHeight}|${viewportTopOffset}|${viewportBottomOffset}|${keyboardOpen ? 1 : 0}`;
+  const rootScrollReset = resetIosRootScroll(editableFocused);
+  const viewportPageTop = visualViewportPageTop(viewport);
+  syncComposerViewport(viewport);
+  const viewportSignature = `${safeHeight}|${viewportTopOffset}|${viewportBottomOffset}|${viewportPageTop}|${keyboardOpen ? 1 : 0}`;
   if (viewportSignature !== lastViewportMetricsSignature) {
     const keyboardStateChanged = keyboardOpen !== lastKeyboardOpen;
     const wasPinnedToBottom = conversationPinnedToBottom || isConversationNearBottom();
     lastViewportMetricsSignature = viewportSignature;
     lastKeyboardOpen = keyboardOpen;
-    document.documentElement.style.setProperty("--app-height", `${safeHeight}px`);
-    document.documentElement.style.setProperty("--viewport-top-offset", `${viewportTopOffset}px`);
-    document.documentElement.style.setProperty("--viewport-bottom-offset", `${viewportBottomOffset}px`);
+    const rootStyle = document.documentElement.style;
+    rootStyle.setProperty("--app-height", `${safeHeight}px`);
+    rootStyle.setProperty("--viewport-top-offset", `${viewportTopOffset}px`);
+    rootStyle.setProperty("--viewport-bottom-offset", `${viewportBottomOffset}px`);
     document.body.classList.toggle("keyboardOpen", keyboardOpen);
-    if (keyboardOpen && window.scrollY) {
-      window.scrollTo(0, 0);
-    }
     updateConversationPinnedState();
     if (keyboardStateChanged || keyboardOpen) {
       scheduleConversationScroll({ allowed: wasPinnedToBottom });
     }
   }
+  if (rootScrollReset) scheduleViewportMetrics({ refreshSubtitle: false });
 
   if (els.dock) {
     const dockHeight = Math.max(64, Math.ceil(els.dock.getBoundingClientRect().height || 0));
@@ -1332,7 +1477,7 @@ function documentLineClass(line, index) {
   if ((/[：:]$/.test(normalized) && normalized.length <= 18) || /^(要点|结构|来源|Sources|Key points|Outline)[：:]?$/i.test(normalized)) {
     return "documentMessageSectionTitle";
   }
-  if (index === 0 || /^(我已打开|I’ve opened|PDF 上传失败|摘要失败|追问失败|正在)/.test(normalized)) {
+  if (index === 0 || /^(我读完了|I’ve read|文件上传失败|File upload failed|PDF 上传失败|摘要失败|追问失败|正在)/.test(normalized)) {
     return "documentMessageLead";
   }
   return "documentMessageParagraph";
@@ -1417,13 +1562,124 @@ function appendConversationMessage(role, text, options = {}) {
     feedback.dataset.tone = "idle";
     feedback.setAttribute("role", "status");
     feedback.setAttribute("aria-live", "polite");
-    feedback.textContent = currentLanguage === "en" ? "Choose an action when ready." : "需要时选择一个操作。";
+    const hasRemoteAction = options.actions.some((button) => button && button.dataset && button.dataset.remoteAction === "true");
+    feedback.textContent = hasRemoteAction
+      ? (currentLanguage === "en" ? "Nothing happens until you confirm." : "确认后才会执行。")
+      : (currentLanguage === "en" ? "Choose an action when ready." : "需要时选择一个操作。");
     actions.appendChild(feedback);
     item.appendChild(actions);
+  }
+  if (role === "assistant" && options.feedbackTarget) {
+    attachMessageFeedbackControls(item, options.feedbackTarget);
   }
   els.conversationStream.appendChild(item);
   scheduleConversationScroll({ force: options.forceScroll, allowed: shouldScroll });
   return id;
+}
+
+function feedbackTargetPayload(target = {}) {
+  const turnId = String(target.turn_id || target.turnId || "").trim();
+  const responseId = String(target.response_id || target.responseId || "").trim();
+  if (!turnId) return null;
+  return {
+    turnId,
+    responseId,
+    channel: String(target.channel || "web").toLowerCase() === "voice" ? "voice" : "web"
+  };
+}
+
+function feedbackIcon(kind) {
+  const path = kind === "like"
+    ? '<path d="M7.8 10.2 11 3.8c.5-1 1.8-.9 2.1.1l.2.8c.2.7.1 1.5-.2 2.1l-.6 1.2h4.2c1.3 0 2.2 1.2 1.8 2.4l-1.6 5.2c-.3.9-1.1 1.5-2 1.5H7.8V10.2Z"/><path d="M4 9.5h3.8v8H4z"/>'
+    : '<path d="M7.8 9.8 11 16.2c.5 1 1.8.9 2.1-.1l.2-.8c.2-.7.1-1.5-.2-2.1l-.6-1.2h4.2c1.3 0 2.2-1.2 1.8-2.4l-1.6-5.2c-.3-.9-1.1-1.5-2-1.5H7.8v6.9Z"/><path d="M4 2.5h3.8v8H4z"/>';
+  return `<svg viewBox="0 0 22 22" aria-hidden="true">${path}</svg>`;
+}
+
+async function submitMessageFeedback(group, target, feedbackType, button) {
+  if (!group || group.dataset.busy === "true") return;
+  group.dataset.busy = "true";
+  if (button) button.setAttribute("aria-busy", "true");
+  const status = group.querySelector(".messageFeedbackStatus");
+  try {
+    const response = await fetch(backendUrl("/client/v1/feedback"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({
+        feedback_type: feedbackType,
+        turn_id: target.turnId,
+        user_id: currentSubjectId(),
+        target_refs: [
+          `turn:${target.turnId}`,
+          ...(target.responseId ? [`response:${target.responseId}`] : [])
+        ],
+        channel: target.channel,
+        conversation_id: currentConversationId || "",
+        client_id: voiceClientId(),
+        response_id: target.responseId
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    group.dataset.selected = feedbackType;
+    if (button) button.setAttribute("aria-pressed", "true");
+    if (status) status.textContent = currentLanguage === "en" ? "Feedback saved" : "已记下";
+    if (feedbackType === "dislike") {
+      const refinements = group.querySelector(".messageFeedbackRefinements");
+      if (refinements) refinements.hidden = false;
+    } else if (["more_concise", "more_detail", "style_wrong"].includes(feedbackType)) {
+      group.querySelectorAll(".messageFeedbackRefinements button").forEach((node) => {
+        node.disabled = true;
+        node.setAttribute("aria-pressed", node === button ? "true" : "false");
+      });
+    }
+  } catch (err) {
+    if (status) status.textContent = currentLanguage === "en" ? "Try again" : "未能提交";
+    logLine(`feedback failed · ${err.message || "network"}`);
+  } finally {
+    group.dataset.busy = "false";
+    if (button) button.setAttribute("aria-busy", "false");
+  }
+}
+
+function attachMessageFeedbackControls(item, rawTarget) {
+  if (!item || item.querySelector(".messageFeedbackControls")) return;
+  const target = feedbackTargetPayload(rawTarget);
+  if (!target) return;
+  const group = document.createElement("div");
+  group.className = "messageFeedbackControls";
+  group.setAttribute("role", "group");
+  group.setAttribute("aria-label", currentLanguage === "en" ? "Response feedback" : "回复反馈");
+  ["like", "dislike"].forEach((kind) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "messageFeedbackIcon";
+    button.innerHTML = feedbackIcon(kind);
+    button.setAttribute("aria-label", kind === "like" ? "这次回答很好" : "这次回答需要调整");
+    button.setAttribute("aria-pressed", "false");
+    button.addEventListener("click", () => submitMessageFeedback(group, target, kind, button));
+    group.appendChild(button);
+  });
+  const refinements = document.createElement("div");
+  refinements.className = "messageFeedbackRefinements";
+  refinements.hidden = true;
+  [["more_concise", "更短"], ["more_detail", "更详细"], ["style_wrong", "更自然"]]
+    .forEach(([kind, label]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = label;
+      button.setAttribute("aria-pressed", "false");
+      button.addEventListener("click", () => submitMessageFeedback(group, target, kind, button));
+      refinements.appendChild(button);
+    });
+  const status = document.createElement("span");
+  status.className = "messageFeedbackStatus";
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+  group.append(refinements, status);
+  item.appendChild(group);
 }
 
 function messageActionVariant(button, index = 0) {
@@ -1468,6 +1724,7 @@ function decorateMessageActionButton(button, index = 0) {
   button.setAttribute("aria-pressed", button.getAttribute("aria-pressed") || "false");
   button.setAttribute("aria-label", button.getAttribute("aria-label") || visibleText);
   button.addEventListener("click", () => {
+    if (button.dataset.remoteAction === "true") return;
     const group = button.closest(".messageActions");
     if (!group) return;
     group.dataset.selectedAction = button.dataset.action || visibleText;
@@ -1510,6 +1767,7 @@ function updateConversationMessage(id, text, options = {}) {
     const meta = item.querySelector(".messageMeta");
     if (meta) meta.textContent = options.label;
   }
+  if (options.feedbackTarget) attachMessageFeedbackControls(item, options.feedbackTarget);
   scheduleConversationScroll({ force: options.forceScroll, allowed: shouldScroll });
   return true;
 }
@@ -1526,6 +1784,144 @@ function appendUserConversation(text, options = {}) {
 
 function appendAssistantConversation(text, options = {}) {
   return appendConversationMessage("assistant", text, options);
+}
+
+function normalizedClientMessageAction(key, payload) {
+  if (!["confirm", "cancel"].includes(key)) return null;
+  if (!payload || payload.endpoint !== "/client/v1/message" || String(payload.method || "POST").toUpperCase() !== "POST") return null;
+  const body = payload.body && typeof payload.body === "object" ? payload.body : null;
+  const inputText = String(body && body.input && body.input.text || "").trim();
+  if (!body || !inputText) return null;
+  return { key, endpoint: payload.endpoint, method: "POST", body, inputText };
+}
+
+function clientMessageActionLabel(action) {
+  if (!action) return "";
+  if (action.key === "cancel") return currentLanguage === "en" ? "Cancel" : "取消";
+  const withoutCode = action.inputText.replace(/\s+[A-Z0-9]{6}$/i, "").trim();
+  if (withoutCode && withoutCode.length <= 12) return withoutCode;
+  return currentLanguage === "en" ? "Confirm" : "确认";
+}
+
+function clientMessageActionRequestBody(action) {
+  const body = action && action.body && typeof action.body === "object" ? action.body : {};
+  const input = body.input && typeof body.input === "object" ? body.input : {};
+  return {
+    ...body,
+    input: {
+      ...input,
+      type: input.type || "text",
+      text: String(action && action.inputText || "").trim()
+    }
+  };
+}
+
+function clientMessageActionButtons(actionPayloads) {
+  if (!actionPayloads || typeof actionPayloads !== "object") return [];
+  return ["confirm", "cancel"].flatMap((key) => {
+    const action = normalizedClientMessageAction(key, actionPayloads[key]);
+    if (!action) return [];
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = clientMessageActionLabel(action);
+    button.dataset.remoteAction = "true";
+    button.dataset.clientAction = key;
+    button.dataset.actionKey = key === "confirm" ? "accept" : "dismiss";
+    button.dataset.variant = key === "confirm" && /删除|delete/i.test(action.inputText) ? "danger" : key === "confirm" ? "primary" : "neutral";
+    button.setAttribute("aria-label", button.textContent);
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      executeClientMessageAction(button, action).catch((err) => logLine(err.message || "message action failed"));
+    });
+    return [button];
+  });
+}
+
+function clientReplyForDisplay(text, actionButtons = []) {
+  const value = String(text || "").trim();
+  if (!actionButtons.length) return value;
+  return value
+    .split(/\r?\n/)
+    .filter((line) => !/^确认无误后，请回复[：:]/.test(line.trim()))
+    .filter((line) => !/^如果不执行，请回复[：:]/.test(line.trim()))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function setClientMessageActionState(button, state, feedbackText = "") {
+  const group = button ? button.closest(".messageActions") : null;
+  if (!group) return;
+  group.dataset.state = state;
+  const busy = state === "executing";
+  group.querySelectorAll("button").forEach((node) => {
+    node.disabled = busy || state === "completed";
+    node.setAttribute("aria-busy", node === button && busy ? "true" : "false");
+    node.setAttribute("aria-pressed", node === button && state === "completed" ? "true" : "false");
+    node.dataset.selected = node === button && state === "completed" ? "true" : "false";
+  });
+  const feedback = group.querySelector(".messageActionFeedback");
+  if (feedback) {
+    feedback.dataset.tone = state === "failed" ? "error" : state === "completed" ? "success" : "info";
+    feedback.textContent = feedbackText || (busy
+      ? (currentLanguage === "en" ? "Working..." : "正在处理...")
+      : (currentLanguage === "en" ? "Choose an action when ready." : "需要时选择一个操作。"));
+  }
+}
+
+async function executeClientMessageAction(button, action) {
+  const group = button ? button.closest(".messageActions") : null;
+  if (!group || group.dataset.state === "executing" || group.dataset.state === "completed") return;
+  setClientMessageActionState(button, "executing");
+  appendUserConversation(clientMessageActionLabel(action), { force: true });
+  setState("thinking");
+  try {
+    const response = await fetch(backendUrl(action.endpoint), {
+      method: action.method,
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders()
+      },
+      body: JSON.stringify(clientMessageActionRequestBody(action))
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    currentConversationId = payload.conversation_id || currentConversationId;
+    const actionButtons = clientMessageActionButtons(payload.action_payloads);
+    const reply = clientReplyForDisplay(String(payload.reply || "").trim(), actionButtons) || (currentLanguage === "en" ? "The operation finished." : "操作已完成。");
+    appendAssistantConversation(reply, {
+      id: payload.response_id ? `assistant_${payload.response_id}` : "",
+      kind: payload.skill || payload.route || "operation_result",
+      forceScroll: true,
+      actions: actionButtons,
+      feedbackTarget: payload.feedback || (payload.turn_id ? {
+        turn_id: payload.turn_id,
+        response_id: payload.response_id || "",
+        channel: "web"
+      } : null)
+    });
+    setClientMessageActionState(button, "completed", action.key === "cancel"
+      ? (currentLanguage === "en" ? "Cancelled." : "已取消。")
+      : (currentLanguage === "en" ? "Confirmed." : "已确认。"));
+    setSubtitle(reply, { speaker: "IRIS", resetFlow: true });
+    setState("idle", { preserveSubtitle: true });
+    logLine(`message action · ${action.key} · ${payload.route || "client"}`);
+  } catch (err) {
+    const message = currentLanguage === "en"
+      ? `Action failed: ${err.message || "network unavailable"}`
+      : `操作失败：${err.message || "网络不可用"}`;
+    setClientMessageActionState(button, "failed", message);
+    group.querySelectorAll("button").forEach((node) => {
+      node.disabled = false;
+      node.setAttribute("aria-busy", "false");
+    });
+    setState("error");
+    logLine(message);
+  }
 }
 
 function showConnectionRecoveryHint(key, fallback) {
@@ -1627,7 +2023,12 @@ async function loadConversationHistory() {
         id: `history_${index}_${Math.abs(String(item.time || index).split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`,
         label: historyMessageLabel(role, item.time),
         kind: "history",
-        forceScroll: index === items.length - 1
+        forceScroll: index === items.length - 1,
+        feedbackTarget: role === "assistant" && item.turn_id ? {
+          turn_id: item.turn_id,
+          response_id: item.response_id || "",
+          channel: item.client_type === "voice" ? "voice" : "web"
+        } : null
       });
     });
     ensureAssistantConversationAnchor();
@@ -1857,8 +2258,11 @@ function applyLanguage(language, { persist = true, refreshState = true } = {}) {
   if (lastMemoryControlPayload && els.memoryList && typeof renderMemoryControlCenter === "function") {
     renderMemoryControlCenter(lastMemoryControlPayload);
   }
+  if (lastReviewWorkbenchPayload && els.reviewList && typeof renderReviewWorkbench === "function") {
+    renderReviewWorkbench(lastReviewWorkbenchPayload);
+  }
   if (currentDocumentId && typeof setDocumentStatus === "function") {
-    setDocumentStatus(currentDocumentStatusLine() || "PDF", "ready");
+    setDocumentStatus(currentDocumentStatusLine() || (currentLanguage === "en" ? "File" : "文件"), "ready");
     refreshDocumentReadyPresentation();
   }
   updateDockControls(currentVisualState);
@@ -2584,6 +2988,10 @@ function setState(state, options = {}) {
   } else if (copy.speaker) {
     setSubtitleSpeaker(copy.speaker);
   }
+  if (visualState === "idle" && previousVisualState !== "idle") {
+    const elapsed = proactiveScanLastAt ? Date.now() - proactiveScanLastAt : PROACTIVE_SCAN_INTERVAL_MS;
+    if (elapsed >= PROACTIVE_SCAN_INTERVAL_MS) scheduleProactiveScan(1800);
+  }
 }
 
 function updateDockControls(visualState) {
@@ -2718,6 +3126,9 @@ function initSettingsGroupAutoScroll() {
       if (group.open) {
         closeSiblingSettingsGroups(group);
         scrollSettingsGroupIntoView(group);
+        if (group.classList.contains("reviewGroup") && !reviewWorkbenchLoaded && !reviewWorkbenchLoading) {
+          refreshReviewWorkbench().catch((err) => logLine(err.message || "review workbench refresh failed"));
+        }
       }
     });
   });
@@ -2857,10 +3268,11 @@ function saveToken() {
   safeStorageRemove(TOKEN_KEY);
   safeSessionRemove(ACCESS_TOKEN_KEY);
   safeSessionRemove(ACCESS_TOKEN_EXPIRES_KEY);
+  safeSessionRemove(ACCESS_SUBJECT_ID_KEY);
   persistedVoiceToken = "";
 }
 
-function rememberSessionToken(token, expiresAt) {
+function rememberSessionToken(token, expiresAt, subjectId = "default") {
   const value = String(token || "").trim();
   if (!value) {
     saveToken();
@@ -2869,6 +3281,7 @@ function rememberSessionToken(token, expiresAt) {
   safeStorageRemove(TOKEN_KEY);
   safeSessionSet(ACCESS_TOKEN_KEY, value);
   if (expiresAt) safeSessionSet(ACCESS_TOKEN_EXPIRES_KEY, String(expiresAt));
+  safeSessionSet(ACCESS_SUBJECT_ID_KEY, String(subjectId || "default").trim() || "default");
   persistedVoiceToken = value;
 }
 
@@ -2885,6 +3298,30 @@ function loadToken() {
 function currentAuthToken() {
   if (!persistedVoiceToken) loadToken();
   return persistedVoiceToken || "";
+}
+
+function subjectIdFromSessionToken(token) {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 6 || parts[0] !== "iris_session_v2") return "";
+  try {
+    const encoded = parts[2].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = encoded + "=".repeat((4 - (encoded.length % 4)) % 4);
+    const subjectId = window.atob(padded);
+    return /^[A-Za-z0-9_.:@-]{1,128}$/.test(subjectId) ? subjectId : "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function currentSubjectId() {
+  const stored = String(safeSessionGet(ACCESS_SUBJECT_ID_KEY, "") || "").trim();
+  if (stored) return stored;
+  const recovered = subjectIdFromSessionToken(currentAuthToken());
+  if (recovered) {
+    safeSessionSet(ACCESS_SUBJECT_ID_KEY, recovered);
+    return recovered;
+  }
+  return "default";
 }
 
 function wsUrl() {
@@ -2914,14 +3351,135 @@ function authEvent() {
     token: currentAuthToken(),
     client_type: "web",
     client_id: clientId,
-    user_id: "default",
+    user_id: currentSubjectId(),
     voice_profile: selectedVoiceProfile()
   };
 }
 
 function authHeaders() {
   const token = currentAuthToken();
-  return token ? { "X-Jarvis-Token": token } : {};
+  return {
+    ...(token ? { "X-Jarvis-Token": token } : {}),
+    "X-Jarvis-User-Id": currentSubjectId(),
+    "X-Jarvis-Client-Id": voiceClientId()
+  };
+}
+
+function clearProactiveScanSchedule() {
+  if (proactiveScanTimer) window.clearTimeout(proactiveScanTimer);
+  proactiveScanTimer = 0;
+}
+
+function proactiveComposerBusy() {
+  const composer = els.manualSend ? els.manualSend.closest(".unifiedComposer") : null;
+  if (!composer) return false;
+  return composer.dataset.sending === "true"
+    || composer.dataset.documentBusy === "true"
+    || composer.dataset.uploadSelecting === "true";
+}
+
+function canRunProactiveScan() {
+  return !IS_QA_MODE
+    && !pagehideCleanupStarted
+    && document.visibilityState === "visible"
+    && canUseBackendNow()
+    && currentVisualState === "idle"
+    && !running
+    && !agentSpeaking
+    && !localSpeaking
+    && !documentUploadInFlight
+    && !proactiveComposerBusy();
+}
+
+function scheduleProactiveScan(delayMs = PROACTIVE_SCAN_INTERVAL_MS) {
+  clearProactiveScanSchedule();
+  if (pagehideCleanupStarted || IS_QA_MODE || !canUseBackendNow()) return;
+  proactiveScanTimer = window.setTimeout(() => {
+    proactiveScanTimer = 0;
+    runProactiveScan().catch((error) => {
+      logLine(`proactive scan failed ${error && error.message || "unknown"}`);
+    });
+  }, Math.max(500, Number(delayMs) || PROACTIVE_SCAN_INTERVAL_MS));
+}
+
+function proactiveItemKey(item) {
+  const trigger = item && item.trigger && typeof item.trigger === "object" ? item.trigger : {};
+  return String(trigger.dedupe_key || trigger.trigger_id || `${item && item.kind || "proactive"}:${trigger.item || ""}`).trim();
+}
+
+function proactiveItemText(item) {
+  const trigger = item && item.trigger && typeof item.trigger === "object" ? item.trigger : {};
+  const primary = String(trigger.item || "").trim();
+  const nextStep = String(trigger.next_step || "").trim();
+  if (!primary) return "";
+  if (item && item.kind === "contextual_followup") return primary;
+  if (!nextStep || primary.includes(nextStep)) return primary;
+  return `${primary}\n${nextStep}`;
+}
+
+function renderProactiveItems(items) {
+  if (!Array.isArray(items)) return 0;
+  let rendered = 0;
+  items.forEach((item) => {
+    if (!item || item.sent !== true) return;
+    const text = proactiveItemText(item);
+    const key = proactiveItemKey(item);
+    if (!text || !key || renderedProactiveKeys.has(key)) return;
+    renderedProactiveKeys.add(key);
+    const contextual = item.kind === "contextual_followup";
+    appendAssistantConversation(text, {
+      id: `proactive_${Math.abs(key.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`,
+      label: currentLanguage === "en"
+        ? (contextual ? "Iris · Follow-up" : "Iris · Reminder")
+        : (contextual ? "Iris · 想起你了" : "Iris · 提醒"),
+      kind: "proactive_followup",
+      forceScroll: false
+    });
+    rendered += 1;
+  });
+  return rendered;
+}
+
+async function runProactiveScan() {
+  if (proactiveScanInFlight) return;
+  if (!canRunProactiveScan()) {
+    scheduleProactiveScan(PROACTIVE_SCAN_BUSY_RETRY_MS);
+    return;
+  }
+  proactiveScanInFlight = true;
+  proactiveScanLastAt = Date.now();
+  try {
+    const response = await fetch(backendUrl("/client/v1/proactive/scan"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Jarvis-Client-Id": voiceClientId(),
+        ...authHeaders()
+      },
+      cache: "no-store",
+      body: JSON.stringify({
+        user_id: currentSubjectId(),
+        channel: "web",
+        client_id: voiceClientId(),
+        record: true,
+        include_contextual: true,
+        contextual_min_inactive_minutes: 30
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail && payload.detail.error || payload.detail || `proactive_scan_${response.status}`);
+    }
+    const rendered = renderProactiveItems(payload.items);
+    const contextualStatus = payload.sources && payload.sources.contextual && payload.sources.contextual.analysis
+      ? payload.sources.contextual.analysis.status || ""
+      : "";
+    logLine(`proactive scan · ${payload.sent_count || 0} eligible · ${rendered} rendered${contextualStatus ? ` · ${contextualStatus}` : ""}`);
+  } finally {
+    proactiveScanInFlight = false;
+    scheduleProactiveScan(PROACTIVE_SCAN_INTERVAL_MS);
+  }
 }
 
 function setAccessStatus(text, tone = "info", statusKey = "") {
@@ -3091,11 +3649,13 @@ function setMainSurfaceLocked(isLocked) {
   }
 }
 
-function completeSessionLogin(token, expiresAt) {
-  rememberSessionToken(token, expiresAt || "");
+function completeSessionLogin(token, expiresAt, subjectId = "default") {
+  rememberSessionToken(token, expiresAt || "", subjectId);
   setAccessStatus(" ", "success");
   hideAccessGate();
   loadConversationHistory().catch((err) => logLine(err.message || "conversation history failed"));
+  schedulePendingDocumentUploadReconciliation(600);
+  scheduleProactiveScan(2600);
   setState("idle");
   setAccessStatus(" ", "info");
 }
@@ -3134,6 +3694,11 @@ function maybePromptForAccess() {
 
 function handleUnauthorizedResponse(response) {
   if (!response || response.status !== 401) return false;
+  const activeToken = currentAuthToken();
+  if (activeToken && responseAuthTokens.has(response) && responseAuthTokens.get(response) !== activeToken) {
+    logLine("ignored stale pre-session unauthorized response");
+    return false;
+  }
   saveToken();
   showAccessGate(textFor("access.expired", "登录已过期，请重新输入访问口令。"), "warning", "access.expired");
   return true;
@@ -3325,6 +3890,7 @@ function renderMemoryEmpty(text) {
   item.textContent = text || (currentLanguage === "en" ? "No memory to show yet." : "暂无记忆");
   item.dataset.tone = memoryStatusTone(item.textContent);
   els.memoryList.replaceChildren(item);
+  els.memoryList.scrollTop = 0;
 }
 
 function memoryActionSnippet(content, maxLength = 44) {
@@ -3432,7 +3998,7 @@ async function requestMemoryAction(action, item, options = {}) {
   const memoryId = item && item.memory_id ? String(item.memory_id) : "";
   if (!memoryId && !["confirm_pending", "cancel_pending"].includes(action)) return null;
   const body = {
-    user_id: "default",
+    user_id: currentSubjectId(),
     channel: "web",
     client_id: voiceClientId(),
     action
@@ -3664,10 +4230,20 @@ function renderMemoryControlCenter(payload) {
     fragment.appendChild(row);
   });
   els.memoryList.replaceChildren(fragment);
+  els.memoryList.scrollTop = 0;
 }
 
 async function refreshMemoryControlCenter(options = {}) {
-  if (!els.memoryRefresh || !els.memoryList || memoryControlLoading) return;
+  if (!els.memoryRefresh || !els.memoryList) return;
+  const requestId = ++memoryControlRequestSeq;
+  if (activeMemoryAbortController) activeMemoryAbortController.abort();
+  const abortController = typeof AbortController !== "undefined" ? new AbortController() : null;
+  activeMemoryAbortController = abortController;
+  let requestTimedOut = false;
+  const requestTimeout = window.setTimeout(() => {
+    requestTimedOut = true;
+    if (abortController) abortController.abort();
+  }, 10000);
   memoryControlLoading = true;
   els.memoryRefresh.disabled = true;
   els.memoryRefresh.dataset.loading = "true";
@@ -3675,15 +4251,17 @@ async function refreshMemoryControlCenter(options = {}) {
   els.memoryList.setAttribute("aria-busy", "true");
   if (!options.force) setMemoryStatus(currentLanguage === "en" ? "Reading memory" : "读取中", "loading");
   try {
-    const params = new URLSearchParams({ limit: "80", user_id: "default", channel: "web", client_id: voiceClientId() });
+    const params = new URLSearchParams({ limit: "80", user_id: currentSubjectId(), client_id: voiceClientId() });
     const query = els.memorySearch ? els.memorySearch.value.trim() : "";
     if (query) params.set("q", query);
     const response = await fetch(backendUrl(`/client/v1/memory?${params.toString()}`), {
       method: "GET",
       headers: authHeaders(),
-      cache: "no-store"
+      cache: "no-store",
+      ...(abortController ? { signal: abortController.signal } : {})
     });
     const payload = await response.json().catch(() => ({}));
+    if (requestId !== memoryControlRequestSeq) return;
     if (!response.ok) {
       handleUnauthorizedResponse(response);
       throw new Error(payload.detail || `HTTP ${response.status}`);
@@ -3691,10 +4269,17 @@ async function refreshMemoryControlCenter(options = {}) {
     renderMemoryControlCenter(payload);
     memoryControlLoaded = true;
   } catch (err) {
-    setMemoryStatus(`${currentLanguage === "en" ? "Read failed" : "读取失败"}：${err.message || (currentLanguage === "en" ? "Network unavailable" : "网络不可用")}`, "error");
+    if (requestId !== memoryControlRequestSeq) return;
+    const reason = requestTimedOut
+      ? (currentLanguage === "en" ? "Request timed out" : "请求超时")
+      : err.message || (currentLanguage === "en" ? "Network unavailable" : "网络不可用");
+    setMemoryStatus(`${currentLanguage === "en" ? "Read failed" : "读取失败"}：${reason}`, "error");
     renderMemoryEmpty(currentLanguage === "en" ? "Memory could not be loaded." : "记忆读取失败");
-    logLine(`memory refresh failed ${err.message || ""}`.trim());
+    logLine(`memory refresh failed ${reason}`.trim());
   } finally {
+    window.clearTimeout(requestTimeout);
+    if (requestId !== memoryControlRequestSeq) return;
+    activeMemoryAbortController = null;
     memoryControlLoading = false;
     els.memoryRefresh.disabled = false;
     els.memoryRefresh.removeAttribute("data-loading");
@@ -3718,6 +4303,645 @@ function clearMemorySearchSchedule() {
   memorySearchTimer = 0;
 }
 
+function reviewWorkbenchStatusLabel(status) {
+  const labels = currentLanguage === "en" ? {
+    proposed: "Proposed",
+    awaiting_confirmation: "Needs approval",
+    executing: "Executing",
+    verifying: "Verifying",
+    succeeded: "Completed",
+    failed: "Needs attention",
+    cancelled: "Cancelled",
+    expired: "Expired",
+    result_unknown: "Result unknown",
+    pending_review: "Needs review",
+    approved: "Committing",
+    rejected: "Rejected",
+    committed: "Saved",
+    commit_failed: "Commit failed",
+    revoked: "Revoked",
+    revoke_failed: "Revoke failed"
+  } : {
+    proposed: "已提议",
+    awaiting_confirmation: "待批准",
+    executing: "正在执行",
+    verifying: "正在核验",
+    succeeded: "已完成",
+    failed: "需要处理",
+    cancelled: "已取消",
+    expired: "已过期",
+    result_unknown: "结果待核实",
+    pending_review: "待审阅",
+    approved: "正在写入",
+    rejected: "已拒绝",
+    committed: "已保存",
+    commit_failed: "写入失败",
+    revoked: "已撤销",
+    revoke_failed: "撤销失败"
+  };
+  return labels[status] || String(status || "-");
+}
+
+function reviewWorkbenchActionTitle(action) {
+  const labels = currentLanguage === "en" ? {
+    "mail.send": "Send email",
+    "mail.reply": "Reply to email",
+    "mail.delete": "Delete email",
+    "calendar.create": "Create calendar event",
+    "calendar.update": "Update calendar event",
+    "calendar.delete": "Delete calendar event",
+    "calendar.undo": "Undo calendar action",
+    "task.create": "Create task",
+    "task.update": "Update task",
+    "task.complete": "Complete task",
+    "task.reopen": "Reopen task",
+    "task.delete": "Delete task",
+    "task.undo": "Undo task action",
+    "reminder.create": "Create reminder",
+    "reminder.update": "Update reminder",
+    "reminder.complete": "Complete reminder",
+    "reminder.reopen": "Reopen reminder",
+    "reminder.delete": "Delete reminder",
+    "reminder.undo": "Undo reminder action"
+  } : {
+    "mail.send": "发送邮件",
+    "mail.reply": "回复邮件",
+    "mail.delete": "删除邮件",
+    "calendar.create": "创建日程",
+    "calendar.update": "修改日程",
+    "calendar.delete": "删除日程",
+    "calendar.undo": "撤销日程操作",
+    "task.create": "创建待办",
+    "task.update": "修改待办",
+    "task.complete": "完成待办",
+    "task.reopen": "恢复待办",
+    "task.delete": "删除待办",
+    "task.undo": "撤销待办操作",
+    "reminder.create": "创建提醒",
+    "reminder.update": "修改提醒",
+    "reminder.complete": "完成提醒",
+    "reminder.reopen": "恢复提醒",
+    "reminder.delete": "删除提醒",
+    "reminder.undo": "撤销提醒操作"
+  };
+  const value = String(action || "");
+  return labels[value] || value.replace(/[._:-]+/g, " ") || (currentLanguage === "en" ? "External action" : "外部动作");
+}
+
+function reviewWorkbenchMemoryTitle(record) {
+  const typeLabels = currentLanguage === "en" ? {
+    profile: "profile",
+    preference: "preference",
+    episodic: "experience",
+    semantic: "fact",
+    procedural: "habit",
+    relationship: "relationship"
+  } : {
+    profile: "个人资料",
+    preference: "偏好",
+    episodic: "经历",
+    semantic: "事实",
+    procedural: "习惯",
+    relationship: "关系"
+  };
+  const operationLabels = currentLanguage === "en" ? {
+    create: "Save",
+    update: "Update",
+    supersede: "Replace",
+    invalidate: "Invalidate",
+    forget: "Forget"
+  } : {
+    create: "写入",
+    update: "更新",
+    supersede: "替换",
+    invalidate: "停用",
+    forget: "遗忘"
+  };
+  const operation = operationLabels[record.operation] || (currentLanguage === "en" ? "Review" : "审阅");
+  const type = typeLabels[record.memory_type] || (currentLanguage === "en" ? "memory" : "记忆");
+  return currentLanguage === "en" ? `${operation} ${type}` : `${operation}${type}`;
+}
+
+function reviewWorkbenchPhase(item) {
+  const record = item.record || {};
+  if (record.can_approve || record.can_cancel || record.can_reject || record.can_revoke) return "needs-review";
+  if (["proposed", "awaiting_confirmation", "pending_review", "failed", "result_unknown", "commit_failed", "revoke_failed"].includes(record.status)) return "attention";
+  if (["executing", "verifying", "approved"].includes(record.status)) return "in-progress";
+  return "resolved";
+}
+
+function normalizeReviewWorkbenchPayload(payload) {
+  const actions = Array.isArray(payload && payload.actions && payload.actions.transactions)
+    ? payload.actions.transactions.map((record) => ({
+      key: `action:${record.transaction_id}`,
+      kind: "action",
+      id: record.transaction_id,
+      title: reviewWorkbenchActionTitle(record.action),
+      record
+    }))
+    : [];
+  const learning = Array.isArray(payload && payload.learning && payload.learning.reviews)
+    ? payload.learning.reviews.map((record) => ({
+      key: `learning:${record.review_id}`,
+      kind: "learning",
+      id: record.review_id,
+      title: reviewWorkbenchMemoryTitle(record),
+      record
+    }))
+    : [];
+  return actions.concat(learning).map((item) => ({ ...item, phase: reviewWorkbenchPhase(item) })).sort((left, right) => {
+    const rank = { "needs-review": 0, attention: 1, "in-progress": 2, resolved: 3 };
+    const rankDelta = (rank[left.phase] ?? 9) - (rank[right.phase] ?? 9);
+    if (rankDelta) return rankDelta;
+    return String(right.record.updated_at || "").localeCompare(String(left.record.updated_at || ""));
+  });
+}
+
+function setReviewWorkbenchStatus(text, tone = "info") {
+  const value = String(text || " ");
+  if (els.reviewStatus) {
+    els.reviewStatus.textContent = value;
+    els.reviewStatus.title = value;
+    els.reviewStatus.dataset.tone = tone;
+  }
+  if (els.reviewOverview) els.reviewOverview.dataset.tone = tone;
+}
+
+function renderReviewWorkbenchOverview(items, payload) {
+  if (!els.reviewOverview) return;
+  const pending = items.filter((item) => item.phase === "needs-review").length;
+  const attention = items.filter((item) => item.phase === "attention").length;
+  const running = items.filter((item) => item.phase === "in-progress").length;
+  const partial = Boolean(payload && payload.partial);
+  const en = currentLanguage === "en";
+  const title = pending
+    ? (en ? `${pending} waiting for you` : `${pending} 项等你决定`)
+    : (attention ? (en ? `${attention} need attention` : `${attention} 项需要核实`) : (en ? "Nothing needs approval" : "当前没有待批准项"));
+  const detail = partial
+    ? (en ? "One review source is temporarily unavailable. Available items are still shown." : "一类审阅数据暂时不可用，其他项目仍已显示。")
+    : (running
+      ? (en ? `${running} are being executed or committed.` : `${running} 项正在执行或写入。`)
+      : (en ? "External actions and long-term learning stay separate under one review surface." : "外部动作和长期学习在同一入口审阅，但仍由各自状态机治理。"));
+  els.reviewOverview.replaceChildren();
+  const kicker = document.createElement("span");
+  kicker.className = "reviewOverviewKicker";
+  kicker.textContent = "REVIEW QUEUE";
+  const strong = document.createElement("strong");
+  strong.textContent = title;
+  const copy = document.createElement("span");
+  copy.textContent = detail;
+  els.reviewOverview.append(kicker, strong, copy);
+  const nav = en
+    ? `${pending} pending${attention ? ` · ${attention} attention` : ""}`
+    : `${pending} 项待处理${attention ? ` · ${attention} 项需核实` : ""}`;
+  setReviewWorkbenchStatus(nav, partial || attention ? "warning" : (pending ? "info" : "success"));
+}
+
+function reviewWorkbenchTime(value) {
+  const text = String(value || "");
+  if (!text) return "";
+  const date = new Date(text);
+  if (Number.isNaN(date.getTime())) return text.replace("T", " ").slice(0, 16);
+  try {
+    return new Intl.DateTimeFormat(currentLanguage === "en" ? "en" : "zh-CN", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(date);
+  } catch (_err) {
+    return text.replace("T", " ").slice(0, 16);
+  }
+}
+
+function reviewWorkbenchKindLabel(kind) {
+  if (kind === "action") return currentLanguage === "en" ? "External action" : "外部动作";
+  return currentLanguage === "en" ? "Long-term learning" : "长期学习";
+}
+
+function reviewWorkbenchImpactLabel(item) {
+  const record = item.record || {};
+  if (item.kind === "action") {
+    return currentLanguage === "en" ? `Risk ${record.risk_level || "-"}` : `风险 ${record.risk_level || "-"}`;
+  }
+  const labels = currentLanguage === "en"
+    ? { low: "Low impact", medium: "Medium impact", high: "High impact", critical: "Critical impact" }
+    : { low: "低影响", medium: "中影响", high: "高影响", critical: "关键影响" };
+  return labels[record.impact] || String(record.impact || "-");
+}
+
+function reviewWorkbenchDecisionKey(item, decision) {
+  const mapKey = `${item.key}:${item.record.revision}:${decision}`;
+  if (reviewDecisionKeys.has(mapKey)) return reviewDecisionKeys.get(mapKey);
+  const random = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`;
+  const key = `web-review-${decision}-${random}`.slice(0, 160);
+  reviewDecisionKeys.set(mapKey, key);
+  return key;
+}
+
+function reviewWorkbenchDecisionCopy(item, decision) {
+  const en = currentLanguage === "en";
+  if (item.kind === "action" && decision === "approve") {
+    return en
+      ? "This approval immediately executes the external action shown above. Confirm only after checking every detail."
+      : "批准后会立即执行上方外部动作。请核对每个细节后再确认。";
+  }
+  if (item.kind === "learning" && decision === "approve") {
+    return en
+      ? "This approval writes the proposal into long-term memory."
+      : "批准后会把上方内容写入长期记忆。";
+  }
+  if (item.kind === "learning" && decision === "revoke") {
+    return en
+      ? "This removes the committed memory through a new forgotten revision."
+      : "确认后会通过新的遗忘修订撤销这条长期记忆。";
+  }
+  return en ? "This closes the pending item without executing it." : "确认后会关闭这项待处理内容，不会执行或写入。";
+}
+
+function setReviewCardBusy(card, busy) {
+  if (!card) return;
+  card.dataset.busy = busy ? "true" : "false";
+  card.setAttribute("aria-busy", busy ? "true" : "false");
+  card.querySelectorAll("button").forEach((button) => {
+    button.disabled = busy;
+  });
+}
+
+async function runReviewWorkbenchDecision(item, decision, card) {
+  const endpoint = item.kind === "action"
+    ? `/client/v1/actions/transactions/${encodeURIComponent(item.id)}/decision`
+    : `/client/v1/learning/reviews/${encodeURIComponent(item.id)}/decision`;
+  const body = {
+    user_id: currentSubjectId(),
+    action: decision,
+    expected_revision: Number(item.record.revision),
+    idempotency_key: reviewWorkbenchDecisionKey(item, decision),
+    reason_code: "workbench_user_decision"
+  };
+  setReviewCardBusy(card, true);
+  setReviewWorkbenchStatus(currentLanguage === "en" ? "Applying your decision" : "正在提交你的决定", "loading");
+  try {
+    const response = await fetch(backendUrl(endpoint), {
+      method: "POST",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify(body)
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    await refreshReviewWorkbench({ force: true });
+  } catch (err) {
+    setReviewWorkbenchStatus(
+      `${currentLanguage === "en" ? "Decision failed" : "提交失败"}：${err.message || (currentLanguage === "en" ? "Network unavailable" : "网络不可用")}`,
+      "error"
+    );
+    setReviewCardBusy(card, false);
+    if (String(err.message || "").includes("revision_conflict")) {
+      refreshReviewWorkbench({ force: true }).catch(() => {});
+    }
+  }
+}
+
+function armReviewWorkbenchDecision(item, decision, card) {
+  if (!card) return;
+  const existing = card.querySelector(".reviewDecisionConfirm");
+  if (existing) existing.remove();
+  const panel = document.createElement("div");
+  panel.className = "reviewDecisionConfirm";
+  panel.setAttribute("role", "alert");
+  const copy = document.createElement("p");
+  copy.textContent = reviewWorkbenchDecisionCopy(item, decision);
+  const actions = document.createElement("div");
+  actions.className = "reviewActions";
+  const confirm = document.createElement("button");
+  confirm.type = "button";
+  confirm.dataset.role = decision === "approve" ? "primary" : (decision === "revoke" ? "danger" : "secondary");
+  confirm.textContent = currentLanguage === "en" ? "Confirm decision" : "确认决定";
+  confirm.addEventListener("click", () => runReviewWorkbenchDecision(item, decision, card));
+  const back = document.createElement("button");
+  back.type = "button";
+  back.dataset.role = "quiet";
+  back.textContent = currentLanguage === "en" ? "Back" : "返回";
+  back.addEventListener("click", () => panel.remove());
+  actions.append(confirm, back);
+  panel.append(copy, actions);
+  card.appendChild(panel);
+  window.setTimeout(() => {
+    panel.scrollIntoView({ block: "nearest", inline: "nearest" });
+    confirm.focus({ preventScroll: true });
+  }, 20);
+}
+
+function reviewProposalContent(proposal) {
+  if (!proposal || !proposal.content || typeof proposal.content !== "object") return "";
+  const content = proposal.content;
+  for (const key of ["text", "label", "value", "summary", "title", "name"]) {
+    const value = content[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  const safe = {};
+  Object.entries(content).forEach(([key, value]) => {
+    if (/id|hash|evidence|source|channel/i.test(key)) return;
+    if (["string", "number", "boolean"].includes(typeof value)) safe[key] = value;
+  });
+  return Object.keys(safe).length ? JSON.stringify(safe, null, 2) : "";
+}
+
+function appendReviewDetailActions(detail, item, detailPayload, card) {
+  const actions = document.createElement("div");
+  actions.className = "reviewActions";
+  const record = item.record || {};
+  if (item.kind === "action") {
+    const preview = detailPayload && detailPayload.private_preview;
+    if (record.can_approve && preview && preview.available) {
+      const approve = document.createElement("button");
+      approve.type = "button";
+      approve.dataset.role = "primary";
+      approve.textContent = currentLanguage === "en" ? "Approve and execute" : "批准并执行";
+      approve.addEventListener("click", () => armReviewWorkbenchDecision(item, "approve", card));
+      actions.appendChild(approve);
+    }
+    if (record.can_cancel) {
+      const cancel = document.createElement("button");
+      cancel.type = "button";
+      cancel.dataset.role = "secondary";
+      cancel.textContent = currentLanguage === "en" ? "Cancel action" : "取消动作";
+      cancel.addEventListener("click", () => armReviewWorkbenchDecision(item, "cancel", card));
+      actions.appendChild(cancel);
+    }
+  } else {
+    const proposal = detailPayload && detailPayload.proposal;
+    if (record.can_approve && proposal) {
+      const approve = document.createElement("button");
+      approve.type = "button";
+      approve.dataset.role = "primary";
+      approve.textContent = currentLanguage === "en" ? "Approve memory" : "批准写入";
+      approve.addEventListener("click", () => armReviewWorkbenchDecision(item, "approve", card));
+      actions.appendChild(approve);
+    }
+    if (record.can_reject) {
+      const reject = document.createElement("button");
+      reject.type = "button";
+      reject.dataset.role = "secondary";
+      reject.textContent = currentLanguage === "en" ? "Reject" : "拒绝";
+      reject.addEventListener("click", () => armReviewWorkbenchDecision(item, "reject", card));
+      actions.appendChild(reject);
+    }
+    if (record.can_revoke) {
+      const revoke = document.createElement("button");
+      revoke.type = "button";
+      revoke.dataset.role = "danger";
+      revoke.textContent = currentLanguage === "en" ? "Revoke memory" : "撤销记忆";
+      revoke.addEventListener("click", () => armReviewWorkbenchDecision(item, "revoke", card));
+      actions.appendChild(revoke);
+    }
+  }
+  if (actions.childElementCount) detail.appendChild(actions);
+}
+
+function renderReviewWorkbenchDetail(item, payload, card) {
+  const previous = card.querySelector(".reviewDetail");
+  if (previous) previous.remove();
+  const detail = document.createElement("section");
+  detail.className = "reviewDetail";
+  const heading = document.createElement("p");
+  heading.className = "reviewDetailHeading";
+  heading.textContent = currentLanguage === "en" ? "Verified review detail" : "已核验的审阅详情";
+  const content = document.createElement("pre");
+  content.className = "reviewDetailContent";
+  if (item.kind === "action") {
+    const preview = payload && payload.private_preview;
+    if (preview && preview.available) {
+      content.textContent = preview.content || (currentLanguage === "en" ? "No preview copy." : "没有可展示的预览内容。" );
+      detail.dataset.previewAvailable = "true";
+    } else {
+      const code = preview && preview.warning_code ? ` (${preview.warning_code})` : "";
+      content.textContent = currentLanguage === "en"
+        ? `The private action preview is no longer current${code}. Approval is disabled; cancel it or create a fresh preview in the conversation.`
+        : `这条私密动作预览已经失效或发生变化${code}。工作台已禁用批准；你可以取消它，或回到对话重新生成预览。`;
+      detail.dataset.previewAvailable = "false";
+    }
+  } else {
+    const proposal = payload && payload.proposal;
+    const proposalText = reviewProposalContent(proposal);
+    content.textContent = proposalText || (currentLanguage === "en"
+      ? "The private proposal payload has been removed after its lifecycle completed."
+      : "私密提案内容已在生命周期结束后删除。");
+    detail.dataset.previewAvailable = proposal ? "true" : "false";
+  }
+  const provenance = document.createElement("p");
+  provenance.className = "reviewProvenance";
+  const sourceCount = Array.isArray(item.record.source_event_ids) ? item.record.source_event_ids.length : 0;
+  const evidenceCount = Array.isArray(item.record.evidence_refs) ? item.record.evidence_refs.length : 0;
+  provenance.textContent = currentLanguage === "en"
+    ? `Revision ${item.record.revision} · ${sourceCount} source refs · ${evidenceCount} evidence refs`
+    : `修订 ${item.record.revision} · ${sourceCount} 个来源引用 · ${evidenceCount} 个证据引用`;
+  detail.append(heading, content, provenance);
+  appendReviewDetailActions(detail, item, payload, card);
+  card.appendChild(detail);
+}
+
+async function loadReviewWorkbenchDetail(item, card, trigger) {
+  if (!item || !card || card.dataset.detailLoading === "true") return;
+  const existing = card.querySelector(".reviewDetail");
+  if (existing) {
+    existing.remove();
+    trigger.textContent = currentLanguage === "en" ? "View details" : "查看详情";
+    trigger.setAttribute("aria-expanded", "false");
+    return;
+  }
+  card.dataset.detailLoading = "true";
+  trigger.disabled = true;
+  trigger.textContent = currentLanguage === "en" ? "Loading" : "读取中";
+  try {
+    const query = new URLSearchParams({
+      user_id: currentSubjectId(),
+      include_proposal: "true"
+    });
+    if (item.kind === "action") query.set("include_private_preview", "true");
+    const endpoint = item.kind === "action"
+      ? `/client/v1/actions/transactions/${encodeURIComponent(item.id)}?${query.toString()}`
+      : `/client/v1/learning/reviews/${encodeURIComponent(item.id)}?${query.toString()}`;
+    const response = await fetch(backendUrl(endpoint), {
+      method: "GET",
+      headers: authHeaders(),
+      cache: "no-store"
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    renderReviewWorkbenchDetail(item, payload, card);
+    trigger.textContent = currentLanguage === "en" ? "Hide details" : "收起详情";
+    trigger.setAttribute("aria-expanded", "true");
+  } catch (err) {
+    setReviewWorkbenchStatus(
+      `${currentLanguage === "en" ? "Detail failed" : "详情读取失败"}：${err.message || ""}`,
+      "error"
+    );
+    trigger.textContent = currentLanguage === "en" ? "Try details again" : "重试详情";
+  } finally {
+    delete card.dataset.detailLoading;
+    trigger.disabled = false;
+  }
+}
+
+function renderReviewWorkbenchCard(item) {
+  const card = document.createElement("article");
+  card.className = "reviewItem";
+  card.dataset.kind = item.kind;
+  card.dataset.phase = item.phase;
+  card.dataset.status = item.record.status || "";
+
+  const top = document.createElement("div");
+  top.className = "reviewCardTop";
+  const kind = document.createElement("span");
+  kind.className = "reviewKind";
+  kind.textContent = reviewWorkbenchKindLabel(item.kind);
+  const status = document.createElement("span");
+  status.className = "reviewBadge";
+  status.textContent = reviewWorkbenchStatusLabel(item.record.status);
+  top.append(kind, status);
+
+  const title = document.createElement("h3");
+  title.textContent = item.title;
+  const meta = document.createElement("p");
+  meta.className = "reviewMeta";
+  const reversible = item.kind === "action"
+    ? (item.record.reversible
+      ? (currentLanguage === "en" ? "reversible" : "可撤销")
+      : (currentLanguage === "en" ? "not reversible" : "不可撤销"))
+    : `${currentLanguage === "en" ? "sensitivity" : "敏感度"} ${item.record.sensitivity || "-"}`;
+  meta.textContent = [reviewWorkbenchImpactLabel(item), reversible, reviewWorkbenchTime(item.record.updated_at)].filter(Boolean).join(" · ");
+
+  const hint = document.createElement("p");
+  hint.className = "reviewHint";
+  if (item.kind === "action") {
+    hint.textContent = currentLanguage === "en"
+      ? "Private target details are loaded and revalidated only when you open this item."
+      : "只有打开详情时才会临时读取并重新核验私密目标内容。";
+  } else {
+    hint.textContent = currentLanguage === "en"
+      ? "Approval writes to long-term memory; revocation creates an auditable forgotten revision."
+      : "批准会写入长期记忆；撤销会生成可审计的遗忘修订。";
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "reviewActions reviewCardActions";
+  const detail = document.createElement("button");
+  detail.type = "button";
+  detail.dataset.role = "quiet";
+  detail.textContent = currentLanguage === "en" ? "View details" : "查看详情";
+  detail.setAttribute("aria-expanded", "false");
+  detail.addEventListener("click", () => loadReviewWorkbenchDetail(item, card, detail));
+  actions.appendChild(detail);
+
+  card.append(top, title, meta, hint, actions);
+  return card;
+}
+
+function renderReviewWorkbench(payload) {
+  if (!els.reviewList) return;
+  lastReviewWorkbenchPayload = payload || {};
+  const items = normalizeReviewWorkbenchPayload(payload || {});
+  renderReviewWorkbenchOverview(items, payload || {});
+  const visible = reviewWorkbenchFilter === "pending"
+    ? items.filter((item) => item.phase !== "resolved")
+    : items;
+  if (!visible.length) {
+    const empty = document.createElement("p");
+    empty.className = "reviewEmpty";
+    empty.textContent = reviewWorkbenchFilter === "pending"
+      ? (currentLanguage === "en" ? "Nothing needs your decision right now." : "现在没有需要你决定的项目。")
+      : (currentLanguage === "en" ? "No review history yet." : "还没有审阅记录。" );
+    els.reviewList.replaceChildren(empty);
+    return;
+  }
+  const fragment = document.createDocumentFragment();
+  visible.slice(0, 80).forEach((item) => fragment.appendChild(renderReviewWorkbenchCard(item)));
+  els.reviewList.replaceChildren(fragment);
+}
+
+async function fetchReviewWorkbenchCollection(path) {
+  const params = new URLSearchParams({ user_id: currentSubjectId(), limit: "100" });
+  const response = await fetch(backendUrl(`${path}?${params.toString()}`), {
+    method: "GET",
+    headers: authHeaders(),
+    cache: "no-store"
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    handleUnauthorizedResponse(response);
+    throw new Error(payload.detail || `HTTP ${response.status}`);
+  }
+  return payload;
+}
+
+async function refreshReviewWorkbench(options = {}) {
+  if (!els.reviewRefresh || !els.reviewList || reviewWorkbenchLoading) return;
+  reviewWorkbenchLoading = true;
+  els.reviewRefresh.disabled = true;
+  els.reviewRefresh.dataset.loading = "true";
+  els.reviewRefresh.setAttribute("aria-busy", "true");
+  els.reviewList.setAttribute("aria-busy", "true");
+  if (!options.force) setReviewWorkbenchStatus(currentLanguage === "en" ? "Syncing review queue" : "正在同步审阅队列", "loading");
+  try {
+    const [actions, learning] = await Promise.allSettled([
+      fetchReviewWorkbenchCollection("/client/v1/actions/transactions"),
+      fetchReviewWorkbenchCollection("/client/v1/learning/reviews")
+    ]);
+    if (actions.status === "rejected" && learning.status === "rejected") {
+      throw new Error(actions.reason && actions.reason.message || learning.reason && learning.reason.message || "review_sources_unavailable");
+    }
+    const payload = {
+      actions: actions.status === "fulfilled" ? actions.value : { transactions: [], metrics: {} },
+      learning: learning.status === "fulfilled" ? learning.value : { reviews: [], metrics: {} },
+      partial: actions.status === "rejected" || learning.status === "rejected",
+      errors: {
+        actions: actions.status === "rejected" ? String(actions.reason && actions.reason.message || "unavailable") : "",
+        learning: learning.status === "rejected" ? String(learning.reason && learning.reason.message || "unavailable") : ""
+      }
+    };
+    renderReviewWorkbench(payload);
+    reviewWorkbenchLoaded = true;
+  } catch (err) {
+    setReviewWorkbenchStatus(
+      `${currentLanguage === "en" ? "Review sync failed" : "审阅同步失败"}：${err.message || (currentLanguage === "en" ? "Network unavailable" : "网络不可用")}`,
+      "error"
+    );
+    const empty = document.createElement("p");
+    empty.className = "reviewEmpty";
+    empty.textContent = currentLanguage === "en" ? "The review queue could not be loaded." : "审阅队列暂时无法读取。";
+    els.reviewList.replaceChildren(empty);
+    logLine(`review workbench refresh failed ${err.message || ""}`.trim());
+  } finally {
+    reviewWorkbenchLoading = false;
+    els.reviewRefresh.disabled = false;
+    els.reviewRefresh.removeAttribute("data-loading");
+    els.reviewRefresh.removeAttribute("aria-busy");
+    els.reviewList.setAttribute("aria-busy", "false");
+  }
+}
+
+function setReviewWorkbenchFilter(filter) {
+  reviewWorkbenchFilter = filter === "all" ? "all" : "pending";
+  if (els.reviewTabs) {
+    els.reviewTabs.querySelectorAll("[data-review-filter]").forEach((button) => {
+      const active = button.dataset.reviewFilter === reviewWorkbenchFilter;
+      button.setAttribute("aria-selected", active ? "true" : "false");
+      button.classList.toggle("active", active);
+    });
+  }
+  if (lastReviewWorkbenchPayload) renderReviewWorkbench(lastReviewWorkbenchPayload);
+}
+
 function setDocumentStatus(text, tone = "info", title = "") {
   const normalizedTone = ["info", "loading", "ready", "warning", "error"].includes(tone) ? tone : "info";
   const value = text || " ";
@@ -3729,9 +4953,21 @@ function setDocumentStatus(text, tone = "info", title = "") {
     els.documentStatus.title = titleValue;
   }
   if (els.documentContextBar) {
-    els.documentContextBar.hidden = !currentDocumentId && !value.trim();
+    els.documentContextBar.hidden = !documentContextVisible || (!currentDocumentId && !value.trim());
     els.documentContextBar.dataset.tone = normalizedTone;
     els.documentContextBar.dataset.hasDocument = currentDocumentId ? "true" : "false";
+    els.documentContextBar.dataset.documentBadge = currentDocumentSummaryData
+      ? documentTypeBadge(currentDocumentSummaryData)
+      : "FILE";
+  }
+  syncComposerSendAvailability();
+}
+
+function setDocumentContextVisible(visible) {
+  documentContextVisible = Boolean(visible);
+  if (els.documentContextBar) {
+    const hasStatus = Boolean(els.documentStatus && String(els.documentStatus.textContent || "").trim());
+    els.documentContextBar.hidden = !documentContextVisible || (!currentDocumentId && !hasStatus);
   }
   syncComposerSendAvailability();
 }
@@ -3759,19 +4995,96 @@ function setDocumentUploadStatus(text = "", tone = "info", visible = false) {
   }
 }
 
+const DOCUMENT_JOB_ACTIVE_STATUSES = new Set(["received", "analyzing", "parsing", "indexing"]);
+
+function documentPayloadIsTerminal(documentItem) {
+  const status = String(documentItem && documentItem.status || "").toLowerCase();
+  return Boolean(documentItem && documentItem.id) && !DOCUMENT_JOB_ACTIVE_STATUSES.has(status) && status !== "failed";
+}
+
+function terminalDocumentFromReceipt(receipt) {
+  const documentItem = receipt && receipt.document;
+  if (documentPayloadIsTerminal(documentItem)) return documentItem;
+  const job = receipt && receipt.job;
+  const jobStatus = String(job && job.status || "").toLowerCase();
+  const resultStatus = String(job && job.result_document_status || "").toLowerCase();
+  if (
+    documentItem
+    && ["ready", "partial"].includes(jobStatus)
+    && resultStatus
+    && !DOCUMENT_JOB_ACTIVE_STATUSES.has(resultStatus)
+    && resultStatus !== "failed"
+  ) {
+    return { ...documentItem, status: resultStatus };
+  }
+  return null;
+}
+
+function documentJobStageLabel(stage) {
+  const labels = currentLanguage === "en"
+    ? { received: "Queued", analyzing: "Analyzing", parsing: "Parsing", indexing: "Indexing", cancelling: "Cancelling", ready: "Ready", partial: "Partially ready", failed: "Failed", cancelled: "Cancelled" }
+    : { received: "已排队", analyzing: "正在分析", parsing: "正在解析", indexing: "正在建立索引", cancelling: "正在取消", ready: "已就绪", partial: "部分就绪", failed: "解析失败", cancelled: "已取消" };
+  return labels[String(stage || "")] || String(stage || "");
+}
+
+function documentJobStatusLine(job, pending = null) {
+  const filename = String((job && job.filename) || (pending && pending.filename) || currentDocumentName || "");
+  const stage = String((job && (job.stage || job.status)) || "received");
+  const progress = Math.max(0, Math.min(100, Number(job && job.progress || 0)));
+  const unitParse = job && job.unit_parse && typeof job.unit_parse === "object" ? job.unit_parse : null;
+  const unitCount = Math.max(0, Number(unitParse && unitParse.unit_count || 0));
+  const readyCount = Math.max(0, Number(unitParse && unitParse.ready_count || 0));
+  const failedCount = Math.max(0, Number(unitParse && unitParse.failed_count || 0));
+  const unitLine = unitCount > 1
+    ? currentLanguage === "en"
+      ? `${readyCount}/${unitCount} units${failedCount ? `, ${failedCount} failed` : ""}`
+      : `${readyCount}/${unitCount} 个单元${failedCount ? `，${failedCount} 个失败` : ""}`
+    : "";
+  return [filename, documentJobStageLabel(stage), `${Math.round(progress)}%`, unitLine].filter(Boolean).join(" · ");
+}
+
+function setDocumentJobControls(job = null) {
+  const status = String(job && job.status || "");
+  const unitParse = job && job.unit_parse && typeof job.unit_parse === "object" ? job.unit_parse : null;
+  const retryableUnitCount = Math.max(0, Number(unitParse && unitParse.retryable_failed_count || 0));
+  documentJobActive = DOCUMENT_JOB_ACTIVE_STATUSES.has(status);
+  activeDocumentJobId = String(job && job.job_id || (documentJobActive ? activeDocumentJobId : ""));
+  activeDocumentUnitRetryId = retryableUnitCount > 0
+    ? String(job && job.document_id || currentDocumentId || "")
+    : "";
+  if (els.documentJobCancel) {
+    els.documentJobCancel.hidden = !(job && job.can_cancel);
+    els.documentJobCancel.disabled = false;
+    els.documentJobCancel.textContent = currentLanguage === "en" ? "Cancel" : "取消";
+  }
+  if (els.documentJobRetry) {
+    els.documentJobRetry.hidden = !(job && (job.can_retry || retryableUnitCount > 0));
+    els.documentJobRetry.disabled = false;
+    els.documentJobRetry.textContent = retryableUnitCount > 0
+      ? currentLanguage === "en" ? `Retry failed (${retryableUnitCount})` : `重试失败项 (${retryableUnitCount})`
+      : currentLanguage === "en" ? "Retry" : "重试";
+  }
+  if (els.documentSummarize) {
+    els.documentSummarize.hidden = Boolean(job && (documentJobActive || status === "failed" || status === "cancelled"));
+  }
+}
+
 function setDocumentBusy(busy) {
-  if (els.documentContextBar) els.documentContextBar.dataset.busy = busy ? "true" : "false";
+  const effectiveBusy = Boolean(busy || documentJobActive);
+  if (els.documentContextBar) els.documentContextBar.dataset.busy = effectiveBusy ? "true" : "false";
   const composer = els.documentUpload ? els.documentUpload.closest(".unifiedComposer") : null;
-  if (composer) composer.dataset.documentBusy = busy ? "true" : "false";
+  if (composer) composer.dataset.documentBusy = effectiveBusy ? "true" : "false";
   if (els.documentUpload) {
-    els.documentUpload.disabled = Boolean(busy);
-    els.documentUpload.setAttribute("aria-busy", busy ? "true" : "false");
-    if (busy) {
+    els.documentUpload.disabled = effectiveBusy;
+    els.documentUpload.setAttribute("aria-busy", effectiveBusy ? "true" : "false");
+    if (effectiveBusy) {
       els.documentUpload.dataset.loading = "true";
       els.documentUpload.dataset.mode = "uploading";
-      els.documentUpload.setAttribute("aria-label", textFor("document.uploadingPdfAria", "正在上传 PDF"));
-      els.documentUpload.setAttribute("title", textFor("document.uploadingPdfAria", "正在上传 PDF"));
-      setDocumentUploadStatus(textFor("document.uploadingPdfAria", "正在上传 PDF"), "loading", true);
+      els.documentUpload.setAttribute("aria-label", textFor("document.uploadingPdfAria", "正在上传文件"));
+      els.documentUpload.setAttribute("title", textFor("document.uploadingPdfAria", "正在上传文件"));
+      if (!documentJobActive) {
+        setDocumentUploadStatus(textFor("document.uploadingPdfAria", "正在上传文件"), "loading", true);
+      }
     } else {
       els.documentUpload.removeAttribute("data-loading");
       els.documentUpload.dataset.mode = "idle";
@@ -3780,8 +5093,8 @@ function setDocumentBusy(busy) {
       if (!composer || composer.dataset.uploadSelecting !== "true") setDocumentUploadStatus("", "info", false);
     }
   }
-  if (els.documentSummarize) els.documentSummarize.disabled = Boolean(busy || !currentDocumentId);
-  if (els.documentAsk) els.documentAsk.disabled = Boolean(busy || !currentDocumentId);
+  if (els.documentSummarize) els.documentSummarize.disabled = Boolean(effectiveBusy || !currentDocumentId);
+  if (els.documentAsk) els.documentAsk.disabled = Boolean(effectiveBusy || !currentDocumentId);
   syncComposerSendAvailability();
 }
 
@@ -3794,7 +5107,7 @@ function setDocumentUploadSelecting(selecting) {
     els.documentUpload.dataset.mode = "selecting";
     els.documentUpload.setAttribute("aria-pressed", "true");
     setDocumentUploadStatus(
-      `${textFor("document.selectingPdf", "选择一份 PDF 文件")} · ${textFor("document.selectingPdfHint", "正在打开文件选择器。")}`,
+      `${textFor("document.selectingPdf", "选择文件")} · ${textFor("document.selectingPdfHint", "正在打开文件选择器。")}`,
       "info",
       true
     );
@@ -3823,6 +5136,43 @@ function documentPageCountLabel(count) {
   return `${value} 页`;
 }
 
+function documentTypeBadge(doc) {
+  const kind = String(doc && doc.document_type || "").toUpperCase();
+  const labels = {
+    TEXT: "TXT",
+    MARKDOWN: "MD",
+    PDF: "PDF",
+    CSV: "CSV",
+    TSV: "TSV",
+    JSON: "JSON",
+    HTML: "HTML",
+    XML: "XML",
+    RTF: "RTF",
+    DOCX: "DOCX",
+    XLSX: "XLSX",
+    PPTX: "PPTX",
+    ODT: "ODT",
+    ODS: "ODS",
+    ODP: "ODP",
+    EML: "EML",
+    IMAGE: "IMG"
+  };
+  return labels[kind] || (kind ? kind.slice(0, 5) : "FILE");
+}
+
+function documentUnitCountLabel(doc) {
+  const value = Number(doc && doc.page_count);
+  if (!Number.isFinite(value) || value <= 0) return "";
+  const kind = String(doc && doc.document_type || "").toLowerCase();
+  if (kind === "xlsx" || kind === "ods") return currentLanguage === "en" ? `${value} ${value === 1 ? "sheet" : "sheets"}` : `${value} 个工作表`;
+  if (kind === "pptx" || kind === "odp") return currentLanguage === "en" ? `${value} ${value === 1 ? "slide" : "slides"}` : `${value} 张幻灯片`;
+  if (kind === "image") return currentLanguage === "en" ? `${value} ${value === 1 ? "image" : "images"}` : `${value} 张图片`;
+  if (["text", "markdown", "json", "html", "xml", "rtf", "docx", "odt", "eml", "csv", "tsv"].includes(kind)) {
+    return currentLanguage === "en" ? `${value} ${value === 1 ? "part" : "parts"}` : `${value} 个内容单元`;
+  }
+  return documentPageCountLabel(value);
+}
+
 function documentCharCountLabel(count) {
   const value = Number(count);
   if (!Number.isFinite(value)) return "";
@@ -3834,7 +5184,9 @@ function normalizeDocumentSummaryData(doc) {
   if (!doc) return null;
   return {
     id: doc.id || currentDocumentId || "",
-    filename: doc.filename || currentDocumentName || "PDF",
+    filename: doc.filename || currentDocumentName || "File",
+    document_type: doc.document_type || "",
+    media_type: doc.media_type || "",
     status: doc.status || "parsed",
     parser: doc.parser || "",
     page_count: Number.isFinite(Number(doc.page_count)) ? Number(doc.page_count) : null,
@@ -3872,10 +5224,10 @@ function documentSummaryLine(doc, options = {}) {
   const includeParser = options.includeParser !== false;
   const includeCharCount = options.includeCharCount !== false;
   const parts = [
-    includeFilename ? doc.filename || currentDocumentName || "PDF" : "",
+    includeFilename ? doc.filename || currentDocumentName || (currentLanguage === "en" ? "File" : "文件") : "",
     documentStatusLabel(doc.status),
     includeParser ? documentParserLabel(doc.parser) : "",
-    documentPageCountLabel(doc.page_count),
+    documentUnitCountLabel(doc),
     includeCharCount ? documentCharCountLabel(doc.char_count) : ""
   ].filter(Boolean);
   return parts.join(" · ");
@@ -3884,7 +5236,7 @@ function documentSummaryLine(doc, options = {}) {
 function documentContextSummaryLine(doc) {
   if (!doc) return "";
   const parts = [
-    doc.filename || currentDocumentName || "PDF",
+    doc.filename || currentDocumentName || (currentLanguage === "en" ? "File" : "文件"),
     documentStatusLabel(doc.status)
   ].filter(Boolean);
   return parts.join(" · ");
@@ -3893,7 +5245,7 @@ function documentContextSummaryLine(doc) {
 function documentReadableSummaryLine(doc) {
   if (!doc) return "";
   const sizeParts = [
-    documentPageCountLabel(doc.page_count)
+    documentUnitCountLabel(doc)
   ].filter(Boolean);
   const status = doc.status ? documentStatusLabel(doc.status) : documentStatusLabel("parsed");
   return sizeParts.length ? `${status} · ${sizeParts.join(" · ")}` : status;
@@ -3906,22 +5258,343 @@ function documentLabeledValue(key, fallback, value) {
 function documentAcceptedLine(docOrName) {
   const name = typeof docOrName === "string"
     ? docOrName
-    : ((docOrName && docOrName.filename) || currentDocumentName || "PDF");
-  const line = documentLabeledValue("document.accepted", currentLanguage === "en" ? "I’ve opened " : "我已打开：", name);
+    : ((docOrName && docOrName.filename) || currentDocumentName || (currentLanguage === "en" ? "File" : "文件"));
+  const line = documentLabeledValue("document.accepted", currentLanguage === "en" ? "I’ve read " : "我读完了：", name);
   return currentLanguage === "en" ? `${line}.` : `${line}。`;
 }
 
 function documentFileReadyLine() {
-  return textFor("document.fileReady", currentLanguage === "en" ? "PDF connected" : "PDF 已连接");
+  return textFor("document.fileReady", currentLanguage === "en" ? "File read" : "文件已读");
+}
+
+function supportedDocumentFile(file) {
+  if (!file || !file.name) return false;
+  const extension = String(file.name).toLowerCase().split(".").pop();
+  return SUPPORTED_DOCUMENT_EXTENSIONS.has(extension);
+}
+
+function documentUploadError(payload, status) {
+  const detail = payload && payload.detail;
+  const code = typeof detail === "string" ? detail : (detail && detail.error) || payload.error || "";
+  if (code === "unsupported_document_type") return currentLanguage === "en" ? "Unsupported file type" : "暂不支持这种文件";
+  if (code === "file_type_mismatch") return currentLanguage === "en" ? "The file content does not match its extension" : "文件内容与扩展名不一致";
+  if (code === "file_too_large") return currentLanguage === "en" ? "The file is too large" : "文件过大";
+  if (code === "empty_upload") return currentLanguage === "en" ? "The file is empty" : "文件为空";
+  if (code === "invalid_image") return currentLanguage === "en" ? "The image is damaged or unreadable" : "图片损坏或无法读取";
+  if (code === "image_pixel_limit_exceeded") return currentLanguage === "en" ? "The image dimensions are too large" : "图片尺寸过大";
+  return code || `upload_failed_${status}`;
+}
+
+const DOCUMENT_INTERNAL_WARNING_PREFIXES = [
+  "pymupdf4llm_low_coverage:",
+  "pymupdf4llm_text_corruption:",
+  "pymupdf4llm_failed:",
+  "mineru_failed:",
+  "mineru_exit_"
+];
+
+function documentUserWarnings(warnings) {
+  if (!Array.isArray(warnings)) return [];
+  return warnings
+    .map((warning) => String(warning || "").trim())
+    .filter(Boolean)
+    .filter((warning) => !DOCUMENT_INTERNAL_WARNING_PREFIXES.some((prefix) => warning.startsWith(prefix)));
+}
+
+function logDocumentDiagnostics(warnings) {
+  if (!Array.isArray(warnings)) return;
+  warnings
+    .map((warning) => String(warning || "").trim())
+    .filter(Boolean)
+    .forEach((warning) => logLine(`document parser diagnostic ${warning}`));
 }
 
 function documentReadyAnswerText(doc, warnings = currentDocumentWarnings) {
   if (!doc) return "";
+  const visibleWarnings = documentUserWarnings(warnings);
   return [
     documentAcceptedLine(doc),
     documentReadableSummaryLine(doc),
-    Array.isArray(warnings) && warnings.length ? warnings.join("\n") : ""
+    visibleWarnings.length ? visibleWarnings.join("\n") : ""
   ].filter(Boolean).join("\n");
+}
+
+function newDocumentUploadId() {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") {
+    return `upload_${window.crypto.randomUUID().replace(/-/g, "")}`;
+  }
+  return `upload_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 14)}`;
+}
+
+const DOCUMENT_UPLOAD_PENDING_KEY = "iris_pending_document_upload_v1";
+const DOCUMENT_UPLOAD_PENDING_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+function documentUploadDescriptor(file, uploadId, uploadMessageId = "") {
+  return {
+    upload_id: String(uploadId || ""),
+    filename: String(file && file.name || ""),
+    size_bytes: Number(file && file.size || 0),
+    client_id: voiceClientId(),
+    message_id: String(uploadMessageId || ""),
+    job_id: "",
+    document_id: "",
+    created_at_ms: Date.now(),
+    attempts: 0
+  };
+}
+
+function rememberPendingDocumentUpload(pending) {
+  if (!pending || !pending.upload_id || !pending.filename) return false;
+  return safeSessionSet(DOCUMENT_UPLOAD_PENDING_KEY, JSON.stringify(pending));
+}
+
+function readPendingDocumentUpload() {
+  const raw = safeSessionGet(DOCUMENT_UPLOAD_PENDING_KEY, "");
+  if (!raw) return null;
+  try {
+    const pending = JSON.parse(raw);
+    const createdAt = Number(pending && pending.created_at_ms || 0);
+    if (!pending || !pending.upload_id || !pending.filename || pending.client_id !== voiceClientId()) {
+      safeSessionRemove(DOCUMENT_UPLOAD_PENDING_KEY);
+      return null;
+    }
+    if (!createdAt || Date.now() - createdAt > DOCUMENT_UPLOAD_PENDING_MAX_AGE_MS) {
+      safeSessionRemove(DOCUMENT_UPLOAD_PENDING_KEY);
+      return null;
+    }
+    return pending;
+  } catch {
+    safeSessionRemove(DOCUMENT_UPLOAD_PENDING_KEY);
+    return null;
+  }
+}
+
+function clearPendingDocumentUpload(uploadId = "") {
+  const pending = readPendingDocumentUpload();
+  if (uploadId && pending && pending.upload_id !== uploadId) return;
+  safeSessionRemove(DOCUMENT_UPLOAD_PENDING_KEY);
+}
+
+function documentMatchesUpload(documentItem, file, uploadId) {
+  if (!documentItem || String(documentItem.upload_id || "") !== uploadId) return false;
+  const expectedSize = Number(file && (file.size ?? file.size_bytes));
+  const storedSize = Number(documentItem.size_bytes);
+  if (Number.isFinite(expectedSize) && Number.isFinite(storedSize) && expectedSize !== storedSize) return false;
+  return documentPayloadIsTerminal(documentItem);
+}
+
+async function reconcileDocumentUploadWithDelays(file, uploadId, delays) {
+  for (const delay of delays) {
+    if (delay) await new Promise((resolve) => window.setTimeout(resolve, delay));
+    try {
+      const url = documentApiUrl("/client/v1/documents", { limit: 10, client_id: voiceClientId() });
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "X-Jarvis-Client-Id": voiceClientId(),
+          ...authHeaders()
+        }
+      });
+      if (!response.ok) {
+        handleUnauthorizedResponse(response);
+        continue;
+      }
+      const payload = await response.json().catch(() => ({}));
+      const recovered = Array.isArray(payload.documents)
+        ? payload.documents.find((item) => documentMatchesUpload(item, file, uploadId))
+        : null;
+      if (recovered) return recovered;
+    } catch (error) {
+      logLine(`document upload reconciliation retry ${error && error.message || "failed"}`);
+    }
+  }
+  return null;
+}
+
+async function reconcileDocumentUpload(file, uploadId) {
+  return reconcileDocumentUploadWithDelays(file, uploadId, [0, 320, 900]);
+}
+
+async function inspectDocumentUploadReceipt(pending) {
+  try {
+    const url = documentApiUrl("/client/v1/documents/upload-status", {
+      upload_id: pending.upload_id,
+      client_id: voiceClientId()
+    });
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "X-Jarvis-Client-Id": voiceClientId(),
+        ...authHeaders()
+      },
+      cache: "no-store"
+    });
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      return { status: "unknown" };
+    }
+    return await response.json().catch(() => ({ status: "unknown" }));
+  } catch (error) {
+    logLine(`document upload receipt retry ${error && error.message || "failed"}`);
+    return { status: "unknown" };
+  }
+}
+
+function showPendingDocumentUpload(pending, longWait = false) {
+  const message = textFor(
+    longWait ? "document.uploadVerifyLater" : "document.uploadVerifying",
+    longWait
+      ? "暂时无法确认上传结果。网络恢复后会自动继续检查。"
+      : "连接中断，正在确认文件是否已经上传..."
+  );
+  currentDocumentAnswerMode = "warning";
+  setDocumentContextVisible(true);
+  setDocumentStatus(message, "warning");
+  setDocumentAnswer(message);
+  const updated = pending && pending.message_id
+    ? updateConversationMessage(pending.message_id, message, { label: "Iris", role: "assistant", kind: "document_pending" })
+    : false;
+  if (!updated && !longWait) {
+    pending.message_id = appendAssistantConversation(message, { kind: "document_pending" });
+    rememberPendingDocumentUpload(pending);
+  }
+}
+
+function showIncompleteDocumentUpload(pending) {
+  const message = textFor("document.uploadIncomplete", "文件没有上传完整，请重新选择后再试。");
+  currentDocumentId = "";
+  currentDocumentSummary = "";
+  currentDocumentSummaryData = null;
+  currentDocumentWarnings = [];
+  currentDocumentAnswerMode = "error";
+  currentDocumentReadyFileMessageId = "";
+  currentDocumentReadyAssistantMessageId = "";
+  setDocumentContextVisible(true);
+  setDocumentStatus(message, "error");
+  setDocumentAnswer(message);
+  const updated = pending && pending.message_id
+    ? updateConversationMessage(pending.message_id, message, { label: "Iris", role: "assistant", kind: "document_error" })
+    : false;
+  if (!updated) appendAssistantConversation(message, { kind: "document_error" });
+}
+
+function showDocumentJob(pending, job) {
+  if (!pending || !job) return;
+  pending.job_id = String(job.job_id || pending.job_id || "");
+  pending.document_id = String(job.document_id || pending.document_id || "");
+  pending.attempts = 0;
+  rememberPendingDocumentUpload(pending);
+  setDocumentJobControls(job);
+  setDocumentContextVisible(true);
+  const line = documentJobStatusLine(job, pending);
+  const status = String(job.status || "");
+  const tone = DOCUMENT_JOB_ACTIVE_STATUSES.has(status)
+    ? "loading"
+    : status === "failed"
+      ? "error"
+      : status === "cancelled"
+        ? "warning"
+        : "ready";
+  currentDocumentAnswerMode = DOCUMENT_JOB_ACTIVE_STATUSES.has(status) ? "loading" : tone;
+  setDocumentStatus(line, tone);
+  setDocumentUploadStatus(line, tone, true);
+  setDocumentAnswer(line);
+  if (pending.message_id) {
+    updateConversationMessage(pending.message_id, line, {
+      label: textFor("role.file", "文件"),
+      role: "file",
+      kind: DOCUMENT_JOB_ACTIVE_STATUSES.has(status) ? "document_pending" : "document_error"
+    });
+  }
+  setDocumentBusy(false);
+}
+
+function schedulePendingDocumentUploadReconciliation(delay = 1200) {
+  if (documentUploadReconcileTimer) window.clearTimeout(documentUploadReconcileTimer);
+  documentUploadReconcileTimer = window.setTimeout(() => {
+    documentUploadReconcileTimer = 0;
+    resumePendingDocumentUploadReconciliation().catch((error) => {
+      logLine(`document upload background reconciliation failed ${error && error.message || "failed"}`);
+    });
+  }, Math.max(0, Number(delay) || 0));
+}
+
+async function resumePendingDocumentUploadReconciliation() {
+  const pending = readPendingDocumentUpload();
+  if (!pending || documentUploadReconcileRunning) return null;
+  if (!canUseBackendNow() || (typeof navigator !== "undefined" && navigator.onLine === false)) {
+    schedulePendingDocumentUploadReconciliation(5000);
+    return null;
+  }
+  documentUploadReconcileRunning = true;
+  try {
+    const receipt = await inspectDocumentUploadReceipt(pending);
+    const committedDocument = receipt.status === "committed" ? terminalDocumentFromReceipt(receipt) : null;
+    if (committedDocument) {
+      clearPendingDocumentUpload(pending.upload_id);
+      acceptUploadedDocument(committedDocument, pending.message_id || "", true);
+      return committedDocument;
+    }
+    if (receipt.status === "committed" && receipt.document) {
+      showPendingDocumentUpload(pending);
+      schedulePendingDocumentUploadReconciliation(700);
+      return receipt.document;
+    }
+    if (receipt.status === "processing" && receipt.job) {
+      showDocumentJob(pending, receipt.job);
+      schedulePendingDocumentUploadReconciliation(700);
+      return receipt.job;
+    }
+    if (["failed", "cancelled"].includes(receipt.status) && receipt.job) {
+      showDocumentJob(pending, receipt.job);
+      logLine(`document job ${receipt.status} ${receipt.job.job_id || ""}`.trim());
+      return receipt;
+    }
+    if (receipt.status === "failed") {
+      clearPendingDocumentUpload(pending.upload_id);
+      showIncompleteDocumentUpload(pending);
+      logLine(`document upload confirmed incomplete ${receipt.debug_ref || ""}`.trim());
+      return receipt;
+    }
+    const recovered = await reconcileDocumentUploadWithDelays(pending, pending.upload_id, [0, 800, 2200]);
+    if (recovered) {
+      clearPendingDocumentUpload(pending.upload_id);
+      acceptUploadedDocument(recovered, pending.message_id || "", true);
+      return recovered;
+    }
+    pending.attempts = Number(pending.attempts || 0) + 1;
+    rememberPendingDocumentUpload(pending);
+    showPendingDocumentUpload(pending, pending.attempts >= 3);
+    schedulePendingDocumentUploadReconciliation(pending.attempts >= 3 ? 15000 : 5000);
+    return null;
+  } finally {
+    documentUploadReconcileRunning = false;
+  }
+}
+
+function acceptUploadedDocument(payload, uploadMessageId, recovered = false) {
+  clearPendingDocumentUpload(String(payload && payload.upload_id || ""));
+  currentDocumentId = payload.id || "";
+  setDocumentJobControls({
+    status: String(payload.status || "ready") === "partial" ? "partial" : "ready",
+    document_id: currentDocumentId,
+    unit_parse: payload.unit_parse || null
+  });
+  const summaryLine = rememberDocumentSummaryData(payload);
+  setDocumentStatus(summaryLine, currentDocumentId ? "ready" : "warning");
+  currentDocumentWarnings = Array.isArray(payload.warnings) ? payload.warnings.filter(Boolean) : [];
+  logDocumentDiagnostics(currentDocumentWarnings);
+  const accepted = currentDocumentId
+    ? documentReadyAnswerText(currentDocumentSummaryData || payload)
+    : textFor("document.uploadMissingId", "上传完成，但没有拿到文档 ID。");
+  currentDocumentAnswerMode = currentDocumentId ? "ready" : "warning";
+  setDocumentAnswer(accepted);
+  currentDocumentReadyFileMessageId = uploadMessageId;
+  updateConversationMessage(uploadMessageId, documentFileReadyLine(), { label: textFor("role.file", "文件"), role: "file", kind: "document_ready" });
+  currentDocumentReadyAssistantMessageId = appendAssistantConversation(accepted, { kind: "document_ready" });
+  setDocumentBusy(false);
+  setDocumentContextVisible(false);
+  if (recovered) logLine(`document upload response reconciled ${currentDocumentId}`);
 }
 
 function refreshDocumentReadyPresentation() {
@@ -3960,8 +5633,9 @@ async function uploadCurrentDocument() {
     return;
   }
   const file = els.documentPdf.files[0];
-  if (!file || (!file.name.toLowerCase().endsWith(".pdf") && file.type !== "application/pdf")) {
-    setDocumentStatus(textFor("document.onlyPdf", "这里只接收 PDF 文件。"), "warning");
+  if (!supportedDocumentFile(file)) {
+    setDocumentContextVisible(true);
+    setDocumentStatus(textFor("document.onlyPdf", "暂不支持这种文件。请选择 PDF、图片、文本、Markdown、CSV、JSON、HTML、Office 或 OpenDocument 文件。"), "warning");
     if (els.documentPdf) els.documentPdf.value = "";
     return;
   }
@@ -3974,16 +5648,25 @@ async function uploadCurrentDocument() {
   currentDocumentAnswerMode = "";
   currentDocumentReadyFileMessageId = "";
   currentDocumentReadyAssistantMessageId = "";
+  setDocumentContextVisible(true);
   setDocumentBusy(true);
   setDocumentStatus(documentLabeledValue("document.uploading", "正在上传并解析：", file.name), "loading");
   setDocumentAnswer(" ");
   const uploadMessageId = appendConversationMessage("file", documentLabeledValue("document.receiving", "正在接收：", file.name), { kind: "uploading" });
-  const url = backendUrl(`/client/v1/documents/upload?filename=${encodeURIComponent(file.name)}&client_id=${encodeURIComponent(voiceClientId())}`);
+  const uploadId = newDocumentUploadId();
+  const pendingUpload = documentUploadDescriptor(file, uploadId, uploadMessageId);
+  rememberPendingDocumentUpload(pendingUpload);
+  const url = documentApiUrl("/client/v1/documents/upload", {
+    async: "true",
+    filename: file.name,
+    client_id: voiceClientId(),
+    upload_id: uploadId
+  });
   try {
     const response = await fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "application/pdf",
+        "Content-Type": file.type || "application/octet-stream",
         "X-Jarvis-Client-Id": voiceClientId(),
         ...authHeaders()
       },
@@ -3992,21 +5675,32 @@ async function uploadCurrentDocument() {
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       handleUnauthorizedResponse(response);
-      throw new Error(payload.detail && typeof payload.detail === "string" ? payload.detail : `upload_failed_${response.status}`);
+      const uploadError = new Error(documentUploadError(payload, response.status));
+      uploadError.uploadHttpStatus = response.status;
+      throw uploadError;
     }
-    currentDocumentId = payload.id || "";
-    const summaryLine = rememberDocumentSummaryData(payload);
-    setDocumentStatus(summaryLine, currentDocumentId ? "ready" : "warning");
-    currentDocumentWarnings = Array.isArray(payload.warnings) ? payload.warnings.filter(Boolean) : [];
-    const accepted = currentDocumentId
-      ? documentReadyAnswerText(currentDocumentSummaryData || payload)
-      : textFor("document.uploadMissingId", "上传完成，但没有拿到文档 ID。");
-    currentDocumentAnswerMode = currentDocumentId ? "ready" : "warning";
-    setDocumentAnswer(accepted);
-    currentDocumentReadyFileMessageId = uploadMessageId;
-    updateConversationMessage(uploadMessageId, documentFileReadyLine(), { label: textFor("role.file", "文件"), role: "file", kind: "document_ready" });
-    currentDocumentReadyAssistantMessageId = appendAssistantConversation(accepted, { kind: "document_ready" });
+    if (response.status === 202 && payload.job) {
+      pendingUpload.job_id = String(payload.job_id || payload.job.job_id || "");
+      pendingUpload.document_id = String(payload.document_id || payload.job.document_id || "");
+      rememberPendingDocumentUpload(pendingUpload);
+      showDocumentJob(pendingUpload, payload.job);
+      schedulePendingDocumentUploadReconciliation(350);
+      return;
+    }
+    acceptUploadedDocument(payload, uploadMessageId);
   } catch (err) {
+    const recovered = err && err.uploadHttpStatus ? null : await reconcileDocumentUpload(file, uploadId);
+    if (recovered) {
+      acceptUploadedDocument(recovered, uploadMessageId, true);
+      return;
+    }
+    if (!err || !err.uploadHttpStatus) {
+      showPendingDocumentUpload(pendingUpload);
+      schedulePendingDocumentUploadReconciliation(1800);
+      logLine(`document upload result unknown ${err && err.message || "network_error"}`);
+      return;
+    }
+    clearPendingDocumentUpload(uploadId);
     currentDocumentId = "";
     currentDocumentSummary = "";
     currentDocumentSummaryData = null;
@@ -4014,7 +5708,8 @@ async function uploadCurrentDocument() {
     currentDocumentAnswerMode = "error";
     currentDocumentReadyFileMessageId = "";
     currentDocumentReadyAssistantMessageId = "";
-    const errorText = documentLabeledValue("document.uploadFailed", "PDF 上传失败：", err.message || "unknown");
+    const errorText = documentLabeledValue("document.uploadFailed", "文件上传失败：", err.message || "unknown");
+    setDocumentContextVisible(true);
     setDocumentStatus(errorText, "error");
     if (!updateConversationMessage(uploadMessageId, errorText, { label: "Iris", role: "assistant", kind: "document_error" })) {
       appendAssistantConversation(errorText, { kind: "document_error" });
@@ -4027,13 +5722,69 @@ async function uploadCurrentDocument() {
   }
 }
 
+async function controlCurrentDocumentJob(action) {
+  let pending = readPendingDocumentUpload();
+  const jobId = String(activeDocumentJobId || (pending && pending.job_id) || "");
+  const unitRetryDocumentId = action === "retry" ? String(activeDocumentUnitRetryId || "") : "";
+  if ((!jobId && !unitRetryDocumentId) || !["cancel", "retry"].includes(action)) return;
+  const button = action === "cancel" ? els.documentJobCancel : els.documentJobRetry;
+  if (button) button.disabled = true;
+  try {
+    const path = unitRetryDocumentId
+      ? `/client/v1/documents/${encodeURIComponent(unitRetryDocumentId)}/units/retry`
+      : `/client/v1/documents/jobs/${encodeURIComponent(jobId)}/${action}`;
+    const response = await fetch(
+      documentApiUrl(path, { client_id: voiceClientId() }),
+      {
+        method: "POST",
+        headers: {
+          ...(unitRetryDocumentId ? { "Content-Type": "application/json" } : {}),
+          "X-Jarvis-Client-Id": voiceClientId(),
+          ...authHeaders()
+        },
+        ...(unitRetryDocumentId ? { body: JSON.stringify({ unit_ids: [] }) } : {})
+      }
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      const detail = payload && payload.detail;
+      throw new Error((detail && detail.error) || detail || `document_job_${action}_failed_${response.status}`);
+    }
+    if (payload.job && !pending) {
+      pending = {
+        upload_id: String(payload.job.upload_id || `unit_retry_${Date.now()}`),
+        filename: String(payload.job.filename || currentDocumentName || ""),
+        document_id: String(payload.job.document_id || currentDocumentId || ""),
+        job_id: String(payload.job.job_id || ""),
+        message_id: "",
+        attempts: 0
+      };
+      rememberPendingDocumentUpload(pending);
+    }
+    if (payload.job && pending) showDocumentJob(pending, payload.job);
+    if (payload.job && DOCUMENT_JOB_ACTIVE_STATUSES.has(String(payload.job.status || ""))) {
+      schedulePendingDocumentUploadReconciliation(300);
+    }
+  } catch (error) {
+    const message = action === "cancel"
+      ? documentLabeledValue("document.cancelFailed", "取消失败：", error && error.message || "unknown")
+      : documentLabeledValue("document.retryFailed", "重试失败：", error && error.message || "unknown");
+    setDocumentStatus(message, "error");
+    setDocumentUploadStatus(message, "error", true);
+    logLine(`document job ${action} failed ${error && error.message || "unknown"}`);
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
 async function summarizeCurrentDocument() {
   if (!canUseBackendNow()) {
     showAccessGate(textFor("access.required", "请先输入访问口令。"), "warning", "access.required");
     return;
   }
   if (!currentDocumentId) {
-    setDocumentStatus(textFor("document.noDocument", "先上传并解析一份 PDF。"), "warning");
+    setDocumentStatus(textFor("document.noDocument", "先上传并解析一份文件。"), "warning");
     return;
   }
   setDocumentBusy(true);
@@ -4042,9 +5793,9 @@ async function summarizeCurrentDocument() {
     setDocumentStatus(currentDocumentStatusLine() || currentDocumentName, "loading");
   }
   setDocumentAnswer(textFor("document.summarizePendingShort", "正在整理摘要..."));
-  const pendingId = appendAssistantConversation(textFor("document.summarizePending", "正在整理这份 PDF 的摘要..."), { kind: "document_pending" });
+  const pendingId = appendAssistantConversation(textFor("document.summarizePending", "正在整理这份文件的摘要..."), { kind: "document_pending" });
   try {
-    const response = await fetch(backendUrl(`/client/v1/documents/${encodeURIComponent(currentDocumentId)}/summarize`), {
+    const response = await fetch(documentApiUrl(`/client/v1/documents/${encodeURIComponent(currentDocumentId)}/summarize`, { client_id: voiceClientId() }), {
       method: "POST",
       headers: {
         "X-Jarvis-Client-Id": voiceClientId(),
@@ -4089,12 +5840,12 @@ async function askCurrentDocument(questionOverride = "") {
     return;
   }
   if (!currentDocumentId) {
-    setDocumentStatus(textFor("document.noDocument", "先上传并解析一份 PDF。"), "warning");
+    setDocumentStatus(textFor("document.noDocument", "先上传并解析一份文件。"), "warning");
     return;
   }
   const question = (questionOverride || (els.documentQuestion && els.documentQuestion.value ? els.documentQuestion.value : "")).trim();
   if (!question) {
-    const hint = textFor("document.askMissingQuestion", "先输入一个想问这份 PDF 的问题。");
+    const hint = textFor("document.askMissingQuestion", "先输入一个想问这份文件的问题。");
     setDocumentStatus(hint, "warning");
     setDocumentAnswer(hint);
     return;
@@ -4106,9 +5857,9 @@ async function askCurrentDocument(questionOverride = "") {
   }
   setDocumentAnswer(textFor("document.askPendingShort", "正在从文档里找相关内容..."));
   appendUserConversation(question, { force: true });
-  const pendingId = appendAssistantConversation(textFor("document.askPending", "正在从当前 PDF 里找相关内容..."), { kind: "document_pending" });
+  const pendingId = appendAssistantConversation(textFor("document.askPending", "正在从当前文件里找相关内容..."), { kind: "document_pending" });
   try {
-    const response = await fetch(backendUrl(`/client/v1/documents/${encodeURIComponent(currentDocumentId)}/ask`), {
+    const response = await fetch(documentApiUrl(`/client/v1/documents/${encodeURIComponent(currentDocumentId)}/ask`, { client_id: voiceClientId() }), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -4381,7 +6132,7 @@ async function sendTextPrompt(text) {
         client_type: "web",
         client_id: voiceClientId(),
         session_id: currentConversationId || "web",
-        user_id: "default",
+        user_id: currentSubjectId(),
         input: { type: "text", text: final },
         client_context: {
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Shanghai",
@@ -4405,12 +6156,19 @@ async function sendTextPrompt(text) {
       throw new Error(payload.detail || `HTTP ${response.status}`);
     }
     currentConversationId = payload.conversation_id || currentConversationId;
-    const reply = String(payload.reply || "").trim() || "我没有拿到可显示的回复。";
+    const actionButtons = clientMessageActionButtons(payload.action_payloads);
+    const reply = clientReplyForDisplay(String(payload.reply || "").trim(), actionButtons) || "我没有拿到可显示的回复。";
     els.reply.textContent = reply;
     appendAssistantConversation(reply, {
       id: payload.response_id ? `assistant_${payload.response_id}` : "",
       kind: payload.skill || payload.route || "text_reply",
-      forceScroll: true
+      forceScroll: true,
+      actions: actionButtons,
+      feedbackTarget: payload.feedback || (payload.turn_id ? {
+        turn_id: payload.turn_id,
+        response_id: payload.response_id || "",
+        channel: "web"
+      } : null)
     });
     setSubtitle(reply, { speaker: "IRIS", resetFlow: true });
     setState("idle", { preserveSubtitle: true });
@@ -4446,14 +6204,6 @@ function handleTextPromptCommand(text, options = {}) {
   const final = (text || "").trim();
   if (!final) return Promise.resolve(false);
   if (options.clearManualInput && els.manual) els.manual.value = "";
-  if (options.documentAware && currentDocumentId) {
-    return askCurrentDocument(final).catch((err) => {
-      const message = `文档追问失败：${err.message || "PDF 不可用"}`;
-      logLine(message);
-      appendAssistantConversation(message, { kind: "document_error" });
-      return false;
-    });
-  }
   return sendTextPrompt(final).catch((err) => {
     const message = `文字发送失败：${err.message || "语音连接不可用"}`;
     logLine(message);
@@ -4508,10 +6258,13 @@ function syncComposerSendAvailability() {
   const isLoading = els.manualSend.dataset.loading === "true";
   const hasText = composerHasText();
   const canSubmit = composerCanSubmit();
-  const hasDocument = Boolean(currentDocumentId);
+  const hasDocument = Boolean(currentDocumentId && documentContextVisible);
   els.manualSend.dataset.empty = hasText ? "false" : "true";
   els.manualSend.dataset.canSubmit = canSubmit ? "true" : "false";
   els.manualSend.dataset.documentLinked = hasDocument ? "true" : "false";
+  els.manualSend.dataset.documentBadge = hasDocument && currentDocumentSummaryData
+    ? documentTypeBadge(currentDocumentSummaryData)
+    : "FILE";
   els.manualSend.dataset.stateLabel = canSubmit
     ? (hasDocument ? "document-question-ready" : "message-ready")
     : (hasDocument ? "document-question-empty" : "message-empty");
@@ -4524,8 +6277,8 @@ function syncComposerSendAvailability() {
   }
   const label = hasDocument
     ? (hasText
-      ? textFor("composer.askDocument", "追问当前 PDF")
-      : textFor("composer.askDocumentDisabled", "输入问题后追问当前 PDF"))
+      ? textFor("composer.askDocument", "追问当前文件")
+      : textFor("composer.askDocumentDisabled", "输入问题后追问当前文件"))
     : (hasText ? textFor("action.send", "发送") : textFor("action.sendDisabled", "输入内容后发送"));
   els.manualSend.setAttribute("aria-label", label);
   els.manualSend.setAttribute("title", label);
@@ -4567,7 +6320,8 @@ async function handleComposerSubmit() {
     resizeComposerInput({ immediate: true });
   }
   try {
-    await handleTextPromptCommand(text, { documentAware: true });
+    if (currentDocumentId && documentContextVisible) await askCurrentDocument(text);
+    else await handleTextPromptCommand(text);
   } finally {
     await keepComposerFeedbackVisible(startedAt);
     setComposerSendLoading(false);
@@ -5299,10 +7053,16 @@ function handleServerEvent(event) {
   if (type === "tts_request") {
     if (event.response_id && currentResponseId && event.response_id !== currentResponseId) return;
     flushAgentReplyRender();
-    if (event.text && !updateConversationMessage(activeAssistantMessageId, event.text)) {
+    const feedbackTarget = {
+      turn_id: event.turn_id || currentTurnId,
+      response_id: event.response_id || currentResponseId,
+      channel: "voice"
+    };
+    if (event.text && !updateConversationMessage(activeAssistantMessageId, event.text, { feedbackTarget })) {
       activeAssistantMessageId = appendAssistantConversation(event.text, {
         id: event.response_id ? `assistant_${event.response_id}` : "",
-        kind: "agent_reply"
+        kind: "agent_reply",
+        feedbackTarget
       });
     }
     speak(event.text || "", event.turn_id || currentTurnId, event.response_id || currentResponseId);
@@ -5312,6 +7072,14 @@ function handleServerEvent(event) {
     if (event.response_id && currentResponseId && event.response_id !== currentResponseId) return;
     agentSpeaking = false;
     PresenceController.setMouthOpen(0);
+    const activeMessage = findConversationMessage(activeAssistantMessageId);
+    if (activeMessage && currentTurnId) {
+      attachMessageFeedbackControls(activeMessage, {
+        turn_id: currentTurnId,
+        response_id: currentResponseId,
+        channel: "voice"
+      });
+    }
     if (currentRawState === "agent_speaking") setState(running ? "listening" : "idle", { preserveSubtitle: true });
     activeAssistantMessageId = "";
     return;
@@ -5905,7 +7673,7 @@ async function handleAccessSubmit(event) {
     const session = await requestAccessSession(accessKey);
     if (els.accessToken) els.accessToken.value = "";
     setAccessCodeVisible(false);
-    completeSessionLogin(session.session_token, session.expires_at);
+    completeSessionLogin(session.session_token, session.expires_at, session.subject_id);
     loadModelSettings().catch((err) => logLine(err.message || "model settings failed"));
   } catch (err) {
     const failureKey = accessFailureKey(err);
@@ -5989,6 +7757,18 @@ if (els.memorySearchClear) {
     refreshMemoryControlCenter().catch((err) => logLine(err.message || "memory search clear failed"));
   });
 }
+if (els.reviewRefresh) {
+  els.reviewRefresh.addEventListener("click", () => {
+    refreshReviewWorkbench({ force: true }).catch((err) => logLine(err.message || "review refresh failed"));
+  });
+}
+if (els.reviewTabs) {
+  els.reviewTabs.addEventListener("click", (event) => {
+    const button = event.target instanceof HTMLElement ? event.target.closest("[data-review-filter]") : null;
+    if (!button || !els.reviewTabs.contains(button)) return;
+    setReviewWorkbenchFilter(button.dataset.reviewFilter || "pending");
+  });
+}
 if (els.detailSheet) {
   els.detailSheet.addEventListener("click", (event) => {
     if (event.target === els.detailSheet) closeDetails();
@@ -6043,12 +7823,20 @@ if (els.detailsToggle) {
 document.addEventListener("focusin", (event) => {
   syncFormKeyboardFocus(event.target);
   if (event.target === els.accessToken) setAccessInputFocused(true);
+  if (IS_IOS_DEVICE && event.target instanceof HTMLElement && event.target.matches("input, textarea, select, [contenteditable='true'], [contenteditable='']")) {
+    scheduleViewportMetrics({ refreshSubtitle: false });
+    scheduleOrientationViewportMetrics();
+  }
 }, true);
 document.addEventListener("focusout", (event) => {
   const target = event.target instanceof HTMLElement ? event.target : null;
   if (target === els.accessToken) setAccessInputFocused(false);
   if (!target || !target.matches("input, select, textarea")) return;
   target.removeAttribute("data-form-keyboard-focus");
+  if (IS_IOS_DEVICE) {
+    scheduleViewportMetrics({ refreshSubtitle: false });
+    scheduleOrientationViewportMetrics();
+  }
 }, true);
 els.reconnect.addEventListener("click", () => {
   runMaintenanceActionWithFeedback(els.reconnect, handleReconnectCommand).catch((err) => {
@@ -6111,9 +7899,19 @@ if (els.documentUpload) {
 if (els.documentPdf) {
   els.documentPdf.addEventListener("change", () => {
     uploadCurrentDocument().catch((err) => {
-      setDocumentStatus(documentLabeledValue("document.uploadFailed", "PDF 上传失败：", err.message || "unknown"), "error");
+      setDocumentStatus(documentLabeledValue("document.uploadFailed", "文件上传失败：", err.message || "unknown"), "error");
       logLine(err.message || "document upload failed");
     });
+  });
+}
+if (els.documentJobCancel) {
+  els.documentJobCancel.addEventListener("click", () => {
+    controlCurrentDocumentJob("cancel").catch((err) => logLine(err.message || "document job cancel failed"));
+  });
+}
+if (els.documentJobRetry) {
+  els.documentJobRetry.addEventListener("click", () => {
+    controlCurrentDocumentJob("retry").catch((err) => logLine(err.message || "document job retry failed"));
   });
 }
 if (els.documentSummarize) {
@@ -6185,12 +7983,18 @@ syncComposerSendAvailability();
 syncViewportMetrics({ refreshSubtitle: false });
 if (canUseBackendNow()) {
   loadConversationHistory().catch((err) => logLine(err.message || "conversation history failed"));
+  schedulePendingDocumentUploadReconciliation(900);
+  scheduleProactiveScan(3200);
 }
 window.addEventListener("resize", () => scheduleViewportMetrics(), { passive: true });
+window.addEventListener("scroll", () => scheduleViewportMetrics({ refreshSubtitle: false }), { passive: true });
 window.addEventListener("orientationchange", () => scheduleOrientationViewportMetrics(), { passive: true });
 if (window.visualViewport) {
   window.visualViewport.addEventListener("resize", () => scheduleViewportMetrics(), { passive: true });
   window.visualViewport.addEventListener("scroll", () => scheduleViewportMetrics(), { passive: true });
+}
+if (els.dock && typeof ResizeObserver === "function") {
+  new ResizeObserver(() => scheduleViewportMetrics({ refreshSubtitle: false })).observe(els.dock);
 }
 if (els.dialogueScroll) {
   ["touchstart", "pointerdown", "wheel"].forEach((eventName) => {
@@ -6217,6 +8021,12 @@ serviceWorkerRegistrationIdleHandle = scheduleIdleWork(() => {
 document.addEventListener("visibilitychange", () => {
   document.body.classList.toggle("pageHidden", document.visibilityState !== "visible");
   if (document.visibilityState === "visible") pagehideCleanupStarted = false;
+  if (document.visibilityState === "visible") {
+    schedulePendingDocumentUploadReconciliation(500);
+    scheduleProactiveScan(1800);
+  } else {
+    clearProactiveScanSchedule();
+  }
   if (document.visibilityState === "visible" && running) {
     ensureAudioContextRunning().catch(() => {});
   }
@@ -6224,6 +8034,15 @@ document.addEventListener("visibilitychange", () => {
 
 window.addEventListener("pageshow", () => {
   pagehideCleanupStarted = false;
+}, { passive: true });
+
+window.addEventListener("online", () => {
+  schedulePendingDocumentUploadReconciliation(250);
+}, { passive: true });
+
+window.addEventListener("pageshow", () => {
+  schedulePendingDocumentUploadReconciliation(500);
+  scheduleProactiveScan(2200);
 }, { passive: true });
 
 window.addEventListener("pagehide", () => {
@@ -6244,4 +8063,5 @@ window.addEventListener("pagehide", () => {
   flushTtsRoutePersist();
   releaseSilentUnlockAudioUrl();
   flushLogRenderNow();
+  clearProactiveScanSchedule();
 }, { passive: true });
