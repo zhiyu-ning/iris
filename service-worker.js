@@ -1,22 +1,22 @@
-const VERSION = "351";
-const CACHE = "iris-pages-v351-upload-composer-viewport";
+const VERSION = "352";
+const CACHE = "iris-pages-v352-document-job-composer-layout";
 const ASSETS = [
-  "/iris/styles.css?v=351",
-  "/iris/public-config.js?v=351",
-  "/iris/app.js?v=351",
-  "/iris/manifest.json?v=351",
-  "/iris/assets/brand/iris-app-icon-dark-192.png?v=351",
-  "/iris/assets/brand/iris-app-icon-dark-512.png?v=351",
-  "/iris/assets/brand/iris-app-icon-dark-192.webp?v=351",
-  "/iris/assets/brand/iris-app-icon-dark-512.webp?v=351",
-  "/iris/assets/brand/iris-app-icon-light-192.png?v=351",
-  "/iris/assets/brand/iris-app-icon-light-512.png?v=351",
-  "/iris/assets/brand/iris-app-icon-light-192.webp?v=351",
-  "/iris/assets/brand/iris-app-icon-light-512.webp?v=351",
-  "/iris/assets/brand/iris-symbol-light-192.webp?v=351",
-  "/iris/assets/brand/iris-symbol-light-512.webp?v=351",
-  "/iris/assets/brand/iris-symbol-light-192.png?v=351",
-  "/iris/assets/brand/iris-symbol-light-512.png?v=351"
+  "/iris/styles.css?v=352",
+  "/iris/public-config.js?v=352",
+  "/iris/app.js?v=352",
+  "/iris/manifest.json?v=352",
+  "/iris/assets/brand/iris-app-icon-dark-192.png?v=352",
+  "/iris/assets/brand/iris-app-icon-dark-512.png?v=352",
+  "/iris/assets/brand/iris-app-icon-dark-192.webp?v=352",
+  "/iris/assets/brand/iris-app-icon-dark-512.webp?v=352",
+  "/iris/assets/brand/iris-app-icon-light-192.png?v=352",
+  "/iris/assets/brand/iris-app-icon-light-512.png?v=352",
+  "/iris/assets/brand/iris-app-icon-light-192.webp?v=352",
+  "/iris/assets/brand/iris-app-icon-light-512.webp?v=352",
+  "/iris/assets/brand/iris-symbol-light-192.webp?v=352",
+  "/iris/assets/brand/iris-symbol-light-512.webp?v=352",
+  "/iris/assets/brand/iris-symbol-light-192.png?v=352",
+  "/iris/assets/brand/iris-symbol-light-512.png?v=352"
 ];
 
 function isCurrentVersionedStatic(url) {

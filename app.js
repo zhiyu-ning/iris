@@ -79,7 +79,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "351";
+const VOICE_UI_VERSION = "352";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "xlsx", "pptx", "odt", "ods", "odp", "eml",
@@ -970,7 +970,7 @@ const MAINTENANCE_ACTION_MIN_BUSY_MS = 280;
 const PROACTIVE_SCAN_INTERVAL_MS = 15 * 60 * 1000;
 const PROACTIVE_SCAN_BUSY_RETRY_MS = 60 * 1000;
 
-const WEB_VERSION = "voice-ui-web-polish-v351-upload-composer-viewport";
+const WEB_VERSION = "voice-ui-web-polish-v352-document-job-composer-layout";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -4962,6 +4962,9 @@ function setDocumentStatus(text, tone = "info", title = "") {
       ? documentTypeBadge(currentDocumentSummaryData)
       : "FILE";
   }
+  if (els.documentContextBar && !els.documentContextBar.hidden) {
+    setDocumentUploadStatus("", "info", false);
+  }
   syncComposerSendAvailability();
   scheduleViewportMetrics({ refreshSubtitle: false });
 }
@@ -4971,6 +4974,7 @@ function setDocumentContextVisible(visible) {
   if (els.documentContextBar) {
     const hasStatus = Boolean(els.documentStatus && String(els.documentStatus.textContent || "").trim());
     els.documentContextBar.hidden = !documentContextVisible || (!currentDocumentId && !hasStatus);
+    if (!els.documentContextBar.hidden) setDocumentUploadStatus("", "info", false);
   }
   syncComposerSendAvailability();
   scheduleViewportMetrics({ refreshSubtitle: false });
@@ -4983,7 +4987,8 @@ function setDocumentAnswer(text) {
 function setDocumentUploadStatus(text = "", tone = "info", visible = false) {
   const normalizedTone = ["info", "loading", "ready", "warning", "error"].includes(tone) ? tone : "info";
   const value = String(text || "").trim();
-  const shouldShow = Boolean(visible && value);
+  const hasVisibleDocumentContext = Boolean(els.documentContextBar && !els.documentContextBar.hidden);
+  const shouldShow = Boolean(visible && value && !hasVisibleDocumentContext);
   if (els.documentUploadStatus) {
     els.documentUploadStatus.textContent = shouldShow ? value : " ";
     els.documentUploadStatus.title = shouldShow ? value : "";
@@ -5508,7 +5513,6 @@ function showDocumentJob(pending, job) {
         : "ready";
   currentDocumentAnswerMode = DOCUMENT_JOB_ACTIVE_STATUSES.has(status) ? "loading" : tone;
   setDocumentStatus(line, tone);
-  setDocumentUploadStatus(line, tone, true);
   setDocumentAnswer(line);
   if (pending.message_id) {
     updateConversationMessage(pending.message_id, line, {
