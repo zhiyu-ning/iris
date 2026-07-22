@@ -57,8 +57,8 @@
   --control-hover-filter: brightness(1.018) saturate(1.06);
   --control-active-filter: brightness(0.985) saturate(1.02);
   --control-press-shadow: inset 0 2px 5px rgba(24, 42, 67, 0.08);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=348");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=348");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=351");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=351");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -212,8 +212,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 22px 54px rgba(85, 91, 255, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=348");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=348");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=351");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=351");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -269,8 +269,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=348");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=348");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=351");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=351");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -1034,6 +1034,11 @@ body.accessLocked .terminal > .detailSheet {
     opacity 180ms ease;
 }
 
+.accessForm input::-ms-reveal,
+.accessForm input::-ms-clear {
+  display: none;
+}
+
 .accessRevealButton {
   position: absolute;
   z-index: 2;
@@ -1045,10 +1050,12 @@ body.accessLocked .terminal > .detailSheet {
   display: grid;
   place-items: center;
   border-radius: 14px;
-  color: color-mix(in srgb, var(--ink-dim) 82%, transparent);
+  color: color-mix(in srgb, var(--ink-soft) 72%, var(--ink) 28%);
   border: 1px solid transparent;
   background: transparent;
   box-shadow: none;
+  cursor: pointer;
+  touch-action: manipulation;
   transition:
     transform 160ms ease,
     color 170ms ease,
@@ -1058,23 +1065,8 @@ body.accessLocked .terminal > .detailSheet {
   transform: translateY(-50%);
 }
 
-.accessRevealButton::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 2px;
-  height: 25px;
-  border-radius: 999px;
-  background: currentColor;
-  opacity: 0;
-  transform: translate(-50%, -50%) rotate(46deg);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--field-bg) 88%, transparent);
-  transition: opacity 170ms ease;
-}
-
 .accessRevealButton:disabled {
-  opacity: 0.44;
+  opacity: 0.62;
   cursor: wait;
 }
 
@@ -1104,38 +1096,40 @@ body.keyboardInput .accessRevealButton:focus {
 
 .accessRevealGlyph {
   position: relative;
-  width: 22px;
-  height: 16px;
+  width: 23px;
+  height: 23px;
   display: block;
-  opacity: 0.9;
+  opacity: 0.94;
 }
 
-.accessRevealGlyph::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 15px;
-  height: 15px;
-  border: 2px solid currentColor;
-  border-radius: 78% 18%;
-  background: transparent;
-  transform: translate(-50%, -50%) rotate(45deg);
+.accessRevealGlyph svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
 }
 
-.accessRevealGlyph::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-  transform: translate(-50%, -50%);
+.accessRevealEye,
+.accessRevealPupil,
+.accessRevealSlash {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.accessRevealButton[aria-pressed="false"]::after {
+.accessRevealPupil {
+  stroke-width: 1.55;
+}
+
+.accessRevealSlash {
+  opacity: 0;
+  stroke-width: 1.85;
+  transition: opacity 150ms ease;
+}
+
+.accessRevealButton[aria-pressed="false"] .accessRevealSlash {
   opacity: 1;
 }
 
@@ -2061,7 +2055,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=348");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=351");
 }
 
 .brandName {

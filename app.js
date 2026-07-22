@@ -79,10 +79,10 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "348";
+const VOICE_UI_VERSION = "351";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
-  "docx", "xlsx", "pptx", "odt", "ods", "odp", "eml",
+  "doc", "xls", "ppt", "docx", "xlsx", "pptx", "odt", "ods", "odp", "eml",
   "png", "jpg", "jpeg", "webp", "tif", "tiff", "heic", "heif"
 ]);
 const IRIS_PUBLIC_CONFIG = Object.freeze({
@@ -970,7 +970,7 @@ const MAINTENANCE_ACTION_MIN_BUSY_MS = 280;
 const PROACTIVE_SCAN_INTERVAL_MS = 15 * 60 * 1000;
 const PROACTIVE_SCAN_BUSY_RETRY_MS = 60 * 1000;
 
-const WEB_VERSION = "voice-ui-web-polish-v348-ui-stability";
+const WEB_VERSION = "voice-ui-web-polish-v351-upload-composer-viewport";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -3558,8 +3558,10 @@ function setAccessSubmitLoading(isLoading) {
   els.accessSubmit.disabled = Boolean(isLoading);
   els.accessSubmit.setAttribute("aria-busy", isLoading ? "true" : "false");
   if (els.accessReveal) {
-    els.accessReveal.disabled = Boolean(isLoading);
-    els.accessReveal.setAttribute("aria-disabled", isLoading ? "true" : "false");
+    // Visibility is a local-only control and should remain usable while the
+    // network request is pending, especially when verification is slow.
+    els.accessReveal.disabled = false;
+    els.accessReveal.removeAttribute("aria-disabled");
   }
   if (els.accessForm) els.accessForm.setAttribute("aria-busy", isLoading ? "true" : "false");
   if (els.accessGate) {
@@ -4961,6 +4963,7 @@ function setDocumentStatus(text, tone = "info", title = "") {
       : "FILE";
   }
   syncComposerSendAvailability();
+  scheduleViewportMetrics({ refreshSubtitle: false });
 }
 
 function setDocumentContextVisible(visible) {
@@ -4970,6 +4973,7 @@ function setDocumentContextVisible(visible) {
     els.documentContextBar.hidden = !documentContextVisible || (!currentDocumentId && !hasStatus);
   }
   syncComposerSendAvailability();
+  scheduleViewportMetrics({ refreshSubtitle: false });
 }
 
 function setDocumentAnswer(text) {
@@ -4993,6 +4997,7 @@ function setDocumentUploadStatus(text = "", tone = "info", visible = false) {
     if (shouldShow) composer.dataset.uploadTone = normalizedTone;
     else delete composer.dataset.uploadTone;
   }
+  scheduleViewportMetrics({ refreshSubtitle: false });
 }
 
 const DOCUMENT_JOB_ACTIVE_STATUSES = new Set(["received", "analyzing", "parsing", "indexing"]);
@@ -5082,8 +5087,11 @@ function setDocumentBusy(busy) {
       els.documentUpload.dataset.mode = "uploading";
       els.documentUpload.setAttribute("aria-label", textFor("document.uploadingPdfAria", "正在上传文件"));
       els.documentUpload.setAttribute("title", textFor("document.uploadingPdfAria", "正在上传文件"));
-      if (!documentJobActive) {
+      const hasVisibleDocumentContext = Boolean(els.documentContextBar && !els.documentContextBar.hidden);
+      if (!documentJobActive && !hasVisibleDocumentContext) {
         setDocumentUploadStatus(textFor("document.uploadingPdfAria", "正在上传文件"), "loading", true);
+      } else {
+        setDocumentUploadStatus("", "info", false);
       }
     } else {
       els.documentUpload.removeAttribute("data-loading");
@@ -5148,6 +5156,9 @@ function documentTypeBadge(doc) {
     HTML: "HTML",
     XML: "XML",
     RTF: "RTF",
+    DOC: "DOC",
+    XLS: "XLS",
+    PPT: "PPT",
     DOCX: "DOCX",
     XLSX: "XLSX",
     PPTX: "PPTX",
@@ -5164,10 +5175,10 @@ function documentUnitCountLabel(doc) {
   const value = Number(doc && doc.page_count);
   if (!Number.isFinite(value) || value <= 0) return "";
   const kind = String(doc && doc.document_type || "").toLowerCase();
-  if (kind === "xlsx" || kind === "ods") return currentLanguage === "en" ? `${value} ${value === 1 ? "sheet" : "sheets"}` : `${value} 个工作表`;
-  if (kind === "pptx" || kind === "odp") return currentLanguage === "en" ? `${value} ${value === 1 ? "slide" : "slides"}` : `${value} 张幻灯片`;
+  if (["xls", "xlsx", "ods"].includes(kind)) return currentLanguage === "en" ? `${value} ${value === 1 ? "sheet" : "sheets"}` : `${value} 个工作表`;
+  if (["ppt", "pptx", "odp"].includes(kind)) return currentLanguage === "en" ? `${value} ${value === 1 ? "slide" : "slides"}` : `${value} 张幻灯片`;
   if (kind === "image") return currentLanguage === "en" ? `${value} ${value === 1 ? "image" : "images"}` : `${value} 张图片`;
-  if (["text", "markdown", "json", "html", "xml", "rtf", "docx", "odt", "eml", "csv", "tsv"].includes(kind)) {
+  if (["text", "markdown", "json", "html", "xml", "rtf", "doc", "docx", "odt", "eml", "csv", "tsv"].includes(kind)) {
     return currentLanguage === "en" ? `${value} ${value === 1 ? "part" : "parts"}` : `${value} 个内容单元`;
   }
   return documentPageCountLabel(value);
@@ -5649,8 +5660,8 @@ async function uploadCurrentDocument() {
   currentDocumentReadyFileMessageId = "";
   currentDocumentReadyAssistantMessageId = "";
   setDocumentContextVisible(true);
-  setDocumentBusy(true);
   setDocumentStatus(documentLabeledValue("document.uploading", "正在上传并解析：", file.name), "loading");
+  setDocumentBusy(true);
   setDocumentAnswer(" ");
   const uploadMessageId = appendConversationMessage("file", documentLabeledValue("document.receiving", "正在接收：", file.name), { kind: "uploading" });
   const uploadId = newDocumentUploadId();
