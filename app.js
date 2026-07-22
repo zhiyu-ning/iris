@@ -79,7 +79,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "352";
+const VOICE_UI_VERSION = "353";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "xlsx", "pptx", "odt", "ods", "odp", "eml",
@@ -922,6 +922,8 @@ let documentUploadReconcileRunning = false;
 let activeDocumentJobId = "";
 let activeDocumentUnitRetryId = "";
 let documentJobActive = false;
+let activeDocumentBatch = null;
+let documentBatchPollTimer = 0;
 let conversationMessageSeq = 0;
 let conversationHistoryLoaded = false;
 let conversationHistoryLoading = false;
@@ -969,8 +971,11 @@ const COMPOSER_ACTION_MIN_BUSY_MS = 260;
 const MAINTENANCE_ACTION_MIN_BUSY_MS = 280;
 const PROACTIVE_SCAN_INTERVAL_MS = 15 * 60 * 1000;
 const PROACTIVE_SCAN_BUSY_RETRY_MS = 60 * 1000;
+const DOCUMENT_UPLOAD_MAX_FILES = 12;
+const DOCUMENT_UPLOAD_CONCURRENCY = 3;
+const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v352-document-job-composer-layout";
+const WEB_VERSION = "voice-ui-web-polish-v353-parallel-document-upload";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -5032,8 +5037,8 @@ function terminalDocumentFromReceipt(receipt) {
 
 function documentJobStageLabel(stage) {
   const labels = currentLanguage === "en"
-    ? { received: "Queued", analyzing: "Analyzing", parsing: "Parsing", indexing: "Indexing", cancelling: "Cancelling", ready: "Ready", partial: "Partially ready", failed: "Failed", cancelled: "Cancelled" }
-    : { received: "已排队", analyzing: "正在分析", parsing: "正在解析", indexing: "正在建立索引", cancelling: "正在取消", ready: "已就绪", partial: "部分就绪", failed: "解析失败", cancelled: "已取消" };
+    ? { uploading: "Uploading", verifying: "Verifying", received: "Queued", analyzing: "Analyzing", parsing: "Parsing", indexing: "Indexing", cancelling: "Cancelling", ready: "Ready", partial: "Partially ready", failed: "Failed", cancelled: "Cancelled" }
+    : { uploading: "正在上传", verifying: "正在确认", received: "已排队", analyzing: "正在分析", parsing: "正在解析", indexing: "正在建立索引", cancelling: "正在取消", ready: "已就绪", partial: "部分就绪", failed: "解析失败", cancelled: "已取消" };
   return labels[String(stage || "")] || String(stage || "");
 }
 
@@ -5633,6 +5638,247 @@ function refreshDocumentReadyPresentation() {
   }
 }
 
+function documentBatchItemTerminal(item) {
+  return ["ready", "partial", "failed", "cancelled"].includes(String(item && item.status || ""));
+}
+
+function documentBatchStatusLine(batch) {
+  const items = Array.isArray(batch && batch.items) ? batch.items : [];
+  const total = items.length;
+  const succeeded = items.filter((item) => ["ready", "partial"].includes(String(item.status || ""))).length;
+  const failed = items.filter((item) => ["failed", "cancelled"].includes(String(item.status || ""))).length;
+  const completed = succeeded + failed;
+  const progress = total
+    ? Math.round(items.reduce((sum, item) => sum + Math.max(0, Math.min(100, Number(item.progress || 0))), 0) / total)
+    : 0;
+  if (completed >= total && total) {
+    return currentLanguage === "en"
+      ? `${total} files complete · ${succeeded} ready${failed ? ` · ${failed} failed` : ""}`
+      : `${total} 份文件处理完成 · ${succeeded} 份就绪${failed ? ` · ${failed} 份失败` : ""}`;
+  }
+  return currentLanguage === "en"
+    ? `Processing ${total} files · ${completed}/${total} complete · ${progress}%`
+    : `正在并行处理 ${total} 份文件 · ${completed}/${total} 已完成 · ${progress}%`;
+}
+
+function updateDocumentBatchItemMessage(item) {
+  if (!item || !item.message_id) return;
+  const line = [
+    item.filename,
+    documentJobStageLabel(item.status),
+    `${Math.max(0, Math.min(100, Math.round(Number(item.progress || 0))))}%`
+  ].filter(Boolean).join(" · ");
+  updateConversationMessage(item.message_id, line, {
+    label: textFor("role.file", "文件"),
+    role: "file",
+    kind: documentBatchItemTerminal(item)
+      ? ["ready", "partial"].includes(String(item.status || "")) ? "document_ready" : "document_error"
+      : "document_pending"
+  });
+}
+
+function updateDocumentBatchPresentation(batch) {
+  if (!batch || activeDocumentBatch !== batch) return;
+  const line = documentBatchStatusLine(batch);
+  const terminal = batch.items.every(documentBatchItemTerminal);
+  const failed = batch.items.filter((item) => ["failed", "cancelled"].includes(String(item.status || ""))).length;
+  setDocumentContextVisible(true);
+  setDocumentStatus(line, terminal ? failed === batch.items.length ? "error" : failed ? "warning" : "ready" : "loading");
+  setDocumentAnswer(line);
+  batch.items.forEach(updateDocumentBatchItemMessage);
+}
+
+function scheduleDocumentBatchPoll(batch, delay = DOCUMENT_BATCH_POLL_INTERVAL_MS) {
+  if (documentBatchPollTimer) window.clearTimeout(documentBatchPollTimer);
+  documentBatchPollTimer = window.setTimeout(() => {
+    documentBatchPollTimer = 0;
+    pollDocumentBatch(batch).catch((error) => {
+      logLine(`document batch poll failed ${error && error.message || "unknown"}`);
+      scheduleDocumentBatchPoll(batch, 1800);
+    });
+  }, Math.max(100, Number(delay) || DOCUMENT_BATCH_POLL_INTERVAL_MS));
+}
+
+async function inspectDocumentBatchItem(item) {
+  const path = item.job_id
+    ? `/client/v1/documents/jobs/${encodeURIComponent(item.job_id)}`
+    : "/client/v1/documents/upload-status";
+  const url = documentApiUrl(path, item.job_id
+    ? { client_id: voiceClientId() }
+    : { upload_id: item.upload_id, client_id: voiceClientId() });
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "X-Jarvis-Client-Id": voiceClientId(),
+      ...authHeaders()
+    },
+    cache: "no-store"
+  });
+  if (!response.ok) {
+    handleUnauthorizedResponse(response);
+    throw new Error(`document_batch_status_${response.status}`);
+  }
+  const payload = await response.json().catch(() => ({}));
+  const job = payload.job && typeof payload.job === "object" ? payload.job : null;
+  if (job) {
+    item.job_id = String(job.job_id || item.job_id || "");
+    item.document_id = String(job.document_id || item.document_id || "");
+    item.status = String(job.status || item.status || "received");
+    item.progress = Number(job.progress || item.progress || 0);
+  } else if (payload.status === "committed" && payload.document) {
+    item.status = String(payload.document.status || "ready") === "partial" ? "partial" : "ready";
+    item.progress = 100;
+  } else if (["failed", "cancelled"].includes(String(payload.status || ""))) {
+    item.status = String(payload.status);
+    item.progress = 100;
+    item.error = String(payload.error || item.status);
+  }
+  if (payload.document && typeof payload.document === "object") item.document = payload.document;
+}
+
+function finishDocumentBatch(batch) {
+  if (!batch || activeDocumentBatch !== batch) return;
+  const readyItems = batch.items.filter((item) => ["ready", "partial"].includes(String(item.status || "")));
+  const failedItems = batch.items.filter((item) => ["failed", "cancelled"].includes(String(item.status || "")));
+  const latest = [...readyItems].reverse().find((item) => item.document && item.document.id);
+  if (latest) {
+    currentDocumentId = String(latest.document.id || latest.document_id || "");
+    currentDocumentName = String(latest.document.filename || latest.filename || "");
+    currentDocumentWarnings = Array.isArray(latest.document.warnings) ? latest.document.warnings.filter(Boolean) : [];
+    rememberDocumentSummaryData(latest.document);
+    setDocumentJobControls({
+      status: String(latest.document.status || "ready") === "partial" ? "partial" : "ready",
+      document_id: currentDocumentId,
+      unit_parse: latest.document.unit_parse || null
+    });
+  } else {
+    currentDocumentId = "";
+    setDocumentJobControls(null);
+  }
+  const result = documentBatchStatusLine(batch);
+  currentDocumentAnswerMode = readyItems.length ? "ready" : "error";
+  setDocumentAnswer(result);
+  appendAssistantConversation(
+    currentLanguage === "en"
+      ? `${result}. The ready files are now available in this conversation's short-term memory.`
+      : `${result}。已就绪文件已经进入这段会话的短期记忆。`,
+    { kind: readyItems.length ? "document_ready" : "document_error" }
+  );
+  if (failedItems.length) {
+    logLine(`document batch completed with ${failedItems.length} failed item(s)`);
+  }
+  documentUploadInFlight = false;
+  activeDocumentBatch = null;
+  setDocumentContextVisible(false);
+  setDocumentBusy(false);
+}
+
+async function pollDocumentBatch(batch) {
+  if (!batch || activeDocumentBatch !== batch) return;
+  const pending = batch.items.filter((item) => !documentBatchItemTerminal(item) && (item.job_id || item.upload_id));
+  await Promise.allSettled(pending.map((item) => inspectDocumentBatchItem(item)));
+  updateDocumentBatchPresentation(batch);
+  if (batch.items.every(documentBatchItemTerminal)) {
+    finishDocumentBatch(batch);
+    return;
+  }
+  scheduleDocumentBatchPoll(batch);
+}
+
+async function uploadDocumentBatchItem(item) {
+  const url = documentApiUrl("/client/v1/documents/upload", {
+    async: "true",
+    filename: item.file.name,
+    client_id: voiceClientId(),
+    upload_id: item.upload_id
+  });
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": item.file.type || "application/octet-stream",
+        "X-Jarvis-Client-Id": voiceClientId(),
+        ...authHeaders()
+      },
+      body: item.file
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      const error = new Error(documentUploadError(payload, response.status));
+      error.uploadHttpStatus = response.status;
+      throw error;
+    }
+    if (response.status === 202 && payload.job) {
+      item.job_id = String(payload.job_id || payload.job.job_id || "");
+      item.document_id = String(payload.document_id || payload.job.document_id || "");
+      item.status = String(payload.job.status || "received");
+      item.progress = Number(payload.job.progress || 5);
+      return;
+    }
+    item.document = payload;
+    item.document_id = String(payload.id || "");
+    item.status = String(payload.status || "ready") === "partial" ? "partial" : "ready";
+    item.progress = 100;
+  } catch (error) {
+    if (!error || !error.uploadHttpStatus) {
+      item.status = "verifying";
+      item.progress = Math.max(1, Number(item.progress || 0));
+      item.error = String(error && error.message || "network_error");
+      return;
+    }
+    item.status = "failed";
+    item.progress = 100;
+    item.error = String(error.message || "upload_failed");
+  }
+}
+
+async function uploadDocumentBatch(files) {
+  const selected = Array.from(files || []).slice(0, DOCUMENT_UPLOAD_MAX_FILES);
+  const batch = {
+    id: `batch_${Date.now().toString(36)}`,
+    items: selected.map((file) => ({
+      file,
+      filename: file.name,
+      upload_id: newDocumentUploadId(),
+      job_id: "",
+      document_id: "",
+      status: "uploading",
+      progress: 0,
+      error: "",
+      document: null,
+      message_id: appendConversationMessage(
+        "file",
+        documentLabeledValue("document.receiving", "正在接收：", file.name),
+        { kind: "uploading" }
+      )
+    }))
+  };
+  activeDocumentBatch = batch;
+  documentUploadInFlight = true;
+  currentDocumentId = "";
+  setDocumentJobControls(null);
+  setDocumentContextVisible(true);
+  setDocumentBusy(true);
+  updateDocumentBatchPresentation(batch);
+
+  let cursor = 0;
+  const workers = Array.from(
+    { length: Math.min(DOCUMENT_UPLOAD_CONCURRENCY, batch.items.length) },
+    async () => {
+      while (cursor < batch.items.length) {
+        const item = batch.items[cursor];
+        cursor += 1;
+        await uploadDocumentBatchItem(item);
+        updateDocumentBatchPresentation(batch);
+      }
+    }
+  );
+  await Promise.all(workers);
+  if (batch.items.every(documentBatchItemTerminal)) finishDocumentBatch(batch);
+  else scheduleDocumentBatchPoll(batch, 250);
+}
+
 async function uploadCurrentDocument() {
   if (!canUseBackendNow()) {
     showAccessGate(textFor("access.required", "请先输入访问口令。"), "warning", "access.required");
@@ -5647,7 +5893,37 @@ async function uploadCurrentDocument() {
     if (els.documentPdf) els.documentPdf.click();
     return;
   }
-  const file = els.documentPdf.files[0];
+  const selectedFiles = Array.from(els.documentPdf.files || []);
+  if (selectedFiles.length > DOCUMENT_UPLOAD_MAX_FILES) {
+    setDocumentContextVisible(true);
+    setDocumentStatus(
+      currentLanguage === "en"
+        ? `Choose no more than ${DOCUMENT_UPLOAD_MAX_FILES} files at once.`
+        : `一次最多选择 ${DOCUMENT_UPLOAD_MAX_FILES} 份文件。`,
+      "warning"
+    );
+    els.documentPdf.value = "";
+    return;
+  }
+  const unsupported = selectedFiles.find((item) => !supportedDocumentFile(item));
+  if (unsupported) {
+    setDocumentContextVisible(true);
+    setDocumentStatus(
+      currentLanguage === "en" ? `Unsupported file: ${unsupported.name}` : `暂不支持这种文件：${unsupported.name}`,
+      "warning"
+    );
+    els.documentPdf.value = "";
+    return;
+  }
+  if (selectedFiles.length > 1) {
+    try {
+      await uploadDocumentBatch(selectedFiles);
+    } finally {
+      els.documentPdf.value = "";
+    }
+    return;
+  }
+  const file = selectedFiles[0];
   if (!supportedDocumentFile(file)) {
     setDocumentContextVisible(true);
     setDocumentStatus(textFor("document.onlyPdf", "暂不支持这种文件。请选择 PDF、图片、文本、Markdown、CSV、JSON、HTML、Office 或 OpenDocument 文件。"), "warning");
