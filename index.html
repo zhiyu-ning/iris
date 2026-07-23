@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=353" type="image/png" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=353" />
-    <link rel="manifest" href="/iris/manifest.json?v=353" />
-    <link rel="stylesheet" href="/iris/styles.css?v=353" />
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=354" type="image/png" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=354" />
+    <link rel="manifest" href="/iris/manifest.json?v=354" />
+    <link rel="stylesheet" href="/iris/styles.css?v=354" />
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -17,14 +17,18 @@
           <button id="detailsToggle" class="iconButton menuButton" type="button" aria-label="设置" aria-controls="detailSheet" aria-expanded="false" data-i18n-aria-label="settings.title">
             <span class="systemGlyph" aria-hidden="true"><i></i><i></i><i></i></span>
           </button>
-          <div class="ambientMark" aria-hidden="true"><span></span></div>
-          <div class="identityBlock brandLockup">
-            <p class="eyebrow brandName">Iris</p>
-            <p class="statusLineCompact">
-              <span id="statusIndicator" class="statusIndicator" aria-label="状态：在线"></span>
-              <span id="stateLabel" class="topStatus" data-i18n="status.online">在线</span>
-            </p>
+          <div class="chatPresence">
+            <span class="companionAvatar companionAvatarHeader" aria-hidden="true"></span>
+            <div class="identityBlock brandLockup">
+              <p class="eyebrow brandName">Iris</p>
+              <p class="statusLineCompact">
+                <span id="statusIndicator" class="statusIndicator" aria-label="状态：在线"></span>
+                <span id="stateLabel" class="topStatus" data-i18n="status.online">在线</span>
+              </p>
+            </div>
           </div>
+          <span class="ambientMark" aria-hidden="true"><span></span></span>
+          <span class="topbarBalance" aria-hidden="true"></span>
         </header>
 
         <section class="conversationShell" aria-label="Iris conversation">
@@ -93,15 +97,19 @@
           <span class="accessHalo accessHaloTwo"></span>
         </div>
         <div class="accessPanel">
-          <div class="accessBrandStack">
-            <span class="accessMark" aria-hidden="true"></span>
-            <span class="accessMarkGlow" aria-hidden="true"></span>
+          <div class="accessBrandStack" aria-hidden="true">
+            <div class="accessPortrait">
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=354" alt="" />
+              <span class="accessMarkGlow"></span>
+              <span class="accessPortraitOrbit"></span>
+              <span class="accessPortraitBadge"></span>
+            </div>
           </div>
           <div class="accessIntro">
             <p class="eyebrow" data-i18n="access.eyebrow">PRIVATE ACCESS</p>
             <h1>Iris</h1>
             <p class="accessTagline" data-i18n="access.tagline">你的私人 AI 空间</p>
-            <p id="accessCopy" class="accessCopy" data-i18n="access.copy">登录后，Iris 会继续保留你的会话、语音、文件和记忆。</p>
+            <p id="accessCopy" class="accessCopy" data-i18n="access.copy">登录后，会话、语音、文件和记忆会继续接上。</p>
           </div>
           <div class="accessProofRow" aria-label="Iris capabilities">
             <span data-i18n="access.private">只属于你</span>
@@ -383,7 +391,7 @@
         </div>
       </aside>
     </main>
-            <script src="/iris/public-config.js?v=353"></script>
-    <script src="/iris/app.js?v=353"></script>
+    <script src="/iris/public-config.js?v=354"></script>
+    <script src="/iris/app.js?v=354"></script>
   </body>
 </html>

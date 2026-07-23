@@ -57,8 +57,8 @@
   --control-hover-filter: brightness(1.018) saturate(1.06);
   --control-active-filter: brightness(0.985) saturate(1.02);
   --control-press-shadow: inset 0 2px 5px rgba(24, 42, 67, 0.08);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=353");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=353");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=354");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=354");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -212,8 +212,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 22px 54px rgba(85, 91, 255, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=353");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=353");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=354");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=354");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -269,8 +269,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=353");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=353");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=354");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=354");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -2055,7 +2055,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=353");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=354");
 }
 
 .brandName {
@@ -8612,4 +8612,863 @@ body:has(.documentContextBar:not([hidden])) .sendButton {
 :root[data-theme="pure-black"] .messageFeedbackIcon:focus-visible,
 :root[data-theme="pure-black"] .messageFeedbackIcon[aria-pressed="true"] {
   background: rgba(255, 255, 255, .07);
+}
+
+/* v354 Iris companion interface: portrait-led entry, calm conversation, and card-based settings. */
+:root {
+  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=354");
+  --iris-violet: #7567f8;
+  --iris-violet-deep: #5547e8;
+  --iris-lilac: #b9b0ff;
+  --iris-mist: #f4f2ff;
+  --iris-pearl: #fffefd;
+  --page: #f6f5fc;
+  --page-warm: #fffefd;
+  --page-gradient:
+    radial-gradient(circle at 50% -8%, rgba(198, 190, 255, 0.2), transparent 34%),
+    radial-gradient(circle at 100% 44%, rgba(231, 218, 255, 0.16), transparent 38%),
+    linear-gradient(180deg, #fffefd 0%, #faf9ff 56%, #f3f4fb 100%);
+  --ink: #20213d;
+  --ink-soft: rgba(32, 33, 61, 0.75);
+  --ink-dim: rgba(32, 33, 61, 0.46);
+  --accent: var(--iris-violet);
+  --accent-soft: rgba(117, 103, 248, 0.12);
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-strong: rgba(255, 255, 255, 0.92);
+  --line: rgba(72, 65, 129, 0.08);
+  --line-strong: rgba(72, 65, 129, 0.16);
+  --shadow: rgba(73, 67, 132, 0.1);
+  --dock-surface: rgba(255, 255, 255, 0.9);
+  --composer-field: rgba(251, 250, 255, 0.94);
+  --assistant-bubble: rgba(255, 255, 255, 0.92);
+  --user-bubble: rgba(239, 236, 255, 0.94);
+  --detail-bg:
+    radial-gradient(circle at 18% -4%, rgba(190, 182, 255, 0.19), transparent 32%),
+    linear-gradient(180deg, #fbfaff 0%, #f5f4fc 100%);
+  --access-bg:
+    radial-gradient(circle at 50% 12%, rgba(174, 162, 255, 0.26), transparent 32%),
+    radial-gradient(circle at 12% 84%, rgba(206, 228, 255, 0.3), transparent 36%),
+    radial-gradient(circle at 88% 80%, rgba(248, 216, 238, 0.27), transparent 36%),
+    linear-gradient(180deg, #fdfcff 0%, #f4f1ff 100%);
+  --access-backdrop: var(--access-bg);
+  --access-panel-bg: rgba(255, 255, 255, 0.76);
+  --access-panel-border: rgba(255, 255, 255, 0.94);
+  --access-form-bg: rgba(255, 255, 255, 0.68);
+}
+
+body {
+  background: var(--page-gradient);
+}
+
+body::before {
+  opacity: 0.022;
+}
+
+body::after {
+  opacity: 0.42;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.72), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), transparent 55%, rgba(221, 224, 244, 0.18));
+}
+
+.home {
+  grid-template-rows: 70px minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.topbar {
+  min-height: 70px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+}
+
+.chatPresence {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-self: center;
+  gap: 10px;
+}
+
+.companionAvatar {
+  display: block;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--companion-avatar) center 34% / cover no-repeat;
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.88),
+    0 10px 30px rgba(104, 91, 205, 0.18);
+}
+
+.companionAvatarHeader {
+  width: 43px;
+  height: 43px;
+}
+
+.topbarBalance {
+  width: 44px;
+  height: 44px;
+}
+
+.topbar > .ambientMark {
+  display: none;
+}
+
+.identityBlock {
+  justify-items: start;
+  gap: 3px;
+}
+
+.brandName {
+  justify-self: start;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 760;
+  letter-spacing: -0.015em;
+  text-transform: none;
+}
+
+.statusLineCompact {
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.statusIndicator {
+  width: 7px;
+  height: 7px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-online) 14%, transparent);
+}
+
+.topStatus {
+  color: var(--ink-dim);
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.menuButton {
+  color: color-mix(in srgb, var(--ink) 72%, transparent);
+  background: rgba(255, 255, 255, 0.62);
+  border-color: rgba(255, 255, 255, 0.86);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.84),
+    0 10px 24px rgba(73, 67, 132, 0.06);
+}
+
+.accessGate {
+  padding:
+    calc(max(22px, env(safe-area-inset-top)) + 10px)
+    18px
+    calc(max(16px, env(safe-area-inset-bottom)) + 12px);
+  background: var(--access-bg);
+  overflow-y: auto;
+}
+
+.accessBackdrop {
+  background:
+    radial-gradient(circle at 50% 14%, rgba(166, 151, 255, 0.2), transparent 34%),
+    radial-gradient(circle at 14% 88%, rgba(176, 217, 255, 0.22), transparent 36%),
+    radial-gradient(circle at 88% 84%, rgba(246, 205, 232, 0.22), transparent 36%),
+    var(--access-bg);
+}
+
+.accessBackdrop::before {
+  display: none;
+}
+
+.accessPanel {
+  width: min(386px, calc(100vw - 36px));
+  gap: 8px;
+  padding: 22px 24px 21px;
+  border-color: rgba(255, 255, 255, 0.96);
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 50% -4%, rgba(255, 255, 255, 0.98), transparent 35%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(250, 248, 255, 0.7));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    0 32px 90px rgba(85, 73, 167, 0.16);
+  backdrop-filter: blur(32px) saturate(1.18);
+  -webkit-backdrop-filter: blur(32px) saturate(1.18);
+}
+
+.accessPortrait {
+  position: relative;
+  width: 158px;
+  height: 158px;
+  display: grid;
+  place-items: center;
+  margin: -2px auto 2px;
+  border-radius: 50%;
+  isolation: isolate;
+}
+
+.accessBrandStack:has(.accessPortrait) {
+  width: 158px;
+  height: 158px;
+  margin: -2px auto 2px;
+}
+
+.accessPortrait img {
+  position: relative;
+  z-index: 2;
+  width: 146px;
+  height: 146px;
+  display: block;
+  object-fit: cover;
+  object-position: center 32%;
+  border: 5px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 1px rgba(117, 103, 248, 0.1),
+    0 22px 54px rgba(98, 83, 210, 0.18);
+}
+
+.accessPortrait .accessMarkGlow {
+  position: absolute;
+  inset: -18px;
+  z-index: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(168, 154, 255, 0.24), rgba(208, 202, 255, 0.09) 48%, transparent 70%);
+  filter: blur(8px);
+}
+
+.accessPortraitOrbit {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 1px solid rgba(117, 103, 248, 0.14);
+  border-radius: 50%;
+  animation: irisPortraitOrbit 14s linear infinite;
+}
+
+.accessPortraitOrbit::before,
+.accessPortraitOrbit::after {
+  content: "";
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(117, 103, 248, 0.5);
+  box-shadow: 0 0 0 5px rgba(117, 103, 248, 0.05);
+}
+
+.accessPortraitOrbit::before {
+  left: 16px;
+  top: 22px;
+}
+
+.accessPortraitOrbit::after {
+  right: 10px;
+  bottom: 32px;
+}
+
+.accessPortraitBadge {
+  position: absolute;
+  right: 9px;
+  bottom: 14px;
+  z-index: 3;
+  width: 31px;
+  height: 31px;
+  border: 3px solid rgba(255, 255, 255, 0.92);
+  border-radius: 50%;
+  background:
+    var(--app-logo) center / 21px 21px no-repeat,
+    #ffffff;
+  box-shadow: 0 8px 18px rgba(91, 77, 193, 0.18);
+}
+
+.accessIntro {
+  gap: 4px;
+}
+
+.accessIntro > .eyebrow {
+  color: color-mix(in srgb, var(--accent) 72%, var(--ink-dim));
+  font-size: 9.5px;
+  letter-spacing: 0.24em;
+}
+
+.accessPanel h1 {
+  color: var(--ink);
+  font-size: clamp(39px, 10vw, 47px);
+  font-weight: 520;
+}
+
+.accessTagline {
+  color: color-mix(in srgb, var(--ink) 74%, transparent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.accessCopy {
+  max-width: 310px;
+  color: color-mix(in srgb, var(--ink) 58%, transparent);
+  font-size: 11.8px;
+}
+
+.accessProofRow {
+  min-height: 22px;
+}
+
+.accessProofRow span {
+  color: color-mix(in srgb, var(--ink) 56%, transparent);
+  font-size: 10.3px;
+}
+
+.accessSessionNote,
+.accessTrust {
+  color: color-mix(in srgb, var(--ink) 44%, transparent);
+}
+
+.accessForm {
+  gap: 7px;
+  margin-top: 2px;
+  padding: 7px;
+  border-color: rgba(117, 103, 248, 0.09);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(248, 246, 255, 0.76));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 12px 30px rgba(73, 67, 132, 0.07);
+}
+
+.accessForm input {
+  min-height: 54px;
+  border-color: rgba(117, 103, 248, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    0 7px 18px rgba(73, 67, 132, 0.055);
+}
+
+.accessForm > button {
+  min-height: 54px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgb(62, 156, 255) 0%, rgb(128, 127, 255) 58%, rgb(239, 168, 199) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 14px 32px rgba(93, 74, 224, 0.24);
+}
+
+.accessForm > button:not([data-loading="true"])::before {
+  content: "→";
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  width: auto;
+  height: auto;
+  border: 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 19px;
+  line-height: 1;
+  transform: translateY(-52%);
+}
+
+.accessGate[data-access-state="loading"] .accessPortrait {
+  animation: irisPortraitBreathe 1.7s ease-in-out infinite;
+}
+
+.conversationStream {
+  gap: 16px;
+  padding: 10px 2px var(--dock-clearance);
+}
+
+.conversationStream::before {
+  margin-top: 0;
+}
+
+.conversationStream > .message:last-child {
+  margin-bottom: 8px;
+}
+
+.message {
+  max-width: min(78%, 430px);
+  gap: 7px;
+  padding: 12px 14px 13px;
+  border-color: rgba(95, 84, 170, 0.08);
+  border-radius: 21px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(252, 251, 255, 0.9)),
+    var(--assistant-bubble);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.94),
+    0 12px 32px rgba(69, 62, 122, 0.075);
+  overflow: visible;
+}
+
+.message.assistant {
+  margin-left: 38px;
+}
+
+.message.assistant::after {
+  content: "";
+  position: absolute;
+  left: -39px;
+  top: 3px;
+  width: 29px;
+  height: 29px;
+  border-radius: 50%;
+  background: var(--companion-avatar) center 32% / cover no-repeat;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.9),
+    0 7px 18px rgba(104, 91, 205, 0.14);
+}
+
+.message.user {
+  max-width: min(72%, 400px);
+  border-color: rgba(117, 103, 248, 0.1);
+  border-radius: 21px 21px 7px 21px;
+  background:
+    linear-gradient(145deg, rgba(246, 244, 255, 0.98), rgba(235, 231, 255, 0.95)),
+    var(--user-bubble);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 12px 30px rgba(106, 92, 207, 0.09);
+}
+
+.message.assistant,
+.message.file,
+.message.system {
+  border-radius: 21px 21px 21px 7px;
+}
+
+.messageMeta {
+  color: rgba(74, 70, 108, 0.48);
+  font-size: 10.4px;
+  font-weight: 680;
+}
+
+.messageMeta::before {
+  width: 4px;
+  height: 4px;
+  background: #8b7cf6;
+  box-shadow: 0 0 0 3px rgba(139, 124, 246, 0.08);
+}
+
+.messageText {
+  color: color-mix(in srgb, var(--ink) 84%, transparent);
+  font-size: 15px;
+  line-height: 1.62;
+}
+
+body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[data-kind="welcome"]:only-child) .emptyStage {
+  top: clamp(84px, 14vh, 126px);
+  width: min(326px, calc(100% - 32px));
+  gap: 9px;
+}
+
+.emptyStageAura {
+  top: -22px;
+  width: 190px;
+  height: 190px;
+  background:
+    radial-gradient(circle, rgba(151, 137, 255, 0.17), transparent 68%);
+  filter: blur(10px);
+}
+
+.emptyStageMark {
+  width: 142px;
+  height: 142px;
+  border: 5px solid rgba(255, 255, 255, 0.88);
+  border-radius: 50%;
+  background: var(--companion-avatar) center 32% / cover no-repeat;
+  box-shadow:
+    0 0 0 1px rgba(117, 103, 248, 0.08),
+    0 22px 60px rgba(104, 91, 205, 0.16);
+}
+
+.emptyStageKicker {
+  margin-top: 7px;
+  color: color-mix(in srgb, var(--accent) 60%, var(--ink-dim));
+  letter-spacing: 0.18em;
+}
+
+.emptyStageTitle {
+  max-width: 280px;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 720;
+}
+
+.emptyStageChips span {
+  border-color: rgba(117, 103, 248, 0.09);
+  color: rgba(58, 54, 91, 0.62);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 22px rgba(73, 67, 132, 0.06);
+}
+
+body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[data-kind="welcome"]:only-child) .conversationStream::before {
+  flex-basis: clamp(354px, 51vh, 452px);
+}
+
+.dock.unifiedComposer {
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  gap: 7px;
+  min-height: 60px;
+  padding: 7px;
+  border-color: rgba(117, 103, 248, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(250, 249, 255, 0.86)),
+    var(--dock-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.98),
+    0 16px 42px rgba(73, 67, 132, 0.12);
+}
+
+.composerField {
+  border-color: rgba(117, 103, 248, 0.08);
+  background: rgba(250, 249, 255, 0.88);
+}
+
+.composerField textarea {
+  color: var(--ink);
+}
+
+.dockIcon {
+  width: 42px;
+  min-height: 42px;
+}
+
+.dockMic.active,
+.dockMic[data-mode="stop"],
+.dockMic[data-mode="interrupt"],
+.sendButton:not(:disabled) {
+  color: #ffffff;
+  border-color: transparent;
+  background: linear-gradient(145deg, #8c7cff, #6655ee);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 10px 24px rgba(101, 84, 234, 0.25);
+}
+
+.documentUploadStatus,
+.documentContextBar {
+  border-color: rgba(117, 103, 248, 0.11);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(246, 244, 255, 0.9));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    0 8px 24px rgba(73, 67, 132, 0.07);
+}
+
+.detailSheet {
+  gap: 14px;
+  background:
+    radial-gradient(circle at 16% -6%, rgba(183, 173, 255, 0.2), transparent 31%),
+    linear-gradient(180deg, #fbfaff, #f5f4fc);
+}
+
+.sheetHeader {
+  background:
+    linear-gradient(180deg, rgba(250, 249, 255, 0.96), rgba(250, 249, 255, 0.78));
+}
+
+.sheetGlyph {
+  width: 38px;
+  height: 38px;
+}
+
+.settingsList {
+  gap: 10px;
+}
+
+.settingsGroup {
+  padding: 0 14px;
+  border: 1px solid rgba(95, 84, 170, 0.065);
+  border-radius: 19px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.96),
+    0 8px 24px rgba(73, 67, 132, 0.055);
+}
+
+.navSummary {
+  min-height: 64px;
+  grid-template-columns: 34px minmax(0, 1fr) 15px;
+  gap: 13px;
+  border-radius: 16px;
+}
+
+.navSummary::after {
+  color: rgba(56, 53, 83, 0.34);
+  font-size: 22px;
+}
+
+.navIcon {
+  color: color-mix(in srgb, var(--accent) 52%, var(--ink));
+}
+
+.navTitle {
+  color: var(--ink);
+  font-size: 15.5px;
+  font-weight: 720;
+}
+
+.navSub {
+  color: color-mix(in srgb, var(--ink) 42%, transparent);
+  font-size: 11.2px;
+}
+
+.groupBody {
+  margin: 0 0 14px 47px;
+  padding: 2px 0 0;
+}
+
+.closeButton {
+  color: rgba(45, 43, 67, 0.68);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+@keyframes irisPortraitOrbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes irisPortraitBreathe {
+  0%,
+  100% { transform: scale(0.99); }
+  50% { transform: scale(1.018); }
+}
+
+@media (max-width: 520px) {
+  .terminal {
+    padding:
+      max(16px, env(safe-area-inset-top))
+      18px
+      max(14px, env(safe-area-inset-bottom));
+  }
+
+  .home {
+    height: calc(var(--app-height) - max(16px, env(safe-area-inset-top)) - max(14px, env(safe-area-inset-bottom)));
+    min-height: calc(var(--app-height) - max(16px, env(safe-area-inset-top)) - max(14px, env(safe-area-inset-bottom)));
+  }
+
+  .accessQuickControls {
+    left: max(18px, env(safe-area-inset-left));
+    right: max(18px, env(safe-area-inset-right));
+    top: max(14px, env(safe-area-inset-top));
+  }
+
+  .accessQuickButton {
+    width: 40px;
+    min-height: 40px;
+  }
+
+  .accessPanel {
+    width: min(370px, calc(100vw - 32px));
+    padding: 20px 20px 18px;
+  }
+
+  .accessPortrait {
+    width: 148px;
+    height: 148px;
+  }
+
+  .accessBrandStack:has(.accessPortrait) {
+    width: 148px;
+    height: 148px;
+  }
+
+  .accessPortrait img {
+    width: 136px;
+    height: 136px;
+  }
+
+  .message {
+    max-width: 82%;
+  }
+
+  .message.user {
+    max-width: 76%;
+  }
+
+  body > .dock.unifiedComposer {
+    width: calc(100vw - 24px);
+  }
+}
+
+@media (orientation: portrait) and (max-height: 720px) {
+  .accessGate {
+    place-items: start center;
+    padding-top: calc(max(12px, env(safe-area-inset-top)) + 8px);
+  }
+
+  .accessPanel {
+    gap: 5px;
+    padding-top: 15px;
+    padding-bottom: 15px;
+  }
+
+  .accessPortrait {
+    width: 116px;
+    height: 116px;
+  }
+
+  .accessBrandStack:has(.accessPortrait) {
+    width: 116px;
+    height: 116px;
+  }
+
+  .accessPortrait img {
+    width: 106px;
+    height: 106px;
+    border-width: 4px;
+  }
+
+  .accessPortraitBadge {
+    right: 4px;
+    bottom: 8px;
+    width: 26px;
+    height: 26px;
+    background-size: 18px 18px;
+  }
+
+  .accessPanel h1 {
+    font-size: 36px;
+  }
+
+  .accessCopy {
+    font-size: 11px;
+    line-height: 1.32;
+  }
+
+  .accessProofRow,
+  .accessSessionNote {
+    display: none;
+  }
+
+  .accessForm {
+    gap: 5px;
+  }
+
+  .accessForm input,
+  .accessForm > button {
+    min-height: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accessPortraitOrbit,
+  .accessGate[data-access-state="loading"] .accessPortrait {
+    animation: none;
+  }
+}
+
+:root[data-theme="pure-black"] {
+  --assistant-bubble: rgba(30, 29, 45, 0.94);
+  --user-bubble: rgba(65, 56, 112, 0.86);
+}
+
+:root[data-theme="pure-black"] .settingsGroup,
+:root[data-theme="pure-black"] .dock.unifiedComposer,
+:root[data-theme="pure-black"] .message {
+  border-color: rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(35, 34, 51, 0.94), rgba(24, 24, 37, 0.9));
+}
+
+:root[data-theme="pure-black"] .accessPanel {
+  border-color: rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(circle at 50% -8%, rgba(117, 103, 248, 0.14), transparent 38%),
+    linear-gradient(180deg, rgba(28, 27, 43, 0.94), rgba(15, 15, 25, 0.9));
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .accessGate {
+    place-items: start center;
+    padding: 8px max(72px, env(safe-area-inset-right)) 8px max(72px, env(safe-area-inset-left));
+    overflow-y: auto;
+  }
+
+  .accessQuickControls {
+    top: max(8px, env(safe-area-inset-top));
+  }
+
+  .accessPanel {
+    width: min(430px, calc(100vw - 180px));
+    gap: 3px;
+    padding: 8px 18px 10px;
+    border-radius: 26px;
+  }
+
+  .accessBrandStack:has(.accessPortrait),
+  .accessPortrait {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto;
+  }
+
+  .accessPortrait img {
+    width: 66px;
+    height: 66px;
+    border-width: 3px;
+  }
+
+  .accessPortraitBadge {
+    right: -1px;
+    bottom: 1px;
+    width: 20px;
+    height: 20px;
+    border-width: 2px;
+    background-size: 14px 14px;
+  }
+
+  .accessIntro {
+    gap: 0;
+  }
+
+  .accessIntro > .eyebrow {
+    font-size: 7.5px;
+  }
+
+  .accessPanel h1 {
+    font-size: 28px;
+  }
+
+  .accessTagline {
+    font-size: 10.5px;
+  }
+
+  .accessCopy {
+    max-width: 360px;
+    font-size: 9.5px;
+    line-height: 1.2;
+  }
+
+  .accessProofRow,
+  .accessSessionNote,
+  .accessTrust {
+    display: none;
+  }
+
+  .accessForm {
+    gap: 3px;
+    margin-top: 1px;
+    padding: 4px;
+    border-radius: 16px;
+  }
+
+  .accessFieldLabel {
+    font-size: 8px;
+  }
+
+  .accessForm input {
+    min-height: 40px;
+    border-radius: 12px;
+  }
+
+  #accessStatus {
+    min-height: 25px;
+    padding: 4px 8px;
+    font-size: 9.5px;
+  }
+
+  .accessForm > button {
+    min-height: 48px;
+    border-radius: 13px;
+    font-size: 13px;
+  }
 }
