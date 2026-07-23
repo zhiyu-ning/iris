@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=354" type="image/png" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=354" />
-    <link rel="manifest" href="/iris/manifest.json?v=354" />
-    <link rel="stylesheet" href="/iris/styles.css?v=354" />
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=355" type="image/png" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=355" />
+    <link rel="manifest" href="/iris/manifest.json?v=355" />
+    <link rel="stylesheet" href="/iris/styles.css?v=355" />
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -28,7 +28,16 @@
             </div>
           </div>
           <span class="ambientMark" aria-hidden="true"><span></span></span>
-          <span class="topbarBalance" aria-hidden="true"></span>
+          <div class="topbarActions">
+            <button id="voiceCallButton" class="topbarAction voiceCallButton" type="button" aria-label="开始语音通话" title="开始语音通话">
+              <svg class="phoneGlyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.78 19.78 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.78 19.78 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z"></path>
+              </svg>
+            </button>
+            <button id="capabilityToggle" class="topbarAction capabilityToggle" type="button" aria-label="打开能力面板" title="打开能力面板" aria-controls="capabilityPanel" aria-expanded="false">
+              <span aria-hidden="true">•••</span>
+            </button>
+          </div>
         </header>
 
         <section class="conversationShell" aria-label="Iris conversation">
@@ -56,6 +65,60 @@
               <p id="subtitleText" class="dialogueText" data-i18n="voice.idleText">我在。你可以直接说。</p>
             </div>
           </section>
+        </section>
+
+        <section id="capabilityPanel" class="capabilityPanel" aria-label="Iris 能力" aria-hidden="true" hidden>
+          <span class="capabilityHandle" aria-hidden="true"></span>
+          <div class="capabilityGrid">
+            <button type="button" data-capability-prompt="帮我深入思考：">
+              <span class="capabilityIcon capabilityThinkIcon" aria-hidden="true"></span>
+              <span>深度思考</span>
+            </button>
+            <button type="button" data-capability-prompt="帮我搜索：">
+              <span class="capabilityIcon capabilitySearchIcon" aria-hidden="true"></span>
+              <span>搜索</span>
+            </button>
+            <button type="button" data-capability-prompt="帮我总结：">
+              <span class="capabilityIcon capabilitySummaryIcon" aria-hidden="true"></span>
+              <span>总结</span>
+            </button>
+            <button type="button" data-capability-prompt="帮我安排日程：">
+              <span class="capabilityIcon capabilityCalendarIcon" aria-hidden="true"></span>
+              <span>日程</span>
+            </button>
+            <button type="button" data-capability-action="file">
+              <span class="capabilityIcon capabilityFileIcon" aria-hidden="true"></span>
+              <span>文件分析</span>
+            </button>
+            <button type="button" data-capability-prompt="帮我处理邮件：">
+              <span class="capabilityIcon capabilityMailIcon" aria-hidden="true"></span>
+              <span>邮件助手</span>
+            </button>
+            <button type="button" data-capability-action="memory">
+              <span class="capabilityIcon capabilityMemoryIcon" aria-hidden="true"></span>
+              <span>记忆</span>
+            </button>
+            <button type="button" data-capability-prompt="帮我整理待办事项：">
+              <span class="capabilityIcon capabilityTodoIcon" aria-hidden="true"></span>
+              <span>待办事项</span>
+            </button>
+          </div>
+          <div class="capabilitySuggestion">
+            <div>
+              <span class="capabilitySuggestionMark" aria-hidden="true"></span>
+              <div>
+                <strong>Iris 能为你做这些</strong>
+                <span>探索更多能力</span>
+              </div>
+            </div>
+            <ul>
+              <li>帮我阅读并总结长文档</li>
+              <li>查询最新研究或资料</li>
+              <li>规划日程与任务</li>
+              <li>回顾对话中的关键信息</li>
+            </ul>
+          </div>
+          <button id="capabilityCustomButton" class="capabilityCustomButton" type="button">+&nbsp;&nbsp;自定义能力</button>
         </section>
 
         <section class="controls dock unifiedComposer" aria-label="message composer">
@@ -96,28 +159,41 @@
           <span class="accessHalo accessHaloOne"></span>
           <span class="accessHalo accessHaloTwo"></span>
         </div>
+        <button id="accessBackButton" class="accessBackButton" type="button" aria-label="返回" title="返回">
+          <span aria-hidden="true">←</span>
+        </button>
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=354" alt="" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=355" alt="" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
             </div>
           </div>
           <div class="accessIntro">
-            <p class="eyebrow" data-i18n="access.eyebrow">PRIVATE ACCESS</p>
-            <h1>Iris</h1>
+            <span class="srOnly">PRIVATE ACCESS</span>
+            <div class="accessWordmark">
+              <span class="accessWordmarkGlyph" aria-hidden="true"></span>
+              <h1>Iris</h1>
+            </div>
             <p class="accessTagline" data-i18n="access.tagline">你的私人 AI 空间</p>
-            <p id="accessCopy" class="accessCopy" data-i18n="access.copy">登录后，会话、语音、文件和记忆会继续接上。</p>
           </div>
-          <div class="accessProofRow" aria-label="Iris capabilities">
-            <span data-i18n="access.private">只属于你</span>
-            <span data-i18n="access.voice">语音优先</span>
+          <div class="accessProofRow" hidden>
             <span data-i18n="access.memory">记忆连续</span>
           </div>
-          <p class="accessSessionNote" data-i18n="access.sessionNote">短期会话只保存在这台设备。</p>
+          <p class="accessSessionNote" data-i18n="access.sessionNote" hidden>短期会话只保存在这台设备。</p>
+          <div class="accessFocusIntro">
+            <span class="accessFocusGlyph" aria-hidden="true"></span>
+            <h2>输入访问密钥</h2>
+            <p>密钥可以是数字、字母或符号的组合</p>
+          </div>
+          <p id="accessCopy" class="accessCopy" data-i18n="access.copy">登录后，会话、语音、文件和记忆会继续接上。</p>
           <form id="accessForm" class="accessForm" data-tone="info" aria-busy="false">
+            <div class="accessWelcome">
+              <h2>欢迎回来</h2>
+              <p>请输入访问密钥以继续</p>
+            </div>
             <label class="accessFieldLabel" for="accessTokenInput" data-i18n="access.keyLabel">访问口令</label>
             <div class="accessInputShell">
               <input id="accessTokenInput" type="password" autocomplete="current-password" placeholder="输入访问口令" aria-label="输入访问口令" aria-describedby="accessCopy accessStatus accessTrust" aria-invalid="false" data-i18n-placeholder="access.placeholder" data-i18n-aria-label="access.placeholder" />
@@ -133,8 +209,32 @@
             </div>
             <p id="accessStatus" class="accessStatus" role="status" aria-live="polite" data-tone="info" data-visible="false"> </p>
             <button id="accessSubmitButton" type="submit" data-i18n="access.submit">进入 Iris</button>
+            <p id="accessTrust" class="accessTrust" data-i18n="access.trust">仅用于确认访问权限，不会公开你的内容。</p>
           </form>
-          <p id="accessTrust" class="accessTrust" data-i18n="access.trust">仅用于确认访问权限，不会公开你的内容。</p>
+          <button class="accessForgotButton" type="button">忘记密码？</button>
+          <section class="accessConnectingView" aria-live="polite">
+            <span class="accessConnectingGlyph" aria-hidden="true"></span>
+            <h2>正在连接到 Iris</h2>
+            <ol class="accessConnectingSteps">
+              <li class="isComplete">
+                <span aria-hidden="true">✓</span>
+                <div><strong>验证访问权限</strong><small>密钥验证成功</small></div>
+              </li>
+              <li class="isActive">
+                <span aria-hidden="true"></span>
+                <div><strong>建立安全连接</strong><small>正在加密通信通道…</small></div>
+              </li>
+              <li>
+                <span aria-hidden="true"></span>
+                <div><strong>同步你的数据</strong><small>即将就绪…</small></div>
+              </li>
+            </ol>
+            <div class="accessConnectingPortrait">
+              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=355" alt="" />
+            </div>
+            <strong class="accessConnectingWait">请稍候…</strong>
+            <span class="accessConnectingSoon">马上就好</span>
+          </section>
         </div>
       </section>
 
@@ -151,7 +251,7 @@
         </div>
 
         <div class="settingsList">
-        <details class="settingsGroup navGroup" open>
+        <details class="settingsGroup navGroup">
           <summary class="navSummary">
             <span class="navIcon linkIcon" aria-hidden="true"></span>
             <span class="navCopy">
@@ -391,7 +491,7 @@
         </div>
       </aside>
     </main>
-    <script src="/iris/public-config.js?v=354"></script>
-    <script src="/iris/app.js?v=354"></script>
+    <script src="/iris/public-config.js?v=355"></script>
+    <script src="/iris/app.js?v=355"></script>
   </body>
 </html>

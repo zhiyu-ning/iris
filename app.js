@@ -7,6 +7,10 @@ const els = {
   caption: document.querySelector(".captionFloat"),
   dialogueScroll: document.getElementById("dialogueScroll"),
   detailsToggle: document.getElementById("detailsToggle"),
+  voiceCall: document.getElementById("voiceCallButton"),
+  capabilityToggle: document.getElementById("capabilityToggle"),
+  capabilityPanel: document.getElementById("capabilityPanel"),
+  capabilityCustom: document.getElementById("capabilityCustomButton"),
   detailSheet: document.getElementById("detailSheet"),
   closeDetails: document.getElementById("closeDetails"),
   state: document.getElementById("stateLabel"),
@@ -50,6 +54,7 @@ const els = {
   accessStatus: document.getElementById("accessStatus"),
   accessTheme: document.getElementById("accessThemeToggle"),
   accessLanguage: document.getElementById("accessLanguageToggle"),
+  accessBack: document.getElementById("accessBackButton"),
   voiceProfile: document.getElementById("voiceProfileSelect"),
   voiceControlCard: document.getElementById("voiceControlCard"),
   voiceControlTitle: document.getElementById("voiceControlTitle"),
@@ -79,7 +84,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "354";
+const VOICE_UI_VERSION = "355";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "xlsx", "pptx", "odt", "ods", "odp", "eml",
@@ -975,7 +980,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v354-companion-interface";
+const WEB_VERSION = "voice-ui-web-polish-v355-reference-companion-interface";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -987,7 +992,7 @@ const VOICE_CLIENT_ID_KEY = "jarvis_voice_client_id";
 const TTS_AUDIBILITY_KEY = "jarvis_voice_tts_audibility";
 const TTS_ROUTE_KEY = "jarvis_voice_tts_route";
 const VOLUME_KEY = "jarvis_voice_volume";
-let currentLanguage = normalizedLanguage(safeStorageGet(LANGUAGE_KEY, navigator.language || "zh"));
+let currentLanguage = normalizedLanguage(safeStorageGet(LANGUAGE_KEY, "zh"));
 const WEB_TEXT_CAPABILITIES = {
   calendar: true,
   calendar_read: true,
@@ -2160,7 +2165,7 @@ function normalizedLanguage(value) {
 }
 
 function selectedLanguage() {
-  return normalizedLanguage(safeStorageGet(LANGUAGE_KEY, navigator.language || "zh"));
+  return normalizedLanguage(safeStorageGet(LANGUAGE_KEY, "zh"));
 }
 
 function textFor(key, fallback = "") {
@@ -3038,6 +3043,7 @@ function setDockText(text) {
 
 function openDetails() {
   if (!els.detailSheet) return;
+  setCapabilityPanelOpen(false);
   detailsReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : els.detailsToggle;
   els.detailSheet.classList.add("open");
   els.detailSheet.setAttribute("aria-hidden", "false");
@@ -3063,6 +3069,39 @@ function closeDetails({ restoreFocus = true } = {}) {
     window.setTimeout(() => focusTarget.focus({ preventScroll: true }), 0);
   }
   detailsReturnFocus = null;
+}
+
+function setCapabilityPanelOpen(open, { restoreFocus = false } = {}) {
+  if (!els.capabilityPanel) return;
+  const shouldOpen = Boolean(open);
+  els.capabilityPanel.hidden = !shouldOpen;
+  els.capabilityPanel.setAttribute("aria-hidden", shouldOpen ? "false" : "true");
+  if (els.capabilityToggle) {
+    els.capabilityToggle.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+  }
+  document.body.classList.toggle("capabilitiesOpen", shouldOpen);
+  if (!shouldOpen && restoreFocus && els.capabilityToggle) {
+    els.capabilityToggle.focus({ preventScroll: true });
+  }
+}
+
+function primeComposerFromCapability(prompt) {
+  if (!els.manual) return;
+  els.manual.value = String(prompt || "");
+  resizeComposerInput();
+  syncComposerSendAvailability();
+  setCapabilityPanelOpen(false);
+  els.manual.focus({ preventScroll: true });
+  const end = els.manual.value.length;
+  els.manual.setSelectionRange(end, end);
+}
+
+function openMemorySettings() {
+  openDetails();
+  const memoryGroup = els.detailSheet && els.detailSheet.querySelector(".memoryGroup");
+  if (!(memoryGroup instanceof HTMLDetailsElement)) return;
+  memoryGroup.open = true;
+  window.setTimeout(() => scrollSettingsGroupIntoView(memoryGroup), 80);
 }
 
 function getSettingsScrollContainer() {
@@ -3620,6 +3659,21 @@ function resetAccessFieldFeedback() {
   setAccessStatus(" ", "info");
 }
 
+function refreshAccessFormatFeedback() {
+  if (!els.accessToken || !els.accessGate || els.accessGate.dataset.submitting === "true") return;
+  const value = String(els.accessToken.value || "").trim();
+  if (!value) {
+    setAccessStatus(" ", "info");
+    return;
+  }
+  if (value.length >= 6) {
+    setAccessStatus(
+      currentLanguage === "en" ? "Access code format looks right." : "密钥格式正确",
+      "success",
+    );
+  }
+}
+
 function setAccessInputFocused(focused) {
   const value = focused ? "true" : "false";
   if (els.accessGate) els.accessGate.dataset.inputFocused = value;
@@ -3702,6 +3756,10 @@ function maybePromptForAccess() {
 function handleUnauthorizedResponse(response) {
   if (!response || response.status !== 401) return false;
   const activeToken = currentAuthToken();
+  if (!activeToken && els.accessGate && !els.accessGate.hidden) {
+    logLine("ignored expected pre-session unauthorized response");
+    return true;
+  }
   if (activeToken && responseAuthTokens.has(response) && responseAuthTokens.get(response) !== activeToken) {
     logLine("ignored stale pre-session unauthorized response");
     return false;
@@ -6549,6 +6607,8 @@ function syncComposerSendAvailability() {
   const isLoading = els.manualSend.dataset.loading === "true";
   const hasText = composerHasText();
   const canSubmit = composerCanSubmit();
+  const documentBusy = Boolean(els.documentContextBar && els.documentContextBar.dataset.busy === "true");
+  const canStartVoice = !documentBusy && !hasText;
   const hasDocument = Boolean(currentDocumentId && documentContextVisible);
   els.manualSend.dataset.empty = hasText ? "false" : "true";
   els.manualSend.dataset.canSubmit = canSubmit ? "true" : "false";
@@ -6558,19 +6618,25 @@ function syncComposerSendAvailability() {
     : "FILE";
   els.manualSend.dataset.stateLabel = canSubmit
     ? (hasDocument ? "document-question-ready" : "message-ready")
-    : (hasDocument ? "document-question-empty" : "message-empty");
+    : canStartVoice
+      ? "voice-ready"
+      : (hasDocument ? "document-question-empty" : "message-empty");
   if (!isLoading) {
-    els.manualSend.disabled = !canSubmit;
+    els.manualSend.disabled = !canSubmit && !canStartVoice;
     els.manualSend.dataset.mode = canSubmit
       ? (hasDocument ? "document-question" : "ready")
-      : (hasDocument ? "document-idle" : "idle");
-    els.manualSend.textContent = hasDocument && hasText ? "?" : "↑";
+      : canStartVoice
+        ? "voice"
+        : (hasDocument ? "document-idle" : "idle");
+    els.manualSend.textContent = canStartVoice ? "" : hasDocument && hasText ? "?" : "↑";
   }
   const label = hasDocument
     ? (hasText
       ? textFor("composer.askDocument", "追问当前文件")
-      : textFor("composer.askDocumentDisabled", "输入问题后追问当前文件"))
-    : (hasText ? textFor("action.send", "发送") : textFor("action.sendDisabled", "输入内容后发送"));
+      : canStartVoice
+        ? textFor("action.voiceInput", "语音输入")
+        : textFor("composer.askDocumentDisabled", "输入问题后追问当前文件"))
+    : (hasText ? textFor("action.send", "发送") : textFor("action.voiceInput", "语音输入"));
   els.manualSend.setAttribute("aria-label", label);
   els.manualSend.setAttribute("title", label);
 }
@@ -6602,7 +6668,7 @@ async function keepComposerFeedbackVisible(startedAt) {
 async function handleComposerSubmit() {
   const text = (els.manual && els.manual.value ? els.manual.value : "").trim();
   if (!text) {
-    return;
+    return handleDockVoiceCommand();
   }
   const startedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
   setComposerSendLoading(true);
@@ -7992,6 +8058,38 @@ els.main.addEventListener("click", () => handleMainButton().catch((err) => logLi
 if (els.dockMic) {
   els.dockMic.addEventListener("click", () => handleDockVoiceCommand().catch((err) => logLine(err.message || "dock voice failed")));
 }
+if (els.voiceCall) {
+  els.voiceCall.addEventListener("click", () => {
+    if (els.dockMic) els.dockMic.click();
+  });
+}
+if (els.capabilityToggle) {
+  els.capabilityToggle.addEventListener("click", () => {
+    const isOpen = Boolean(els.capabilityPanel && !els.capabilityPanel.hidden);
+    setCapabilityPanelOpen(!isOpen);
+  });
+}
+if (els.capabilityPanel) {
+  els.capabilityPanel.addEventListener("click", (event) => {
+    const button = event.target instanceof HTMLElement ? event.target.closest("button") : null;
+    if (!button || !els.capabilityPanel.contains(button)) return;
+    const prompt = button.dataset.capabilityPrompt || "";
+    const action = button.dataset.capabilityAction || "";
+    if (prompt) {
+      primeComposerFromCapability(prompt);
+      return;
+    }
+    if (action === "file") {
+      setCapabilityPanelOpen(false);
+      if (els.documentUpload) els.documentUpload.click();
+      return;
+    }
+    if (action === "memory") openMemorySettings();
+  });
+}
+if (els.capabilityCustom) {
+  els.capabilityCustom.addEventListener("click", openDetails);
+}
 if (els.detailsToggle) els.detailsToggle.addEventListener("click", openDetails);
 if (els.closeDetails) els.closeDetails.addEventListener("click", closeDetails);
 if (els.accessForm) {
@@ -8003,12 +8101,22 @@ if (els.accessForm) {
   });
 }
 if (els.accessToken) {
-  els.accessToken.addEventListener("input", resetAccessFieldFeedback);
+  els.accessToken.addEventListener("input", () => {
+    resetAccessFieldFeedback();
+    refreshAccessFormatFeedback();
+  });
   els.accessToken.addEventListener("focus", () => setAccessInputFocused(true));
   els.accessToken.addEventListener("blur", () => setAccessInputFocused(false));
 }
 if (els.accessReveal) {
   els.accessReveal.addEventListener("click", toggleAccessCodeVisibility);
+}
+if (els.accessBack) {
+  els.accessBack.addEventListener("click", () => {
+    if (els.accessGate && els.accessGate.dataset.submitting === "true") return;
+    if (els.accessToken) els.accessToken.blur();
+    setAccessInputFocused(false);
+  });
 }
 if (els.diagnosticsCopy) {
   els.diagnosticsCopy.addEventListener("click", () => {
@@ -8238,6 +8346,7 @@ if (els.documentQuestion) {
   });
 }
 els.manualSend.addEventListener("click", () => {
+  setCapabilityPanelOpen(false);
   handleComposerSubmit().catch((err) => {
     setComposerSendLoading(false);
     logLine(err.message || "composer submit failed");
@@ -8251,6 +8360,7 @@ if (els.manual) {
   els.manual.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
+      setCapabilityPanelOpen(false);
       handleComposerSubmit().catch((err) => {
         setComposerSendLoading(false);
         logLine(err.message || "composer submit failed");
