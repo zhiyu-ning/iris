@@ -84,7 +84,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "356";
+const VOICE_UI_VERSION = "357";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "xlsx", "pptx", "odt", "ods", "odp", "eml",
@@ -980,7 +980,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v356-reference-companion-interface";
+const WEB_VERSION = "voice-ui-web-polish-v357-document-evidence-navigation";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -1538,6 +1538,25 @@ function boundedDocumentComparisonText(value, limit = 180) {
     .slice(0, Math.max(1, Math.min(Number(limit) || 180, 480)));
 }
 
+function clientDocumentEvidenceAction(value) {
+  const source = value && typeof value === "object" ? value : {};
+  const endpoint = boundedDocumentComparisonText(source.endpoint, 360);
+  const method = boundedDocumentComparisonText(source.method || "GET", 12).toUpperCase();
+  if (
+    method !== "GET"
+    || !/^\/client\/v1\/documents\/[A-Za-z0-9_-]{1,160}\/evidence\/[A-Za-z0-9_.-]{1,160}$/.test(endpoint)
+  ) {
+    return null;
+  }
+  const rawQuery = source.query && typeof source.query === "object" ? source.query : {};
+  const query = {};
+  ["user_id", "client_id"].forEach((key) => {
+    const text = boundedDocumentComparisonText(rawQuery[key], 160);
+    if (text) query[key] = text;
+  });
+  return { endpoint, method: "GET", query };
+}
+
 function clientDocumentComparisonPayload(actionPayloads) {
   const source = actionPayloads && typeof actionPayloads === "object"
     ? actionPayloads.document_comparison
@@ -1580,11 +1599,15 @@ function clientDocumentComparisonPayload(actionPayloads) {
         260
       );
       if (!filename && !label) return [];
+      const documentId = boundedDocumentComparisonText(item.document_id, 160);
+      const chunkId = boundedDocumentComparisonText(item.chunk_id, 160);
       return [{
-        documentId: boundedDocumentComparisonText(item.document_id, 160),
+        documentId,
         filename,
         label: label || filename,
-        page: Number.isFinite(Number(item.page)) ? Math.max(1, Math.floor(Number(item.page))) : null
+        chunkId,
+        page: Number.isFinite(Number(item.page)) ? Math.max(1, Math.floor(Number(item.page))) : null,
+        evidenceAction: clientDocumentEvidenceAction(item.evidence_action || item.evidence)
       }];
     });
   const conflicts = (Array.isArray(source.conflicts) ? source.conflicts : [])
@@ -1598,14 +1621,18 @@ function clientDocumentComparisonPayload(actionPayloads) {
           if (!value || typeof value !== "object") return [];
           const displayValue = boundedDocumentComparisonText(value.value, 180);
           if (!displayValue) return [];
+          const documentId = boundedDocumentComparisonText(value.document_id, 160);
+          const chunkId = boundedDocumentComparisonText(value.chunk_id, 160);
           return [{
             value: displayValue,
-            documentId: boundedDocumentComparisonText(value.document_id, 160),
+            documentId,
             filename: boundedDocumentComparisonText(value.filename, 180),
+            chunkId,
             label: boundedDocumentComparisonText(
               value.citation_label || value.source_label || value.chunk_id,
               260
-            )
+            ),
+            evidenceAction: clientDocumentEvidenceAction(value.evidence_action || value.evidence)
           }];
         });
       if (!field || values.length < 2) return [];
@@ -1676,17 +1703,81 @@ function appendDocumentComparisonValue(target, item = {}, { compact = false } = 
   target.appendChild(row);
 }
 
+function clientDocumentPreviewAction(value) {
+  const source = value && typeof value === "object" ? value : {};
+  const endpoint = boundedDocumentComparisonText(source.endpoint, 360);
+  const method = boundedDocumentComparisonText(source.method || "GET", 12).toUpperCase();
+  if (
+    method !== "GET"
+    || !/^\/client\/v1\/documents\/[A-Za-z0-9_-]{1,160}\/pages\/[1-9]\d{0,5}\/render$/.test(endpoint)
+  ) {
+    return null;
+  }
+  const rawQuery = source.query && typeof source.query === "object" ? source.query : {};
+  const query = {};
+  ["user_id", "client_id"].forEach((key) => {
+    const text = boundedDocumentComparisonText(rawQuery[key], 160);
+    if (text) query[key] = text;
+  });
+  return { endpoint, method: "GET", query };
+}
+
+function releaseDocumentEvidenceResources(dialog) {
+  if (!dialog) return;
+  if (dialog._irisEvidenceAbortController) {
+    dialog._irisEvidenceAbortController.abort();
+    dialog._irisEvidenceAbortController = null;
+  }
+  if (dialog._irisEvidenceObjectUrl) {
+    URL.revokeObjectURL(dialog._irisEvidenceObjectUrl);
+    dialog._irisEvidenceObjectUrl = "";
+  }
+  dialog._irisEvidenceRequestId = "";
+}
+
+function resetDocumentEvidenceOverview(dialog, payload, { restoreFocus = false } = {}) {
+  if (!dialog || !payload) return;
+  releaseDocumentEvidenceResources(dialog);
+  const overview = dialog.querySelector(".documentEvidenceOverview");
+  const inspector = dialog.querySelector(".documentEvidenceInspector");
+  if (overview) overview.hidden = false;
+  if (inspector) {
+    inspector.hidden = true;
+    inspector.replaceChildren();
+  }
+  const status = documentComparisonStatusMeta(payload.verificationStatus);
+  const title = dialog.querySelector("#documentEvidenceTitle");
+  const description = dialog.querySelector("#documentEvidenceDescription");
+  if (title) {
+    title.textContent = currentLanguage === "en"
+      ? `${payload.documents.length} files checked`
+      : `已核对 ${payload.documents.length} 份文件`;
+  }
+  if (description) description.textContent = status.description;
+  dialog.dataset.view = "overview";
+  if (
+    restoreFocus
+    && dialog._irisCitationFocus
+    && dialog._irisCitationFocus.isConnected
+    && typeof dialog._irisCitationFocus.focus === "function"
+  ) {
+    dialog._irisCitationFocus.focus({ preventScroll: true });
+  }
+}
+
 function closeDocumentEvidenceDialog(dialog = document.getElementById("documentEvidenceDialog")) {
   if (!dialog || !dialog.open || dialog.dataset.state === "closing") return;
   dialog.dataset.state = "closing";
   const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const finish = () => {
+    releaseDocumentEvidenceResources(dialog);
     if (typeof dialog.close === "function") dialog.close();
     else dialog.removeAttribute("open");
     dialog.dataset.state = "closed";
     document.body.classList.remove("documentEvidenceOpen");
     const returnFocus = dialog._irisReturnFocus;
     dialog._irisReturnFocus = null;
+    dialog._irisCitationFocus = null;
     if (returnFocus && typeof returnFocus.focus === "function" && returnFocus.isConnected) {
       returnFocus.focus({ preventScroll: true });
     }
@@ -1714,10 +1805,315 @@ function ensureDocumentEvidenceDialog() {
   return dialog;
 }
 
+function documentEvidenceLocation(evidence = {}) {
+  const parts = [];
+  const page = Number(evidence.page);
+  if (Number.isFinite(page) && page > 0) {
+    parts.push(currentLanguage === "en" ? `Page ${Math.floor(page)}` : `第 ${Math.floor(page)} 页`);
+  }
+  const section = boundedDocumentComparisonText(evidence.section, 180);
+  if (section) parts.push(section);
+  const label = boundedDocumentComparisonText(evidence.citation_label || evidence.source_label, 260);
+  if (label && !parts.includes(label)) parts.push(label);
+  return parts.join(" · ") || (currentLanguage === "en" ? "Exact source unit" : "精确来源单元");
+}
+
+function appendDocumentEvidenceTables(target, tables) {
+  const items = Array.isArray(tables) ? tables.slice(0, 4) : [];
+  if (!items.length) return;
+  const section = document.createElement("section");
+  section.className = "documentEvidenceSourceSection";
+  const heading = document.createElement("h3");
+  heading.textContent = currentLanguage === "en" ? "Table evidence" : "表格证据";
+  section.appendChild(heading);
+  items.forEach((table) => {
+    if (!table || typeof table !== "object") return;
+    const card = document.createElement("article");
+    card.className = "documentEvidenceTable";
+    const label = document.createElement("strong");
+    label.textContent = boundedDocumentComparisonText(
+      table.citation_label || table.table_id,
+      260
+    ) || (currentLanguage === "en" ? "Table" : "表格");
+    card.appendChild(label);
+    const headers = Array.isArray(table.headers) ? table.headers.slice(0, 8) : [];
+    if (headers.length) {
+      const row = document.createElement("p");
+      row.className = "documentEvidenceTableHeader";
+      row.textContent = headers.map((value) => boundedDocumentComparisonText(value, 120)).join(" · ");
+      card.appendChild(row);
+    }
+    const rows = Array.isArray(table.rows) ? table.rows.slice(0, 5) : [];
+    rows.forEach((values) => {
+      if (!Array.isArray(values)) return;
+      const row = document.createElement("p");
+      row.textContent = values.slice(0, 8)
+        .map((value) => boundedDocumentComparisonText(value, 160))
+        .join(" · ");
+      card.appendChild(row);
+    });
+    section.appendChild(card);
+  });
+  target.appendChild(section);
+}
+
+function appendDocumentEvidenceFigures(target, figures) {
+  const items = Array.isArray(figures) ? figures.slice(0, 4) : [];
+  if (!items.length) return;
+  const section = document.createElement("section");
+  section.className = "documentEvidenceSourceSection";
+  const heading = document.createElement("h3");
+  heading.textContent = currentLanguage === "en" ? "Figure evidence" : "图片证据";
+  section.appendChild(heading);
+  items.forEach((figure) => {
+    if (!figure || typeof figure !== "object") return;
+    const item = document.createElement("p");
+    item.className = "documentEvidenceFigure";
+    item.textContent = boundedDocumentComparisonText(
+      figure.caption || figure.citation_label || figure.label || figure.figure_id,
+      1000
+    );
+    if (item.textContent) section.appendChild(item);
+  });
+  if (section.childElementCount > 1) target.appendChild(section);
+}
+
+function renderDocumentEvidenceInspectorShell(dialog, payload, citation, state = "loading") {
+  const overview = dialog.querySelector(".documentEvidenceOverview");
+  const inspector = dialog.querySelector(".documentEvidenceInspector");
+  if (!inspector) return null;
+  if (overview) overview.hidden = true;
+  inspector.hidden = false;
+  inspector.dataset.state = state;
+  inspector.replaceChildren();
+  dialog.dataset.view = "source";
+
+  const title = dialog.querySelector("#documentEvidenceTitle");
+  const description = dialog.querySelector("#documentEvidenceDescription");
+  if (title) {
+    title.textContent = citation.filename || (currentLanguage === "en" ? "Source evidence" : "来源证据");
+  }
+  if (description) {
+    description.textContent = citation.label || (currentLanguage === "en" ? "Exact cited unit" : "引用的精确内容单元");
+  }
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "documentEvidenceSourceToolbar";
+  const back = document.createElement("button");
+  back.type = "button";
+  back.className = "documentEvidenceBack";
+  back.textContent = currentLanguage === "en" ? "Back" : "返回证据";
+  back.addEventListener("click", () => resetDocumentEvidenceOverview(dialog, payload, { restoreFocus: true }));
+  const location = document.createElement("span");
+  location.textContent = citation.label || (citation.page
+    ? (currentLanguage === "en" ? `Page ${citation.page}` : `第 ${citation.page} 页`)
+    : (currentLanguage === "en" ? "Exact source" : "精确来源"));
+  toolbar.append(back, location);
+  inspector.appendChild(toolbar);
+  return { inspector, back };
+}
+
+function renderDocumentEvidenceError(dialog, payload, citation, message) {
+  const shell = renderDocumentEvidenceInspectorShell(dialog, payload, citation, "error");
+  if (!shell) return;
+  const error = document.createElement("div");
+  error.className = "documentEvidenceSourceState";
+  error.setAttribute("role", "alert");
+  const title = document.createElement("strong");
+  title.textContent = currentLanguage === "en" ? "Source unavailable" : "暂时无法读取来源";
+  const detail = document.createElement("p");
+  detail.textContent = boundedDocumentComparisonText(message, 300)
+    || (currentLanguage === "en" ? "Please retry in a moment." : "请稍后重试。");
+  error.append(title, detail);
+  shell.inspector.appendChild(error);
+}
+
+async function appendDocumentEvidencePreview(dialog, target, preview, requestId) {
+  const action = clientDocumentPreviewAction(preview && preview.action);
+  if (!action || !preview.available) return;
+  const section = document.createElement("section");
+  section.className = "documentEvidenceSourceSection";
+  const heading = document.createElement("h3");
+  heading.textContent = currentLanguage === "en" ? "Original page" : "原页定位";
+  const state = document.createElement("p");
+  state.className = "documentEvidencePreviewState";
+  state.textContent = currentLanguage === "en" ? "Loading page preview…" : "正在加载原页…";
+  section.append(heading, state);
+  target.appendChild(section);
+  try {
+    const response = await fetch(documentApiUrl(action.endpoint, action.query), {
+      method: "GET",
+      headers: authHeaders(),
+      cache: "no-store",
+      signal: dialog._irisEvidenceAbortController
+        ? dialog._irisEvidenceAbortController.signal
+        : undefined
+    });
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(`preview_${response.status}`);
+    }
+    const blob = await response.blob();
+    if (dialog._irisEvidenceRequestId !== requestId) return;
+    const objectUrl = URL.createObjectURL(blob);
+    if (dialog._irisEvidenceObjectUrl) URL.revokeObjectURL(dialog._irisEvidenceObjectUrl);
+    dialog._irisEvidenceObjectUrl = objectUrl;
+    const figure = document.createElement("figure");
+    figure.className = "documentEvidencePreview";
+    const stage = document.createElement("div");
+    stage.className = "documentEvidencePreviewStage";
+    const sourceWidth = Number(preview.width);
+    const sourceHeight = Number(preview.height);
+    if (
+      Number.isFinite(sourceWidth)
+      && Number.isFinite(sourceHeight)
+      && sourceWidth > 0
+      && sourceHeight > 0
+    ) {
+      stage.style.setProperty("--document-preview-aspect", `${sourceWidth} / ${sourceHeight}`);
+    }
+    const image = document.createElement("img");
+    image.alt = currentLanguage === "en" ? "Rendered cited source page" : "引用来源原页";
+    image.addEventListener("load", () => {
+      if (
+        !stage.style.getPropertyValue("--document-preview-aspect")
+        && image.naturalWidth > 0
+        && image.naturalHeight > 0
+      ) {
+        stage.style.setProperty(
+          "--document-preview-aspect",
+          `${image.naturalWidth} / ${image.naturalHeight}`
+        );
+      }
+    }, { once: true });
+    image.src = objectUrl;
+    stage.appendChild(image);
+    const highlights = Array.isArray(preview.highlights) ? preview.highlights.slice(0, 16) : [];
+    highlights.forEach((item) => {
+      const bbox = item && Array.isArray(item.bbox) ? item.bbox.map(Number) : [];
+      if (
+        bbox.length < 4
+        || bbox.some((value) => !Number.isFinite(value))
+        || bbox[2] <= bbox[0]
+        || bbox[3] <= bbox[1]
+      ) return;
+      const x0 = Math.max(0, Math.min(1, bbox[0]));
+      const y0 = Math.max(0, Math.min(1, bbox[1]));
+      const x1 = Math.max(0, Math.min(1, bbox[2]));
+      const y1 = Math.max(0, Math.min(1, bbox[3]));
+      if (x1 <= x0 || y1 <= y0) return;
+      const highlight = document.createElement("span");
+      highlight.className = "documentEvidenceHighlight";
+      highlight.style.left = `${x0 * 100}%`;
+      highlight.style.top = `${y0 * 100}%`;
+      highlight.style.width = `${(x1 - x0) * 100}%`;
+      highlight.style.height = `${(y1 - y0) * 100}%`;
+      stage.appendChild(highlight);
+    });
+    figure.appendChild(stage);
+    state.replaceWith(figure);
+  } catch (error) {
+    if (error && error.name === "AbortError") return;
+    state.textContent = currentLanguage === "en"
+      ? "The text evidence is available, but this page preview could not be rendered."
+      : "文字证据已读取，但原页预览暂时无法生成。";
+  }
+}
+
+async function openDocumentEvidenceCitation(dialog, payload, citation, opener) {
+  const action = citation && citation.evidenceAction;
+  if (!dialog || !payload || !action) return;
+  releaseDocumentEvidenceResources(dialog);
+  dialog._irisCitationFocus = opener || null;
+  const requestId = `evidence_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  dialog._irisEvidenceRequestId = requestId;
+  dialog._irisEvidenceAbortController = typeof AbortController !== "undefined"
+    ? new AbortController()
+    : null;
+  const shell = renderDocumentEvidenceInspectorShell(dialog, payload, citation, "loading");
+  if (!shell) return;
+  const loading = document.createElement("div");
+  loading.className = "documentEvidenceSourceState";
+  loading.setAttribute("role", "status");
+  loading.setAttribute("aria-live", "polite");
+  const loadingTitle = document.createElement("strong");
+  loadingTitle.textContent = currentLanguage === "en" ? "Reading exact source" : "正在读取精确来源";
+  const loadingCopy = document.createElement("p");
+  loadingCopy.textContent = currentLanguage === "en"
+    ? "Retrieving the cited unit without loading the whole document."
+    : "只读取这条引用对应的内容单元，不加载整份文件。";
+  loading.append(loadingTitle, loadingCopy);
+  shell.inspector.appendChild(loading);
+  shell.back.focus({ preventScroll: true });
+
+  try {
+    const response = await fetch(documentApiUrl(action.endpoint, action.query), {
+      method: "GET",
+      headers: authHeaders(),
+      cache: "no-store",
+      signal: dialog._irisEvidenceAbortController
+        ? dialog._irisEvidenceAbortController.signal
+        : undefined
+    });
+    const responsePayload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      const detail = responsePayload && responsePayload.detail;
+      throw new Error(
+        typeof detail === "string"
+          ? detail
+          : (detail && detail.error) || `evidence_${response.status}`
+      );
+    }
+    if (dialog._irisEvidenceRequestId !== requestId) return;
+    const evidence = responsePayload && responsePayload.evidence && typeof responsePayload.evidence === "object"
+      ? responsePayload.evidence
+      : null;
+    if (!evidence) throw new Error("evidence_payload_missing");
+    const ready = renderDocumentEvidenceInspectorShell(dialog, payload, citation, "ready");
+    if (!ready) return;
+
+    const meta = document.createElement("div");
+    meta.className = "documentEvidenceSourceMeta";
+    const locator = document.createElement("strong");
+    locator.textContent = documentEvidenceLocation(evidence);
+    const type = document.createElement("span");
+    type.textContent = [
+      boundedDocumentComparisonText(evidence.document_type, 80),
+      evidence.ocr_low_confidence
+        ? (currentLanguage === "en" ? "Low OCR confidence" : "OCR 置信度较低")
+        : ""
+    ].filter(Boolean).join(" · ");
+    meta.append(locator, type);
+    ready.inspector.appendChild(meta);
+
+    const excerpt = document.createElement("section");
+    excerpt.className = "documentEvidenceSourceSection";
+    const heading = document.createElement("h3");
+    heading.textContent = currentLanguage === "en" ? "Exact excerpt" : "证据原文";
+    const text = document.createElement("p");
+    text.className = "documentEvidenceExcerpt";
+    text.textContent = String(evidence.text || "").trim()
+      || (currentLanguage === "en" ? "No text was stored for this structural unit." : "这个结构单元没有可展示的文字。");
+    excerpt.append(heading, text);
+    ready.inspector.appendChild(excerpt);
+    appendDocumentEvidenceTables(ready.inspector, evidence.tables);
+    appendDocumentEvidenceFigures(ready.inspector, evidence.figures);
+    await appendDocumentEvidencePreview(dialog, ready.inspector, evidence.preview || {}, requestId);
+  } catch (error) {
+    if (error && error.name === "AbortError") return;
+    if (dialog._irisEvidenceRequestId !== requestId) return;
+    renderDocumentEvidenceError(dialog, payload, citation, error && error.message);
+  }
+}
+
 function renderDocumentEvidenceDialog(dialog, payload) {
   const status = documentComparisonStatusMeta(payload.verificationStatus);
+  releaseDocumentEvidenceResources(dialog);
   dialog.replaceChildren();
   dialog.dataset.tone = status.tone;
+  dialog.dataset.view = "overview";
+  dialog._irisEvidencePayload = payload;
 
   const sheet = document.createElement("section");
   sheet.className = "documentEvidenceSheet";
@@ -1747,6 +2143,9 @@ function renderDocumentEvidenceDialog(dialog, payload) {
   header.append(titleBlock, close);
   sheet.appendChild(header);
 
+  const overview = document.createElement("div");
+  overview.className = "documentEvidenceOverview";
+
   const statusRow = document.createElement("div");
   statusRow.className = "documentEvidenceStatus";
   statusRow.dataset.tone = status.tone;
@@ -1759,7 +2158,7 @@ function renderDocumentEvidenceDialog(dialog, payload) {
     ? `${payload.citations.length} citations · ${payload.conflicts.length} conflicts`
     : `${payload.citations.length} 条引用 · ${payload.conflicts.length} 组差异`;
   statusRow.append(statusDot, statusLabel, counts);
-  sheet.appendChild(statusRow);
+  overview.appendChild(statusRow);
 
   const files = document.createElement("div");
   files.className = "documentEvidenceFiles";
@@ -1770,7 +2169,7 @@ function renderDocumentEvidenceDialog(dialog, payload) {
     chip.textContent = documentComparisonFileLabel(item);
     files.appendChild(chip);
   });
-  sheet.appendChild(files);
+  overview.appendChild(files);
 
   const content = document.createElement("div");
   content.className = "documentEvidenceContent";
@@ -1804,13 +2203,37 @@ function renderDocumentEvidenceDialog(dialog, payload) {
   if (payload.citations.length) {
     payload.citations.forEach((citation) => {
       const row = document.createElement("li");
+      const sourceControl = document.createElement(citation.evidenceAction ? "button" : "div");
+      sourceControl.className = citation.evidenceAction
+        ? "documentEvidenceCitationButton"
+        : "documentEvidenceCitationStatic";
+      if (citation.evidenceAction) {
+        sourceControl.type = "button";
+        sourceControl.setAttribute(
+          "aria-label",
+          currentLanguage === "en"
+            ? `Open source ${citation.filename || citation.label || ""}`.trim()
+            : `查看来源 ${citation.filename || citation.label || ""}`.trim()
+        );
+      }
       const filename = document.createElement("strong");
       filename.textContent = citation.filename || (currentLanguage === "en" ? "Document" : "文件");
       const label = document.createElement("span");
       label.textContent = citation.label || (citation.page
         ? (currentLanguage === "en" ? `Page ${citation.page}` : `第 ${citation.page} 页`)
         : (currentLanguage === "en" ? "Location available" : "位置已记录"));
-      row.append(filename, label);
+      sourceControl.append(filename, label);
+      if (citation.evidenceAction) {
+        const arrow = document.createElement("span");
+        arrow.className = "documentEvidenceCitationArrow";
+        arrow.setAttribute("aria-hidden", "true");
+        arrow.textContent = "›";
+        sourceControl.appendChild(arrow);
+        sourceControl.addEventListener("click", () => {
+          openDocumentEvidenceCitation(dialog, payload, citation, sourceControl);
+        });
+      }
+      row.appendChild(sourceControl);
       citationList.appendChild(row);
     });
   } else {
@@ -1823,14 +2246,19 @@ function renderDocumentEvidenceDialog(dialog, payload) {
   }
   citationSection.appendChild(citationList);
   content.appendChild(citationSection);
-  sheet.appendChild(content);
+  overview.appendChild(content);
 
   const note = document.createElement("p");
   note.className = "documentEvidenceNote";
   note.textContent = currentLanguage === "en"
     ? "Evidence comes from this retrieval turn. Conflicting values are never merged automatically."
     : "证据来自本轮文件检索；冲突值不会被自动合并。";
-  sheet.appendChild(note);
+  overview.appendChild(note);
+  sheet.appendChild(overview);
+  const inspector = document.createElement("section");
+  inspector.className = "documentEvidenceInspector";
+  inspector.hidden = true;
+  sheet.appendChild(inspector);
   dialog.appendChild(sheet);
 }
 
@@ -2432,11 +2860,15 @@ async function loadConversationHistory() {
     clearWelcomeMessageForHistory();
     items.forEach((item, index) => {
       const role = item && item.role === "user" ? "user" : "assistant";
+      const documentComparison = role === "assistant"
+        ? clientDocumentComparisonPayload(item && item.ui_payload)
+        : null;
       appendConversationMessage(role, item.content || "", {
         id: `history_${index}_${Math.abs(String(item.time || index).split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`,
         label: historyMessageLabel(role, item.time),
-        kind: "history",
+        kind: documentComparison ? "document_comparison" : "history",
         forceScroll: index === items.length - 1,
+        documentComparison,
         feedbackTarget: role === "assistant" && item.turn_id ? {
           turn_id: item.turn_id,
           response_id: item.response_id || "",
