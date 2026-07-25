@@ -84,7 +84,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "355";
+const VOICE_UI_VERSION = "356";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "xlsx", "pptx", "odt", "ods", "odp", "eml",
@@ -980,7 +980,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v355-reference-companion-interface";
+const WEB_VERSION = "voice-ui-web-polish-v356-reference-companion-interface";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -1531,6 +1531,404 @@ function renderDocumentMessageBody(body, text, options = {}) {
   });
 }
 
+function boundedDocumentComparisonText(value, limit = 180) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, Math.max(1, Math.min(Number(limit) || 180, 480)));
+}
+
+function clientDocumentComparisonPayload(actionPayloads) {
+  const source = actionPayloads && typeof actionPayloads === "object"
+    ? actionPayloads.document_comparison
+    : null;
+  if (!source || typeof source !== "object") return null;
+
+  const documentIds = Array.from(new Set(
+    (Array.isArray(source.document_ids) ? source.document_ids : [])
+      .map((value) => boundedDocumentComparisonText(value, 160))
+      .filter(Boolean)
+  )).slice(0, 12);
+  const documents = [];
+  const seenDocuments = new Set();
+  (Array.isArray(source.documents) ? source.documents : []).slice(0, 12).forEach((item) => {
+    if (!item || typeof item !== "object") return;
+    const id = boundedDocumentComparisonText(item.id, 160);
+    const filename = boundedDocumentComparisonText(item.filename || id, 180);
+    const identity = id || filename;
+    if (!identity || seenDocuments.has(identity)) return;
+    seenDocuments.add(identity);
+    documents.push({
+      id,
+      filename,
+      documentType: boundedDocumentComparisonText(item.document_type, 80)
+    });
+  });
+  documentIds.forEach((id) => {
+    if (seenDocuments.has(id)) return;
+    seenDocuments.add(id);
+    documents.push({ id, filename: id, documentType: "" });
+  });
+
+  const citations = (Array.isArray(source.citations) ? source.citations : [])
+    .slice(0, 16)
+    .flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const filename = boundedDocumentComparisonText(item.filename, 180);
+      const label = boundedDocumentComparisonText(
+        item.citation_label || item.source_label || item.chunk_id,
+        260
+      );
+      if (!filename && !label) return [];
+      return [{
+        documentId: boundedDocumentComparisonText(item.document_id, 160),
+        filename,
+        label: label || filename,
+        page: Number.isFinite(Number(item.page)) ? Math.max(1, Math.floor(Number(item.page))) : null
+      }];
+    });
+  const conflicts = (Array.isArray(source.conflicts) ? source.conflicts : [])
+    .slice(0, 8)
+    .flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const field = boundedDocumentComparisonText(item.field || item.field_key, 100);
+      const values = (Array.isArray(item.values) ? item.values : [])
+        .slice(0, 8)
+        .flatMap((value) => {
+          if (!value || typeof value !== "object") return [];
+          const displayValue = boundedDocumentComparisonText(value.value, 180);
+          if (!displayValue) return [];
+          return [{
+            value: displayValue,
+            documentId: boundedDocumentComparisonText(value.document_id, 160),
+            filename: boundedDocumentComparisonText(value.filename, 180),
+            label: boundedDocumentComparisonText(
+              value.citation_label || value.source_label || value.chunk_id,
+              260
+            )
+          }];
+        });
+      if (!field || values.length < 2) return [];
+      return [{ field, values }];
+    });
+
+  if (documents.length < 2 && !citations.length && !conflicts.length) return null;
+  const supportedStatuses = new Set(["SUPPORTED", "CONFLICT", "PARTIAL_EVIDENCE", "INSUFFICIENT_EVIDENCE"]);
+  const rawStatus = boundedDocumentComparisonText(source.verification_status, 64).toUpperCase();
+  return {
+    documents: documents.slice(0, 12),
+    documentIds,
+    citations,
+    conflicts,
+    comparisonReady: Boolean(source.comparison_ready),
+    verificationStatus: supportedStatuses.has(rawStatus)
+      ? rawStatus
+      : (conflicts.length ? "CONFLICT" : citations.length ? "SUPPORTED" : "INSUFFICIENT_EVIDENCE")
+  };
+}
+
+function documentComparisonStatusMeta(status = "") {
+  const en = currentLanguage === "en";
+  const value = String(status || "").toUpperCase();
+  if (value === "CONFLICT") {
+    return {
+      label: en ? "Differences found" : "发现差异",
+      description: en ? "Conflicting values remain separate." : "冲突值保持分开，没有被自动合并。",
+      tone: "conflict"
+    };
+  }
+  if (value === "PARTIAL_EVIDENCE") {
+    return {
+      label: en ? "Partial evidence" : "部分证据",
+      description: en ? "Some files did not provide enough evidence." : "部分文件没有检索到足够证据。",
+      tone: "partial"
+    };
+  }
+  if (value === "INSUFFICIENT_EVIDENCE") {
+    return {
+      label: en ? "Evidence needed" : "证据不足",
+      description: en ? "The current files cannot support a reliable comparison." : "当前文件还不足以支持可靠比较。",
+      tone: "insufficient"
+    };
+  }
+  return {
+    label: en ? "Evidence aligned" : "证据一致",
+    description: en ? "The cited evidence supports this comparison." : "本轮引用证据支持这次比较。",
+    tone: "supported"
+  };
+}
+
+function documentComparisonFileLabel(item = {}) {
+  return boundedDocumentComparisonText(
+    item.filename || item.id,
+    180
+  ) || (currentLanguage === "en" ? "Document" : "文件");
+}
+
+function appendDocumentComparisonValue(target, item = {}, { compact = false } = {}) {
+  const row = document.createElement("div");
+  row.className = compact ? "documentComparisonValue isCompact" : "documentComparisonValue";
+  const value = document.createElement("strong");
+  value.textContent = item.value || "—";
+  const source = document.createElement("span");
+  source.textContent = item.filename || item.label || (currentLanguage === "en" ? "Document" : "文件");
+  row.append(value, source);
+  target.appendChild(row);
+}
+
+function closeDocumentEvidenceDialog(dialog = document.getElementById("documentEvidenceDialog")) {
+  if (!dialog || !dialog.open || dialog.dataset.state === "closing") return;
+  dialog.dataset.state = "closing";
+  const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const finish = () => {
+    if (typeof dialog.close === "function") dialog.close();
+    else dialog.removeAttribute("open");
+    dialog.dataset.state = "closed";
+    document.body.classList.remove("documentEvidenceOpen");
+    const returnFocus = dialog._irisReturnFocus;
+    dialog._irisReturnFocus = null;
+    if (returnFocus && typeof returnFocus.focus === "function" && returnFocus.isConnected) {
+      returnFocus.focus({ preventScroll: true });
+    }
+  };
+  window.clearTimeout(dialog._irisCloseTimer || 0);
+  dialog._irisCloseTimer = window.setTimeout(finish, reducedMotion ? 80 : 170);
+}
+
+function ensureDocumentEvidenceDialog() {
+  let dialog = document.getElementById("documentEvidenceDialog");
+  if (dialog) return dialog;
+  dialog = document.createElement("dialog");
+  dialog.id = "documentEvidenceDialog";
+  dialog.className = "documentEvidenceDialog";
+  dialog.setAttribute("aria-labelledby", "documentEvidenceTitle");
+  dialog.setAttribute("aria-describedby", "documentEvidenceDescription");
+  dialog.addEventListener("cancel", (event) => {
+    event.preventDefault();
+    closeDocumentEvidenceDialog(dialog);
+  });
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) closeDocumentEvidenceDialog(dialog);
+  });
+  document.body.appendChild(dialog);
+  return dialog;
+}
+
+function renderDocumentEvidenceDialog(dialog, payload) {
+  const status = documentComparisonStatusMeta(payload.verificationStatus);
+  dialog.replaceChildren();
+  dialog.dataset.tone = status.tone;
+
+  const sheet = document.createElement("section");
+  sheet.className = "documentEvidenceSheet";
+
+  const header = document.createElement("header");
+  header.className = "documentEvidenceHeader";
+  const titleBlock = document.createElement("div");
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "documentEvidenceEyebrow";
+  eyebrow.textContent = currentLanguage === "en" ? "DOCUMENT WORKSPACE" : "DOCUMENT WORKSPACE";
+  const title = document.createElement("h2");
+  title.id = "documentEvidenceTitle";
+  title.textContent = currentLanguage === "en"
+    ? `${payload.documents.length} files checked`
+    : `已核对 ${payload.documents.length} 份文件`;
+  const description = document.createElement("p");
+  description.id = "documentEvidenceDescription";
+  description.className = "documentEvidenceDescription";
+  description.textContent = status.description;
+  titleBlock.append(eyebrow, title, description);
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "documentEvidenceClose";
+  close.setAttribute("aria-label", currentLanguage === "en" ? "Close evidence" : "关闭证据");
+  close.textContent = "×";
+  close.addEventListener("click", () => closeDocumentEvidenceDialog(dialog));
+  header.append(titleBlock, close);
+  sheet.appendChild(header);
+
+  const statusRow = document.createElement("div");
+  statusRow.className = "documentEvidenceStatus";
+  statusRow.dataset.tone = status.tone;
+  const statusDot = document.createElement("span");
+  statusDot.setAttribute("aria-hidden", "true");
+  const statusLabel = document.createElement("strong");
+  statusLabel.textContent = status.label;
+  const counts = document.createElement("span");
+  counts.textContent = currentLanguage === "en"
+    ? `${payload.citations.length} citations · ${payload.conflicts.length} conflicts`
+    : `${payload.citations.length} 条引用 · ${payload.conflicts.length} 组差异`;
+  statusRow.append(statusDot, statusLabel, counts);
+  sheet.appendChild(statusRow);
+
+  const files = document.createElement("div");
+  files.className = "documentEvidenceFiles";
+  files.setAttribute("aria-label", currentLanguage === "en" ? "Compared files" : "参与比较的文件");
+  payload.documents.forEach((item) => {
+    const chip = document.createElement("span");
+    chip.className = "documentEvidenceFile";
+    chip.textContent = documentComparisonFileLabel(item);
+    files.appendChild(chip);
+  });
+  sheet.appendChild(files);
+
+  const content = document.createElement("div");
+  content.className = "documentEvidenceContent";
+  if (payload.conflicts.length) {
+    const section = document.createElement("section");
+    section.className = "documentEvidenceSection";
+    const heading = document.createElement("h3");
+    heading.textContent = currentLanguage === "en" ? "Differences preserved" : "保留的差异";
+    section.appendChild(heading);
+    payload.conflicts.forEach((conflict) => {
+      const card = document.createElement("article");
+      card.className = "documentEvidenceConflict";
+      const field = document.createElement("h4");
+      field.textContent = conflict.field;
+      const values = document.createElement("div");
+      values.className = "documentEvidenceConflictValues";
+      conflict.values.forEach((value) => appendDocumentComparisonValue(values, value));
+      card.append(field, values);
+      section.appendChild(card);
+    });
+    content.appendChild(section);
+  }
+
+  const citationSection = document.createElement("section");
+  citationSection.className = "documentEvidenceSection";
+  const citationHeading = document.createElement("h3");
+  citationHeading.textContent = currentLanguage === "en" ? "Citations" : "引用位置";
+  citationSection.appendChild(citationHeading);
+  const citationList = document.createElement("ol");
+  citationList.className = "documentEvidenceCitations";
+  if (payload.citations.length) {
+    payload.citations.forEach((citation) => {
+      const row = document.createElement("li");
+      const filename = document.createElement("strong");
+      filename.textContent = citation.filename || (currentLanguage === "en" ? "Document" : "文件");
+      const label = document.createElement("span");
+      label.textContent = citation.label || (citation.page
+        ? (currentLanguage === "en" ? `Page ${citation.page}` : `第 ${citation.page} 页`)
+        : (currentLanguage === "en" ? "Location available" : "位置已记录"));
+      row.append(filename, label);
+      citationList.appendChild(row);
+    });
+  } else {
+    const empty = document.createElement("li");
+    empty.className = "isEmpty";
+    empty.textContent = currentLanguage === "en"
+      ? "No reliable citation was returned for this comparison."
+      : "这次比较没有返回可可靠展示的引用位置。";
+    citationList.appendChild(empty);
+  }
+  citationSection.appendChild(citationList);
+  content.appendChild(citationSection);
+  sheet.appendChild(content);
+
+  const note = document.createElement("p");
+  note.className = "documentEvidenceNote";
+  note.textContent = currentLanguage === "en"
+    ? "Evidence comes from this retrieval turn. Conflicting values are never merged automatically."
+    : "证据来自本轮文件检索；冲突值不会被自动合并。";
+  sheet.appendChild(note);
+  dialog.appendChild(sheet);
+}
+
+function openDocumentEvidenceDialog(payload, opener = null) {
+  if (!payload) return;
+  const dialog = ensureDocumentEvidenceDialog();
+  window.clearTimeout(dialog._irisCloseTimer || 0);
+  dialog._irisReturnFocus = opener || document.activeElement;
+  renderDocumentEvidenceDialog(dialog, payload);
+  dialog.dataset.state = "opening";
+  document.body.classList.add("documentEvidenceOpen");
+  if (!dialog.open) {
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    else dialog.setAttribute("open", "");
+  }
+  window.requestAnimationFrame(() => {
+    dialog.dataset.state = "open";
+    const close = dialog.querySelector(".documentEvidenceClose");
+    if (close) close.focus({ preventScroll: true });
+  });
+}
+
+function appendDocumentComparisonCard(item, payload) {
+  if (!item || !payload) return;
+  const status = documentComparisonStatusMeta(payload.verificationStatus);
+  const card = document.createElement("section");
+  card.className = "documentComparisonCard";
+  card.dataset.tone = status.tone;
+  card.setAttribute("aria-label", currentLanguage === "en" ? "Document comparison evidence" : "文件比较证据");
+
+  const header = document.createElement("div");
+  header.className = "documentComparisonHeader";
+  const heading = document.createElement("div");
+  const kicker = document.createElement("span");
+  kicker.className = "documentComparisonKicker";
+  kicker.textContent = "DOCUMENT WORKSPACE";
+  const title = document.createElement("strong");
+  title.textContent = currentLanguage === "en"
+    ? `${payload.documents.length} files checked`
+    : `已核对 ${payload.documents.length} 份文件`;
+  heading.append(kicker, title);
+  const statusChip = document.createElement("span");
+  statusChip.className = "documentComparisonStatus";
+  statusChip.textContent = status.label;
+  header.append(heading, statusChip);
+  card.appendChild(header);
+
+  const files = document.createElement("div");
+  files.className = "documentComparisonFiles";
+  payload.documents.slice(0, 4).forEach((documentItem) => {
+    const chip = document.createElement("span");
+    chip.textContent = documentComparisonFileLabel(documentItem);
+    files.appendChild(chip);
+  });
+  if (payload.documents.length > 4) {
+    const more = document.createElement("span");
+    more.textContent = `+${payload.documents.length - 4}`;
+    files.appendChild(more);
+  }
+  card.appendChild(files);
+
+  if (payload.conflicts.length) {
+    const preview = document.createElement("div");
+    preview.className = "documentComparisonPreview";
+    payload.conflicts.slice(0, 2).forEach((conflict) => {
+      const row = document.createElement("div");
+      const field = document.createElement("span");
+      field.textContent = conflict.field;
+      const values = document.createElement("div");
+      conflict.values.slice(0, 3).forEach((value) => appendDocumentComparisonValue(values, value, { compact: true }));
+      row.append(field, values);
+      preview.appendChild(row);
+    });
+    card.appendChild(preview);
+  } else {
+    const summary = document.createElement("p");
+    summary.className = "documentComparisonSummary";
+    summary.textContent = status.description;
+    card.appendChild(summary);
+  }
+
+  const footer = document.createElement("div");
+  footer.className = "documentComparisonFooter";
+  const counts = document.createElement("span");
+  counts.textContent = currentLanguage === "en"
+    ? `${payload.citations.length} citations`
+    : `${payload.citations.length} 条引用`;
+  const open = document.createElement("button");
+  open.type = "button";
+  open.className = "documentComparisonOpen";
+  open.textContent = currentLanguage === "en" ? "View evidence" : "查看证据";
+  open.setAttribute("aria-haspopup", "dialog");
+  open.addEventListener("click", () => openDocumentEvidenceDialog(payload, open));
+  footer.append(counts, open);
+  card.appendChild(footer);
+  item.appendChild(card);
+}
+
 function setMessageBodyText(body, text, options = {}) {
   if (!body) return;
   const kind = options.kind || "";
@@ -1561,6 +1959,9 @@ function appendConversationMessage(role, text, options = {}) {
   body.className = "messageText";
   setMessageBodyText(body, value || " ", { ...options, role });
   item.append(meta, body);
+  if (role === "assistant" && options.documentComparison) {
+    appendDocumentComparisonCard(item, options.documentComparison);
+  }
   if (Array.isArray(options.actions) && options.actions.length) {
     const actions = document.createElement("div");
     actions.className = "messageActions";
@@ -1902,12 +2303,14 @@ async function executeClientMessageAction(button, action) {
     }
     currentConversationId = payload.conversation_id || currentConversationId;
     const actionButtons = clientMessageActionButtons(payload.action_payloads);
+    const documentComparison = clientDocumentComparisonPayload(payload.action_payloads);
     const reply = clientReplyForDisplay(String(payload.reply || "").trim(), actionButtons) || (currentLanguage === "en" ? "The operation finished." : "操作已完成。");
     appendAssistantConversation(reply, {
       id: payload.response_id ? `assistant_${payload.response_id}` : "",
-      kind: payload.skill || payload.route || "operation_result",
+      kind: documentComparison ? "document_comparison" : payload.skill || payload.route || "operation_result",
       forceScroll: true,
       actions: actionButtons,
+      documentComparison,
       feedbackTarget: payload.feedback || (payload.turn_id ? {
         turn_id: payload.turn_id,
         response_id: payload.response_id || "",
@@ -6506,13 +6909,15 @@ async function sendTextPrompt(text) {
     }
     currentConversationId = payload.conversation_id || currentConversationId;
     const actionButtons = clientMessageActionButtons(payload.action_payloads);
+    const documentComparison = clientDocumentComparisonPayload(payload.action_payloads);
     const reply = clientReplyForDisplay(String(payload.reply || "").trim(), actionButtons) || "我没有拿到可显示的回复。";
     els.reply.textContent = reply;
     appendAssistantConversation(reply, {
       id: payload.response_id ? `assistant_${payload.response_id}` : "",
-      kind: payload.skill || payload.route || "text_reply",
+      kind: documentComparison ? "document_comparison" : payload.skill || payload.route || "text_reply",
       forceScroll: true,
       actions: actionButtons,
+      documentComparison,
       feedbackTarget: payload.feedback || (payload.turn_id ? {
         turn_id: payload.turn_id,
         response_id: payload.response_id || "",
