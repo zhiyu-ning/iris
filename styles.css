@@ -57,8 +57,8 @@
   --control-hover-filter: brightness(1.018) saturate(1.06);
   --control-active-filter: brightness(0.985) saturate(1.02);
   --control-press-shadow: inset 0 2px 5px rgba(24, 42, 67, 0.08);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=357");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=357");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=359");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=359");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -212,8 +212,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 22px 54px rgba(85, 91, 255, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=357");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=357");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=359");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=359");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -269,8 +269,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=357");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=357");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=359");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=359");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -2055,7 +2055,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=357");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=359");
 }
 
 .brandName {
@@ -6308,6 +6308,13 @@ button[aria-disabled="true"]:not([data-loading="true"]) {
   }
 }
 
+@media (max-width: 520px) {
+  .accessGate:not([data-input-focused="true"]):not([data-submitting="true"]) .accessPanel {
+    min-height: calc(var(--app-height) - 32px);
+    max-height: calc(var(--app-height) - 32px);
+  }
+}
+
 :root[data-theme] .audibilityActions {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -9809,7 +9816,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 /* v354 Iris companion interface: portrait-led entry, calm conversation, and card-based settings. */
 :root {
-  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=357");
+  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=359");
   --iris-violet: #7567f8;
   --iris-violet-deep: #5547e8;
   --iris-lilac: #b9b0ff;
@@ -11130,7 +11137,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 .accessConnectingGlyph,
 .capabilitySuggestionMark,
 .sheetGlyph {
-  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=357");
+  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=359");
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -11367,6 +11374,824 @@ body.keyboardOpen .conversationStream {
   .accessForm input,
   .accessForm > #accessSubmitButton {
     min-height: 45px;
+  }
+}
+
+/* v359 Iris Pearl visual system. This is the single final presentation layer. */
+:root {
+  --iris-pearl: rgba(255, 255, 255, 0.88);
+  --iris-pearl-strong: rgba(255, 255, 255, 0.96);
+  --iris-lilac: #7567f4;
+  --iris-lilac-soft: #eeeafd;
+  --iris-ink: #29263f;
+  --iris-muted: rgba(50, 47, 76, 0.52);
+  --iris-hairline: rgba(91, 80, 160, 0.09);
+  --iris-shadow-soft: 0 12px 36px rgba(65, 57, 118, 0.075);
+  --iris-shadow-float: 0 20px 56px rgba(72, 61, 137, 0.13);
+  --dock-height: 72px;
+}
+
+:root[data-theme="aurora-glass"] {
+  --page: #f3f1fb;
+  --page-warm: #fdfcff;
+  --page-gradient:
+    radial-gradient(circle at 12% 4%, rgba(205, 216, 255, 0.52), transparent 34%),
+    radial-gradient(circle at 90% 18%, rgba(242, 218, 244, 0.46), transparent 34%),
+    radial-gradient(circle at 16% 88%, rgba(205, 238, 238, 0.34), transparent 38%),
+    linear-gradient(155deg, #f8f9ff 0%, #eeeafa 54%, #faf0f5 100%);
+  --ink: #2d2944;
+  --ink-soft: rgba(45, 41, 68, 0.78);
+  --ink-dim: rgba(45, 41, 68, 0.5);
+  --glass: rgba(255, 255, 255, 0.64);
+  --glass-strong: rgba(255, 255, 255, 0.84);
+  --line: rgba(90, 76, 162, 0.1);
+  --line-strong: rgba(90, 76, 162, 0.2);
+  --shadow: rgba(75, 61, 139, 0.13);
+  --accent: #7465f2;
+  --accent-soft: rgba(116, 101, 242, 0.12);
+  --field-bg: rgba(255, 255, 255, 0.7);
+  --soft-panel: rgba(255, 255, 255, 0.62);
+  --button-bg: rgba(255, 255, 255, 0.68);
+  --dock-surface: rgba(255, 255, 255, 0.76);
+  --composer-field: rgba(255, 255, 255, 0.76);
+  --assistant-bubble: rgba(255, 255, 255, 0.82);
+  --user-bubble: rgba(238, 234, 255, 0.84);
+  --file-bubble: rgba(232, 250, 247, 0.84);
+  --detail-bg:
+    radial-gradient(circle at 10% -4%, rgba(205, 197, 255, 0.24), transparent 34%),
+    linear-gradient(180deg, rgba(253, 252, 255, 0.98), rgba(244, 241, 251, 0.98));
+  --access-bg:
+    radial-gradient(circle at 12% 2%, rgba(205, 216, 255, 0.58), transparent 32%),
+    radial-gradient(circle at 90% 22%, rgba(241, 216, 244, 0.52), transparent 35%),
+    linear-gradient(155deg, #f9faff, #eeeafa 58%, #faeff5);
+  --access-backdrop: var(--access-bg);
+  --access-panel-bg: rgba(255, 255, 255, 0.62);
+  --access-panel-border: rgba(255, 255, 255, 0.82);
+}
+
+body {
+  background:
+    radial-gradient(circle at 50% -10%, rgba(199, 191, 255, 0.18), transparent 34%),
+    var(--page-gradient);
+}
+
+.home {
+  background:
+    radial-gradient(circle at 52% -8%, rgba(215, 207, 255, 0.32), transparent 30%),
+    radial-gradient(circle at 94% 30%, rgba(233, 220, 247, 0.23), transparent 30%),
+    linear-gradient(180deg, #fdfcff 0%, #faf9fe 56%, #f5f3fb 100%);
+}
+
+:root[data-theme="soft-gray"] .home,
+:root[data-theme="classic-blue"] .home,
+:root[data-theme="aurora-glass"] .home {
+  background: var(--page-gradient);
+}
+
+:root[data-theme="pure-black"] {
+  --iris-pearl: rgba(28, 29, 42, 0.86);
+  --iris-pearl-strong: rgba(34, 35, 50, 0.96);
+  --iris-lilac: #9a8cff;
+  --iris-lilac-soft: rgba(128, 115, 255, 0.15);
+  --iris-ink: #f1effc;
+  --iris-muted: rgba(237, 234, 251, 0.5);
+  --iris-hairline: rgba(255, 255, 255, 0.09);
+  --iris-shadow-soft: 0 14px 38px rgba(0, 0, 0, 0.26);
+  --iris-shadow-float: 0 22px 62px rgba(0, 0, 0, 0.38);
+}
+
+:root[data-theme="pure-black"] .home {
+  background:
+    radial-gradient(circle at 52% -6%, rgba(112, 94, 214, 0.16), transparent 29%),
+    linear-gradient(180deg, #11121b 0%, #090a10 64%, #06070b 100%);
+}
+
+.topbar {
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  min-height: 66px;
+  gap: 11px;
+  padding: 11px 14px 9px;
+}
+
+.menuButton,
+.topbarAction {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  border: 1px solid var(--iris-hairline);
+  color: color-mix(in srgb, var(--ink) 68%, transparent);
+  background: color-mix(in srgb, var(--iris-pearl) 82%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.68),
+    0 8px 22px rgba(66, 58, 118, 0.055);
+  backdrop-filter: blur(18px) saturate(1.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.08);
+}
+
+:root[data-theme="pure-black"] .menuButton,
+:root[data-theme="pure-black"] .topbarAction {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.chatPresence {
+  gap: 10px;
+}
+
+.companionAvatarHeader {
+  width: 40px;
+  height: 40px;
+  flex-basis: 40px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(107, 94, 197, 0.08),
+    0 8px 22px rgba(88, 72, 178, 0.14);
+}
+
+.brandName {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 760;
+}
+
+.topStatus {
+  color: var(--ink-dim);
+  font-size: 10.5px;
+  font-weight: 620;
+}
+
+.statusIndicator {
+  width: 6px;
+  height: 6px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--status-online) 10%, transparent);
+}
+
+.topbarActions {
+  gap: 3px;
+}
+
+.conversationStream {
+  gap: 16px;
+  padding: 18px 15px var(--effective-dock-clearance);
+  scrollbar-gutter: stable;
+}
+
+.message {
+  max-width: min(82%, 352px);
+  gap: 6px;
+  padding: 12px 15px 13px;
+  border: 1px solid var(--iris-hairline);
+  color: var(--ink);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--iris-pearl-strong) 92%, transparent), color-mix(in srgb, var(--iris-pearl) 88%, transparent)),
+    var(--assistant-bubble);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    var(--iris-shadow-soft);
+}
+
+.message.assistant {
+  margin-left: 39px;
+  border-radius: 8px 21px 21px 21px;
+}
+
+.message.assistant::after {
+  left: -40px;
+  top: 3px;
+  width: 30px;
+  height: 30px;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--iris-pearl-strong) 92%, transparent),
+    0 7px 18px rgba(91, 76, 184, 0.15);
+}
+
+.message.user {
+  max-width: min(76%, 330px);
+  border-color: color-mix(in srgb, var(--accent) 11%, transparent);
+  border-radius: 21px 8px 21px 21px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--user-bubble) 84%, white 16%), var(--user-bubble));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.66),
+    0 12px 32px color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.message.file,
+.message.system {
+  border-radius: 8px 21px 21px 21px;
+}
+
+.messageMeta {
+  color: color-mix(in srgb, var(--ink) 42%, transparent);
+  font-size: 10.5px;
+  font-weight: 690;
+}
+
+.messageMeta::before {
+  background: #65cfc2;
+  box-shadow: 0 0 0 3px rgba(101, 207, 194, 0.1);
+}
+
+.message.user .messageMeta::before {
+  background: #7a86f8;
+  box-shadow: 0 0 0 3px rgba(122, 134, 248, 0.09);
+}
+
+.messageText {
+  color: var(--ink);
+  font-size: 14.5px;
+  line-height: 1.62;
+  letter-spacing: -0.005em;
+}
+
+:root[data-theme="pure-black"] .message {
+  border-color: rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(31, 32, 46, 0.94), rgba(22, 23, 34, 0.9));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 16px 38px rgba(0, 0, 0, 0.25);
+}
+
+:root[data-theme="pure-black"] .message.user {
+  border-color: rgba(143, 128, 255, 0.16);
+  background:
+    linear-gradient(145deg, rgba(69, 61, 119, 0.78), rgba(44, 40, 79, 0.84));
+}
+
+.dock.unifiedComposer {
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 7px;
+  width: calc(100% - 24px);
+  min-height: 64px;
+  padding: 8px;
+  border: 1px solid var(--iris-hairline);
+  border-radius: 32px;
+  background: color-mix(in srgb, var(--iris-pearl-strong) 91%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    var(--iris-shadow-float);
+  backdrop-filter: blur(28px) saturate(1.12);
+  -webkit-backdrop-filter: blur(28px) saturate(1.12);
+}
+
+.dock.unifiedComposer:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--iris-hairline));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 0 0 4px color-mix(in srgb, var(--accent) 7%, transparent),
+    var(--iris-shadow-float);
+}
+
+:root[data-theme="pure-black"] .dock.unifiedComposer {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(19, 20, 29, 0.91);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 20px 58px rgba(0, 0, 0, 0.38);
+}
+
+.composerField {
+  min-height: 46px;
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--composer-field) 86%, transparent);
+}
+
+.composerField textarea {
+  min-height: 46px !important;
+  padding: 12px 46px 12px 16px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.composerField textarea:focus {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dockIcon {
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.attachButton,
+.dockMic {
+  color: color-mix(in srgb, var(--ink) 62%, transparent);
+  border-color: var(--iris-hairline);
+  background: color-mix(in srgb, var(--iris-pearl) 78%, transparent);
+}
+
+.documentUploadStatus,
+.documentContextBar {
+  min-height: 42px;
+  border-color: color-mix(in srgb, var(--accent) 13%, var(--iris-hairline));
+  background: color-mix(in srgb, var(--iris-pearl-strong) 88%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 8px 22px rgba(70, 61, 126, 0.06);
+}
+
+.documentUploadStatus {
+  padding: 10px 13px;
+  font-size: 11.5px;
+}
+
+.documentContextBar {
+  grid-template-columns: minmax(0, 1fr) repeat(3, minmax(0, auto));
+}
+
+.documentContextBar::before {
+  display: none;
+}
+
+.documentStatusText {
+  min-width: 0;
+}
+
+.detailSheet {
+  gap: 14px;
+  padding:
+    max(18px, env(safe-area-inset-top))
+    16px
+    max(20px, env(safe-area-inset-bottom));
+  color: var(--ink);
+  background: var(--detail-bg);
+}
+
+.sheetHeader {
+  min-height: 64px;
+  padding: 0 2px 10px;
+  background: transparent;
+}
+
+.sheetGlyph {
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 9px 18px rgba(101, 84, 218, 0.12));
+}
+
+.sheetEyebrow {
+  color: color-mix(in srgb, var(--accent) 54%, var(--ink-dim));
+  font-size: 9px;
+  letter-spacing: 0.18em;
+}
+
+.sheetTitleLockup h2 {
+  color: var(--ink);
+  font-size: 25px;
+}
+
+.settingsList {
+  gap: 9px;
+}
+
+.settingsGroup,
+:root[data-theme] .detailSheet .settingsGroup.navGroup,
+:root[data-theme] .detailSheet .settingsGroup.navGroup:not([open]) {
+  padding: 0 14px;
+  border: 1px solid var(--iris-hairline);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--iris-pearl) 83%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 8px 24px rgba(66, 57, 118, 0.05);
+  backdrop-filter: blur(20px) saturate(1.08);
+  -webkit-backdrop-filter: blur(20px) saturate(1.08);
+}
+
+.settingsGroup:not([open]),
+:root[data-theme] .detailSheet .settingsGroup.navGroup:not([open]) {
+  height: 58px;
+}
+
+.navSummary,
+:root[data-theme] .detailSheet .settingsGroup.navGroup > .navSummary {
+  min-height: 57px;
+  height: 57px;
+  grid-template-columns: 32px minmax(0, 1fr) 14px;
+  gap: 12px;
+}
+
+.navTitle {
+  color: var(--ink);
+  font-size: 14.5px;
+  font-weight: 720;
+}
+
+.navSub {
+  color: var(--ink-dim);
+  font-size: 10px;
+}
+
+.navSummary::after {
+  color: color-mix(in srgb, var(--ink) 28%, transparent);
+  font-size: 20px;
+}
+
+.groupBody {
+  margin: 0 0 14px 44px;
+}
+
+:root[data-theme="pure-black"] .detailSheet {
+  background:
+    radial-gradient(circle at 12% -4%, rgba(121, 104, 224, 0.13), transparent 33%),
+    linear-gradient(180deg, #14151f, #090a0f);
+}
+
+:root[data-theme="pure-black"] .settingsGroup,
+:root[data-theme="pure-black"] .detailSheet .settingsGroup.navGroup,
+:root[data-theme="pure-black"] .detailSheet .settingsGroup.navGroup:not([open]) {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(29, 30, 43, 0.82);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 10px 28px rgba(0, 0, 0, 0.2);
+}
+
+.capabilityPanel {
+  border: 1px solid var(--iris-hairline);
+  background: color-mix(in srgb, var(--iris-pearl-strong) 94%, transparent);
+  box-shadow: var(--iris-shadow-float);
+  backdrop-filter: blur(28px) saturate(1.08);
+  -webkit-backdrop-filter: blur(28px) saturate(1.08);
+}
+
+.capabilityGrid button,
+.capabilitySuggestion,
+.capabilityCustomButton {
+  border-color: var(--iris-hairline);
+  background: color-mix(in srgb, var(--iris-pearl) 76%, transparent);
+}
+
+.accessGate {
+  place-items: center;
+  padding:
+    max(14px, env(safe-area-inset-top))
+    14px
+    max(14px, env(safe-area-inset-bottom));
+  background: var(--access-bg);
+}
+
+.accessBackdrop {
+  opacity: 0.66;
+}
+
+.accessQuickControls {
+  z-index: 5;
+  left: max(25px, env(safe-area-inset-left));
+  right: max(25px, env(safe-area-inset-right));
+  top: max(25px, env(safe-area-inset-top));
+}
+
+.accessQuickButton {
+  width: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  border: 1px solid var(--iris-hairline);
+  color: var(--ink-soft);
+  background: color-mix(in srgb, var(--iris-pearl) 82%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 9px 24px rgba(66, 57, 118, 0.07);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.accessPanel {
+  width: min(100%, 402px);
+  min-height: min(816px, calc(var(--app-height) - max(28px, env(safe-area-inset-top)) - max(28px, env(safe-area-inset-bottom))));
+  max-height: calc(var(--app-height) - max(28px, env(safe-area-inset-top)) - max(28px, env(safe-area-inset-bottom)));
+  margin: auto;
+  padding:
+    calc(max(48px, env(safe-area-inset-top)) + 14px)
+    24px
+    22px;
+  border: 1px solid var(--access-panel-border);
+  border-radius: 34px;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 50% -8%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 32%),
+    var(--access-panel-bg);
+  box-shadow:
+    0 26px 80px rgba(72, 61, 137, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(34px) saturate(1.1);
+  -webkit-backdrop-filter: blur(34px) saturate(1.1);
+}
+
+.accessBrandStack:has(.accessPortrait),
+.accessPortrait {
+  width: 158px;
+  height: 158px;
+}
+
+.accessPortrait img {
+  width: 146px;
+  height: 146px;
+  border-width: 4px;
+  box-shadow:
+    0 0 0 1px rgba(110, 94, 202, 0.08),
+    0 20px 48px rgba(91, 75, 191, 0.16);
+}
+
+.accessPanel .accessWordmark h1 {
+  color: var(--ink);
+  font-size: 38px;
+  font-weight: 560;
+  letter-spacing: -0.035em;
+}
+
+.accessTagline {
+  color: color-mix(in srgb, var(--accent) 72%, var(--ink));
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+.accessCopy {
+  max-width: 318px;
+  margin: 8px auto 12px;
+  color: var(--ink-dim);
+  font-size: 10.5px;
+  line-height: 1.55;
+}
+
+.accessProofRow {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  margin: 2px auto 0;
+}
+
+.accessProofRow span {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid var(--iris-hairline);
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--ink) 58%, transparent);
+  background: color-mix(in srgb, var(--iris-pearl) 72%, transparent);
+  font-size: 9px;
+  font-weight: 660;
+  white-space: nowrap;
+}
+
+.accessProofRow span + span::before {
+  display: none;
+}
+
+.accessSessionNote {
+  display: block !important;
+  margin: 8px auto 0;
+  color: color-mix(in srgb, var(--ink) 36%, transparent);
+  font-size: 8.5px;
+  line-height: 1.4;
+}
+
+.accessForm,
+.accessGate:not([data-input-focused="true"]):not([data-submitting="true"]) .accessForm {
+  width: 100%;
+  gap: 9px;
+  margin-top: 24px;
+  padding: 17px 15px 13px;
+  border: 1px solid var(--iris-hairline);
+  border-radius: 23px;
+  background: color-mix(in srgb, var(--iris-pearl) 84%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 15px 42px rgba(73, 62, 139, 0.09);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.accessWelcome h2,
+.accessFocusIntro h2,
+.accessConnectingView h2 {
+  color: var(--ink);
+}
+
+.accessWelcome p,
+.accessFocusIntro p,
+.accessTrust,
+.accessForgotButton,
+.accessConnectingSteps small,
+.accessConnectingSoon {
+  color: var(--ink-dim);
+}
+
+.accessForm input {
+  min-height: 50px;
+  border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--iris-hairline));
+  color: var(--ink);
+  background: color-mix(in srgb, var(--iris-pearl-strong) 84%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 8px 24px rgba(75, 62, 147, 0.055);
+}
+
+.accessForm input::placeholder {
+  color: color-mix(in srgb, var(--ink) 38%, transparent);
+}
+
+.accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessPanel {
+  align-items: stretch;
+  min-height: min(700px, calc(var(--app-height) - max(28px, env(safe-area-inset-top)) - max(28px, env(safe-area-inset-bottom))));
+  padding:
+    calc(max(34px, env(safe-area-inset-top)) + 18px)
+    22px
+    24px;
+  border: 1px solid var(--access-panel-border);
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 50% -6%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 34%),
+    var(--access-panel-bg);
+  box-shadow:
+    0 26px 80px rgba(72, 61, 137, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(34px) saturate(1.1);
+  -webkit-backdrop-filter: blur(34px) saturate(1.1);
+}
+
+.accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessBrandStack {
+  width: 76px !important;
+  height: 76px !important;
+  display: block !important;
+  align-self: center;
+  margin: 2px auto 8px;
+}
+
+.accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessPortrait {
+  width: 76px;
+  height: 76px;
+  display: block;
+  border-radius: 22px;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=359") center / 58px 58px no-repeat;
+  filter: drop-shadow(0 12px 24px rgba(104, 85, 224, 0.16));
+}
+
+.accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessPortrait img,
+.accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessPortraitOrbit,
+.accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessMarkGlow,
+.accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessFocusGlyph {
+  display: none;
+}
+
+.accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessFocusIntro {
+  gap: 5px;
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessFocusIntro h2 {
+  font-size: 21px;
+  font-weight: 730;
+}
+
+.accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessFocusIntro p {
+  font-size: 10px;
+}
+
+.accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessForm {
+  width: 100%;
+  gap: 10px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--iris-hairline);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--iris-pearl) 78%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    0 18px 48px rgba(72, 61, 137, 0.12);
+}
+
+.accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessInputShell {
+  border-radius: 16px;
+  box-shadow: 0 0 0 4px rgba(117, 103, 244, 0.07);
+}
+
+.accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessForm input {
+  min-height: 52px;
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--iris-hairline));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 11px 30px rgba(74, 61, 157, 0.1);
+}
+
+.accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessProofRow,
+.accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessSessionNote {
+  display: none !important;
+}
+
+.accessGate[data-submitting="true"] .accessPanel {
+  min-height: min(760px, calc(var(--app-height) - max(28px, env(safe-area-inset-top)) - max(28px, env(safe-area-inset-bottom))));
+  border: 1px solid var(--access-panel-border);
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 50% -6%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 34%),
+    var(--access-panel-bg);
+  box-shadow:
+    0 26px 80px rgba(72, 61, 137, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(34px) saturate(1.1);
+  -webkit-backdrop-filter: blur(34px) saturate(1.1);
+}
+
+:root[data-theme="pure-black"] .accessPanel,
+:root[data-theme="pure-black"] .accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessPanel,
+:root[data-theme="pure-black"] .accessGate[data-submitting="true"] .accessPanel {
+  border-color: rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(circle at 50% -8%, rgba(128, 113, 255, 0.14), transparent 34%),
+    rgba(18, 18, 29, 0.82);
+  box-shadow:
+    0 28px 86px rgba(0, 0, 0, 0.44),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+:root[data-theme="pure-black"] .accessForm,
+:root[data-theme="pure-black"] .accessGate[data-input-focused="true"]:not([data-submitting="true"]) .accessForm {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 18px 48px rgba(0, 0, 0, 0.28);
+}
+
+:root[data-theme="pure-black"] .accessForm input {
+  border-color: rgba(255, 255, 255, 0.11);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 10px 28px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 520px) {
+  .composerField textarea,
+  .accessForm input,
+  .settingRow input,
+  .settingRow select,
+  .memorySearchInput {
+    font-size: 16px;
+  }
+
+  .accessPanel {
+    width: 100%;
+  }
+}
+
+@media (orientation: portrait) and (max-height: 720px) {
+  .accessPanel {
+    padding-top: calc(max(34px, env(safe-area-inset-top)) + 8px);
+  }
+
+  .accessBrandStack:has(.accessPortrait),
+  .accessPortrait {
+    width: 118px;
+    height: 118px;
+  }
+
+  .accessPortrait img {
+    width: 108px;
+    height: 108px;
+  }
+
+  .accessPanel .accessWordmark h1 {
+    font-size: 31px;
+  }
+
+  .accessProofRow {
+    gap: 4px;
+  }
+
+  .accessProofRow span {
+    padding-inline: 7px;
+    font-size: 8px;
+  }
+
+  .accessForm,
+  .accessGate:not([data-input-focused="true"]):not([data-submitting="true"]) .accessForm {
+    margin-top: 14px;
+    padding: 13px;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .dock.unifiedComposer,
+  .settingsGroup,
+  .accessPanel,
+  .accessForm,
+  .capabilityPanel {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }
 
@@ -12350,4 +13175,56 @@ body.documentEvidenceOpen {
   .accessForm > #accessSubmitButton {
     min-height: 45px;
   }
+}
+
+/* v359 screenshot stability lock. This block is intentionally last. */
+body > .dock.unifiedComposer {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  filter: none;
+  isolation: isolate;
+  will-change: auto;
+  background: var(--iris-pearl-strong);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+:root[data-theme="pure-black"] body > .dock.unifiedComposer {
+  border-color: rgba(255, 255, 255, 0.11);
+  background: #171821;
+}
+
+:root[data-theme="pure-black"] body > .dock.unifiedComposer .composerField {
+  border-color: rgba(255, 255, 255, 0.09);
+  background: #20212d;
+}
+
+:root[data-theme="pure-black"] body > .dock.unifiedComposer .attachButton,
+:root[data-theme="pure-black"] body > .dock.unifiedComposer .dockMic {
+  border-color: rgba(255, 255, 255, 0.09);
+  color: rgba(241, 239, 252, 0.7);
+  background: #242632;
+}
+
+#accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessBrandStack {
+  width: 76px !important;
+  height: 76px !important;
+  display: block !important;
+  align-self: center;
+  margin: 2px auto 8px;
+}
+
+#accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessBrandStack > .accessPortrait {
+  width: 76px !important;
+  height: 76px !important;
+  display: block !important;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=359") center / 58px 58px no-repeat;
+}
+
+#accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessFocusIntro > .accessFocusGlyph,
+#accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessBrandStack img,
+#accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessBrandStack .accessPortraitOrbit,
+#accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessBrandStack .accessMarkGlow {
+  display: none !important;
 }

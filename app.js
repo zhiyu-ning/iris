@@ -84,7 +84,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "357";
+const VOICE_UI_VERSION = "359";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "xlsx", "pptx", "odt", "ods", "odp", "eml",
@@ -472,7 +472,22 @@ const UI_TEXT = {
     "access.private": "只属于你",
     "access.voice": "语音优先",
     "access.memory": "记忆连续",
+    "access.files": "文件理解",
     "access.sessionNote": "短期令牌仅保存在这台设备。",
+    "access.focusTitle": "输入访问密钥",
+    "access.focusHint": "密钥可以是数字、字母或符号的组合",
+    "access.welcomeTitle": "欢迎回来",
+    "access.welcomeHint": "请输入访问密钥以继续",
+    "access.forgot": "忘记密码？",
+    "access.connectingTitle": "正在连接到 Iris",
+    "access.connectingVerify": "验证访问权限",
+    "access.connectingVerified": "密钥验证成功",
+    "access.connectingSecure": "建立安全连接",
+    "access.connectingSecuring": "正在加密通信通道…",
+    "access.connectingSync": "同步你的数据",
+    "access.connectingSyncing": "即将就绪…",
+    "access.connectingWait": "请稍候…",
+    "access.connectingSoon": "马上就好",
     "access.keyLabel": "访问口令",
     "access.trust": "只用于确认访问权限，不会公开你的内容。",
     "access.placeholder": "输入访问口令",
@@ -648,7 +663,22 @@ const UI_TEXT = {
     "access.private": "Only yours",
     "access.voice": "Voice first",
     "access.memory": "Continuous memory",
+    "access.files": "File understanding",
     "access.sessionNote": "The short-lived token stays on this device.",
+    "access.focusTitle": "Enter your access code",
+    "access.focusHint": "Use any combination of letters, numbers, or symbols",
+    "access.welcomeTitle": "Welcome back",
+    "access.welcomeHint": "Enter your access code to continue",
+    "access.forgot": "Forgot code?",
+    "access.connectingTitle": "Connecting to Iris",
+    "access.connectingVerify": "Verify access",
+    "access.connectingVerified": "Access code confirmed",
+    "access.connectingSecure": "Secure connection",
+    "access.connectingSecuring": "Encrypting the channel…",
+    "access.connectingSync": "Sync your space",
+    "access.connectingSyncing": "Almost ready…",
+    "access.connectingWait": "Please wait…",
+    "access.connectingSoon": "Just a moment",
     "access.keyLabel": "Access code",
     "access.trust": "Only confirms access. Nothing is shared publicly.",
     "access.placeholder": "Enter access code",
@@ -980,7 +1010,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v357-document-evidence-navigation";
+const WEB_VERSION = "voice-ui-web-polish-v359-iris-pearl";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -8324,13 +8354,25 @@ async function speak(text, turnId, responseId) {
   send({ type: "playback_finished", turn_id: turnId, response_id: responseId });
 }
 
+function localizedTtsPlaceholder(value, kind) {
+  const text = String(value || "").trim();
+  const placeholderSets = {
+    audibility: new Set(["未确认", "Not confirmed"]),
+    route: new Set(["还没有播报记录。", "No playback record yet."]),
+  };
+  const key = kind === "route" ? "tts.noRoute" : "tts.unconfirmed";
+  const fallback = kind === "route" ? "还没有播报记录。" : "未确认";
+  return !text || placeholderSets[kind].has(text) ? textFor(key, fallback) : text;
+}
+
 function renderWebTtsAudibility() {
   if (!els.webTtsAudibility) return;
   if (!currentWebTtsAudibilityText) {
     currentWebTtsAudibilityText = safeStorageGet(TTS_AUDIBILITY_KEY, textFor("tts.unconfirmed", "未确认"));
     persistedWebTtsAudibilityText = currentWebTtsAudibilityText;
   }
-  const value = currentWebTtsAudibilityText || textFor("tts.unconfirmed", "未确认");
+  const value = localizedTtsPlaceholder(currentWebTtsAudibilityText, "audibility");
+  currentWebTtsAudibilityText = value;
   const tone = webTtsAudibilityTone(value);
   els.webTtsAudibility.textContent = value;
   els.webTtsAudibility.title = value;
@@ -8366,6 +8408,7 @@ function renderWebTtsRoute() {
     currentTtsRouteText = safeStorageGet(TTS_ROUTE_KEY, textFor("tts.noRoute", "还没有播报记录。"));
     persistedTtsRouteText = currentTtsRouteText;
   }
+  currentTtsRouteText = localizedTtsPlaceholder(currentTtsRouteText, "route");
   els.webTtsRoute.textContent = currentTtsRouteText;
 }
 
