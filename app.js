@@ -68,6 +68,13 @@ const els = {
   proactiveEnabled: document.getElementById("proactiveEnabled"),
   proactiveDailyLimit: document.getElementById("proactiveDailyLimit"),
   proactiveInterval: document.getElementById("proactiveInterval"),
+  proactiveAdaptive: document.getElementById("proactiveAdaptive"),
+  proactiveRhythm: document.getElementById("proactiveRhythm"),
+  proactiveRhythmTitle: document.getElementById("proactiveRhythmTitle"),
+  proactiveRhythmHint: document.getElementById("proactiveRhythmHint"),
+  proactiveRhythmSent: document.getElementById("proactiveRhythmSent"),
+  proactiveRhythmReplied: document.getElementById("proactiveRhythmReplied"),
+  proactiveRhythmDismissed: document.getElementById("proactiveRhythmDismissed"),
   proactiveQuietStart: document.getElementById("proactiveQuietStart"),
   proactiveQuietEnd: document.getElementById("proactiveQuietEnd"),
   proactiveEmotion: document.getElementById("proactiveEmotion"),
@@ -122,7 +129,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "373";
+const VOICE_UI_VERSION = "374";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -626,6 +633,15 @@ const UI_TEXT = {
     "proactive.offHint": "提醒和回访都先安静下来，随时可以恢复。",
     "proactive.dailyLimit": "每天最多",
     "proactive.interval": "最短间隔",
+    "proactive.adaptive": "允许 Iris 自动降低软性回访频率",
+    "proactive.rhythmKicker": "RHYTHM LEARNING",
+    "proactive.rhythmLearning": "还在了解你的节奏",
+    "proactive.rhythmLearningHint": "样本足够后，Iris 只会降低打扰，不会自动增加频率。",
+    "proactive.rhythmMetricsAria": "近 30 天主动陪伴互动",
+    "proactive.rhythmSent": "主动",
+    "proactive.rhythmReplied": "回复",
+    "proactive.rhythmDismissed": "忽略",
+    "proactive.rhythmSafety": "只调整情绪与目标回访；日程和事务提醒不受影响。",
     "proactive.quietHours": "安静时段",
     "proactive.quietStart": "开始",
     "proactive.quietEnd": "结束",
@@ -886,6 +902,15 @@ const UI_TEXT = {
     "proactive.offHint": "Reminders and check-ins will stay quiet until you resume them.",
     "proactive.dailyLimit": "Daily maximum",
     "proactive.interval": "Minimum interval",
+    "proactive.adaptive": "Allow Iris to reduce soft follow-up frequency",
+    "proactive.rhythmKicker": "RHYTHM LEARNING",
+    "proactive.rhythmLearning": "Still learning your rhythm",
+    "proactive.rhythmLearningHint": "With enough samples, Iris may only reduce interruptions, never increase them.",
+    "proactive.rhythmMetricsAria": "Proactive care interactions over the last 30 days",
+    "proactive.rhythmSent": "Sent",
+    "proactive.rhythmReplied": "Replies",
+    "proactive.rhythmDismissed": "Dismissed",
+    "proactive.rhythmSafety": "Only emotional and goal follow-ups adapt; calendar and transactional reminders are exempt.",
     "proactive.quietHours": "Quiet hours",
     "proactive.quietStart": "Start",
     "proactive.quietEnd": "End",
@@ -1218,7 +1243,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v373-conversation-match-navigation";
+const WEB_VERSION = "voice-ui-web-polish-v374-adaptive-proactive-rhythm";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -7056,6 +7081,7 @@ function setProactiveControlsBusy(busy) {
     els.proactiveEnabled,
     els.proactiveDailyLimit,
     els.proactiveInterval,
+    els.proactiveAdaptive,
     els.proactiveQuietStart,
     els.proactiveQuietEnd,
     els.proactiveEmotion,
@@ -7126,6 +7152,88 @@ function proactiveInboxTime(value) {
   }
 }
 
+function proactiveRhythmInterval(minutes) {
+  const value = Math.max(0, Number(minutes) || 0);
+  if (currentLanguage === "en") {
+    if (value >= 60 && value % 60 === 0) {
+      const hours = value / 60;
+      return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+    }
+    return `${value} minutes`;
+  }
+  if (value >= 60 && value % 60 === 0) return `${value / 60} 小时`;
+  return `${value} 分钟`;
+}
+
+function renderProactiveRhythm(rhythm, preferences) {
+  const profile = rhythm && typeof rhythm === "object" ? rhythm : {};
+  const engagement = profile.engagement && typeof profile.engagement === "object"
+    ? profile.engagement
+    : {};
+  const overall = engagement.overall && typeof engagement.overall === "object"
+    ? engagement.overall
+    : {};
+  const soft = engagement.soft && typeof engagement.soft === "object"
+    ? engagement.soft
+    : {};
+  const configured = profile.configured && typeof profile.configured === "object"
+    ? profile.configured
+    : {};
+  const recommended = profile.recommended && typeof profile.recommended === "object"
+    ? profile.recommended
+    : configured;
+  const effective = profile.effective && typeof profile.effective === "object"
+    ? profile.effective
+    : configured;
+  const enabled = preferences.adaptive_frequency_enabled === true;
+  const state = String(profile.state || "learning");
+  const minimum = Math.max(1, Number(
+    engagement.minimum_adaptive_sample
+      || (profile.safety && profile.safety.minimum_sample)
+      || 6
+  ));
+  const sent = Math.max(0, Number(overall.sent_count) || 0);
+  const replied = Math.max(0, Number(overall.replied_count) || 0);
+  const dismissed = Math.max(0, Number(overall.dismissed_count) || 0);
+  if (els.proactiveAdaptive) els.proactiveAdaptive.checked = enabled;
+  if (els.proactiveRhythmSent) els.proactiveRhythmSent.textContent = String(sent);
+  if (els.proactiveRhythmReplied) els.proactiveRhythmReplied.textContent = String(replied);
+  if (els.proactiveRhythmDismissed) els.proactiveRhythmDismissed.textContent = String(dismissed);
+  if (els.proactiveRhythm) {
+    els.proactiveRhythm.dataset.enabled = enabled ? "true" : "false";
+    els.proactiveRhythm.dataset.state = state;
+    els.proactiveRhythm.dataset.applied = profile.applied ? "true" : "false";
+  }
+
+  let title = currentLanguage === "en" ? "Still learning your rhythm" : "还在了解你的节奏";
+  let hint = currentLanguage === "en"
+    ? `${Math.min(Number(soft.sent_count) || 0, minimum)} of ${minimum} soft follow-ups observed.`
+    : `已观察 ${Math.min(Number(soft.sent_count) || 0, minimum)} / ${minimum} 条软性回访。`;
+  if (state === "quieter") {
+    title = enabled
+      ? (currentLanguage === "en" ? "Iris has slowed down" : "Iris 已经放慢")
+      : (currentLanguage === "en" ? "A quieter rhythm is available" : "可以更安静一点");
+    const target = enabled ? effective : recommended;
+    const daily = Math.max(1, Number(target.soft_max_messages_per_day) || 1);
+    const interval = proactiveRhythmInterval(target.soft_message_interval_minutes);
+    hint = currentLanguage === "en"
+      ? `${enabled ? "Soft follow-ups now use" : "Turn this on to use"} up to ${daily} daily, at least ${interval} apart.`
+      : `${enabled ? "软性回访已调整为" : "开启后将调整为"}每天最多 ${daily} 次，至少间隔 ${interval}。`;
+  } else if (state === "well_matched") {
+    title = currentLanguage === "en" ? "This rhythm fits well" : "当前节奏很合适";
+    hint = currentLanguage === "en"
+      ? "Your responses are healthy. Iris will keep this rhythm and will not become more frequent."
+      : "你的回应很自然。Iris 会保持当前节奏，不会因此变得更频繁。";
+  } else if (state === "balanced") {
+    title = currentLanguage === "en" ? "Keeping the current rhythm" : "保持当前节奏";
+    hint = currentLanguage === "en"
+      ? "Recent replies and dismissals are mixed, so Iris will not change the cadence."
+      : "近期回复与忽略较为均衡，Iris 暂不改变节奏。";
+  }
+  if (els.proactiveRhythmTitle) els.proactiveRhythmTitle.textContent = title;
+  if (els.proactiveRhythmHint) els.proactiveRhythmHint.textContent = hint;
+}
+
 function renderProactiveInbox(items) {
   proactiveInboxItems = Array.isArray(items) ? items.filter((item) => item && item.notification_id) : [];
   if (!els.proactiveInbox) return;
@@ -7185,6 +7293,7 @@ function renderProactivePreferences(payload) {
   if (els.proactiveEmotion) els.proactiveEmotion.checked = preferences.allow_emotion_followup !== false;
   if (els.proactiveGoal) els.proactiveGoal.checked = preferences.allow_goal_followup !== false;
   if (els.proactiveCalendar) els.proactiveCalendar.checked = preferences.allow_calendar_preparation !== false;
+  renderProactiveRhythm(payload && payload.rhythm, preferences);
   if (els.proactiveOverview) els.proactiveOverview.dataset.enabled = enabled ? "true" : "false";
   if (els.proactiveOverviewTitle) {
     els.proactiveOverviewTitle.textContent = enabled
@@ -12261,6 +12370,13 @@ if (els.proactiveInterval) {
     saveProactivePreferences({
       soft_message_interval_minutes: Number(els.proactiveInterval.value)
     }).catch((err) => logLine(err.message || "proactive interval failed"));
+  });
+}
+if (els.proactiveAdaptive) {
+  els.proactiveAdaptive.addEventListener("change", () => {
+    saveProactivePreferences({
+      adaptive_frequency_enabled: els.proactiveAdaptive.checked
+    }).catch((err) => logLine(err.message || "proactive adaptive rhythm failed"));
   });
 }
 function saveProactiveQuietHours() {

@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=373" type="image/png" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=373" />
-    <link rel="manifest" href="/iris/manifest.json?v=373" />
-    <link rel="stylesheet" href="/iris/styles.css?v=373" />
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=374" type="image/png" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=374" />
+    <link rel="manifest" href="/iris/manifest.json?v=374" />
+    <link rel="stylesheet" href="/iris/styles.css?v=374" />
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -180,7 +180,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=373" alt="" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=374" alt="" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -247,7 +247,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=373" alt="" />
+              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=374" alt="" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
@@ -484,6 +484,36 @@
               </label>
             </div>
 
+            <section id="proactiveRhythm" class="proactiveRhythm" data-state="learning" data-enabled="false">
+              <header>
+                <div>
+                  <span class="proactiveRhythmKicker" data-i18n="proactive.rhythmKicker">RHYTHM LEARNING</span>
+                  <strong id="proactiveRhythmTitle" data-i18n="proactive.rhythmLearning">还在了解你的节奏</strong>
+                </div>
+                <label class="proactiveSwitch proactiveRhythmSwitch" for="proactiveAdaptive">
+                  <input id="proactiveAdaptive" type="checkbox" />
+                  <span aria-hidden="true"></span>
+                  <span class="srOnly" data-i18n="proactive.adaptive">允许 Iris 自动降低软性回访频率</span>
+                </label>
+              </header>
+              <p id="proactiveRhythmHint" class="proactiveRhythmHint" data-i18n="proactive.rhythmLearningHint">样本足够后，Iris 只会降低打扰，不会自动增加频率。</p>
+              <dl class="proactiveRhythmMetrics" aria-label="近 30 天主动陪伴互动" data-i18n-aria-label="proactive.rhythmMetricsAria">
+                <div>
+                  <dt data-i18n="proactive.rhythmSent">主动</dt>
+                  <dd id="proactiveRhythmSent">0</dd>
+                </div>
+                <div>
+                  <dt data-i18n="proactive.rhythmReplied">回复</dt>
+                  <dd id="proactiveRhythmReplied">0</dd>
+                </div>
+                <div>
+                  <dt data-i18n="proactive.rhythmDismissed">忽略</dt>
+                  <dd id="proactiveRhythmDismissed">0</dd>
+                </div>
+              </dl>
+              <p class="proactiveRhythmSafety" data-i18n="proactive.rhythmSafety">只调整情绪与目标回访；日程和事务提醒不受影响。</p>
+            </section>
+
             <fieldset class="proactiveQuiet">
               <legend data-i18n="proactive.quietHours">安静时段</legend>
               <label>
@@ -659,7 +689,7 @@
         </div>
       </aside>
     </main>
-    <script src="/iris/public-config.js?v=373"></script>
-    <script src="/iris/app.js?v=373"></script>
+    <script src="/iris/public-config.js?v=374"></script>
+    <script src="/iris/app.js?v=374"></script>
   </body>
 </html>
