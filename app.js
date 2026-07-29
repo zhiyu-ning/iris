@@ -116,7 +116,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "369";
+const VOICE_UI_VERSION = "370";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -1172,7 +1172,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v369-deep-research";
+const WEB_VERSION = "voice-ui-web-polish-v370-research-report";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -3112,6 +3112,133 @@ function deepResearchSourceRoleLabel(role = "") {
   return labels[role] || labels.secondary;
 }
 
+function deepResearchMarkdownText(value = "") {
+  return String(value || "")
+    .replace(/\\/g, "\\\\")
+    .replace(/\[/g, "\\[")
+    .replace(/\]/g, "\\]")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function deepResearchMarkdown(payload) {
+  const en = currentLanguage === "en";
+  const status = deepResearchStatusMeta(payload.status);
+  const sourceById = new Map(payload.sources.map((source) => [source.sourceId, source]));
+  const lines = [
+    `# ${deepResearchMarkdownText(payload.topic || status.title)}`,
+    "",
+    `> ${status.label} · ${Math.round(payload.coverageRatio * 100)}% ${en ? "evidence coverage" : "证据覆盖"}`,
+    ""
+  ];
+  if (payload.executiveSummary) {
+    lines.push(en ? "## Executive summary" : "## 执行摘要", "", deepResearchMarkdownText(payload.executiveSummary), "");
+  }
+  lines.push(en ? "## Findings" : "## 研究结论", "");
+  payload.claims.forEach((claim, index) => {
+    const claimMeta = deepResearchClaimMeta(claim.status);
+    lines.push(
+      `### ${index + 1}. ${deepResearchMarkdownText(claim.question)}`,
+      "",
+      `**${en ? "Status" : "状态"}:** ${claimMeta.label}`,
+      "",
+      deepResearchMarkdownText(claim.conclusion),
+      ""
+    );
+    if (claim.caveats.length) {
+      lines.push(`**${en ? "Caveats" : "限制"}:**`);
+      claim.caveats.forEach((caveat) => lines.push(`- ${deepResearchMarkdownText(caveat)}`));
+      lines.push("");
+    }
+    const claimSources = claim.sourceIds.map((sourceId) => sourceById.get(sourceId)).filter(Boolean);
+    if (claimSources.length) {
+      lines.push(`**${en ? "Evidence" : "证据"}:**`);
+      claimSources.forEach((source) => {
+        lines.push(`- [${deepResearchMarkdownText(source.title || source.domain)}](${source.url})`);
+      });
+      lines.push("");
+    }
+  });
+  if (payload.limitations.length) {
+    lines.push(en ? "## Limitations" : "## 研究局限", "");
+    payload.limitations.forEach((limitation) => lines.push(`- ${deepResearchMarkdownText(limitation)}`));
+    lines.push("");
+  }
+  if (payload.sources.length) {
+    lines.push(en ? "## Sources" : "## 来源", "");
+    payload.sources.forEach((source, index) => {
+      const title = deepResearchMarkdownText(source.title || source.domain);
+      const meta = `${deepResearchSourceRoleLabel(source.sourceRole)} · ${Math.round(source.authorityScore)}/100`;
+      lines.push(`${index + 1}. [${title}](${source.url}) — ${meta}`);
+    });
+    lines.push("");
+  }
+  lines.push(
+    "---",
+    en
+      ? `Read-only research · ${payload.budget.searchesSucceeded}/${payload.budget.searchesExecuted} searches completed`
+      : `只读研究 · ${payload.budget.searchesSucceeded}/${payload.budget.searchesExecuted} 个检索已完成`
+  );
+  return `${lines.join("\n").trim()}\n`;
+}
+
+function deepResearchDownloadFilename(topic = "") {
+  const safeTopic = String(topic || "iris-deep-research")
+    .normalize("NFKC")
+    .replace(/[\\/:*?"<>|\u0000-\u001F]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^[.-]+|[.-]+$/g, "")
+    .slice(0, 72);
+  return `${safeTopic || "iris-deep-research"}.md`;
+}
+
+function downloadDeepResearchMarkdown(payload) {
+  const blob = new Blob([deepResearchMarkdown(payload)], { type: "text/markdown;charset=utf-8" });
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = deepResearchDownloadFilename(payload.topic);
+  link.hidden = true;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+}
+
+function deepResearchContinuePrompt(payload) {
+  const questions = payload.claims
+    .filter((claim) => claim.status === "OPEN")
+    .map((claim) => claim.question)
+    .filter(Boolean)
+    .slice(0, 4);
+  if (!questions.length) return "";
+  if (currentLanguage === "en") {
+    return `Continue deep research on "${payload.topic}". Prioritize these unresolved questions: ${questions.join("; ")}`;
+  }
+  return `继续深度研究“${payload.topic}”，优先查证这些尚未确认的问题：${questions.join("；")}`;
+}
+
+function appendDeepResearchSource(parent, source) {
+  const link = document.createElement("a");
+  link.href = source.url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.className = "deepResearchSource";
+  link.dataset.role = source.sourceRole;
+  const marker = document.createElement("span");
+  marker.className = "deepResearchSourceScore";
+  marker.textContent = String(Math.round(source.authorityScore));
+  const sourceCopy = document.createElement("span");
+  const sourceTitle = document.createElement("strong");
+  sourceTitle.textContent = source.title || source.domain;
+  const sourceMeta = document.createElement("span");
+  sourceMeta.textContent = `${deepResearchSourceRoleLabel(source.sourceRole)} · ${source.domain}`;
+  sourceCopy.append(sourceTitle, sourceMeta);
+  link.append(marker, sourceCopy);
+  parent.appendChild(link);
+}
+
 function appendDeepResearchCard(item, payload) {
   if (!item || !payload) return;
   const status = deepResearchStatusMeta(payload.status);
@@ -3170,6 +3297,13 @@ function appendDeepResearchCard(item, payload) {
   metrics.prepend(coverage);
   card.appendChild(metrics);
 
+  if (payload.executiveSummary) {
+    const summary = document.createElement("p");
+    summary.className = "deepResearchSummary";
+    summary.textContent = payload.executiveSummary;
+    card.appendChild(summary);
+  }
+
   const claims = document.createElement("div");
   claims.className = "deepResearchClaims";
   payload.claims.forEach((claim, index) => {
@@ -3193,6 +3327,17 @@ function appendDeepResearchCard(item, payload) {
     conclusion.textContent = claim.conclusion;
     row.appendChild(conclusion);
 
+    if (claim.caveats.length) {
+      const caveats = document.createElement("ul");
+      caveats.className = "deepResearchCaveats";
+      claim.caveats.forEach((caveat) => {
+        const entry = document.createElement("li");
+        entry.textContent = caveat;
+        caveats.appendChild(entry);
+      });
+      row.appendChild(caveats);
+    }
+
     const claimSources = claim.sourceIds
       .map((sourceId) => sourceById.get(sourceId))
       .filter(Boolean)
@@ -3215,6 +3360,21 @@ function appendDeepResearchCard(item, payload) {
   });
   card.appendChild(claims);
 
+  if (payload.limitations.length) {
+    const limitations = document.createElement("section");
+    limitations.className = "deepResearchLimitations";
+    const title = document.createElement("strong");
+    title.textContent = currentLanguage === "en" ? "Research limitations" : "研究局限";
+    const list = document.createElement("ul");
+    payload.limitations.forEach((limitation) => {
+      const entry = document.createElement("li");
+      entry.textContent = limitation;
+      list.appendChild(entry);
+    });
+    limitations.append(title, list);
+    card.appendChild(limitations);
+  }
+
   if (payload.sources.length) {
     const registry = document.createElement("div");
     registry.className = "deepResearchSources";
@@ -3222,27 +3382,85 @@ function appendDeepResearchCard(item, payload) {
     registryTitle.className = "deepResearchSourcesTitle";
     registryTitle.textContent = currentLanguage === "en" ? "Source quality" : "来源质量";
     registry.appendChild(registryTitle);
-    payload.sources.slice(0, 5).forEach((source) => {
-      const link = document.createElement("a");
-      link.href = source.url;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.className = "deepResearchSource";
-      link.dataset.role = source.sourceRole;
-      const marker = document.createElement("span");
-      marker.className = "deepResearchSourceScore";
-      marker.textContent = String(Math.round(source.authorityScore));
-      const sourceCopy = document.createElement("span");
-      const sourceTitle = document.createElement("strong");
-      sourceTitle.textContent = source.title || source.domain;
-      const sourceMeta = document.createElement("span");
-      sourceMeta.textContent = `${deepResearchSourceRoleLabel(source.sourceRole)} · ${source.domain}`;
-      sourceCopy.append(sourceTitle, sourceMeta);
-      link.append(marker, sourceCopy);
-      registry.appendChild(link);
-    });
+    payload.sources.slice(0, 5).forEach((source) => appendDeepResearchSource(registry, source));
+    if (payload.sources.length > 5) {
+      const disclosure = document.createElement("details");
+      disclosure.className = "deepResearchSourcesDisclosure";
+      const summary = document.createElement("summary");
+      const remaining = payload.sources.length - 5;
+      summary.textContent = currentLanguage === "en"
+        ? `Show ${remaining} more sources`
+        : `查看其余 ${remaining} 个来源`;
+      const additional = document.createElement("div");
+      additional.className = "deepResearchSourcesMore";
+      payload.sources.slice(5).forEach((source) => appendDeepResearchSource(additional, source));
+      disclosure.append(summary, additional);
+      registry.appendChild(disclosure);
+    }
     card.appendChild(registry);
   }
+
+  const actions = document.createElement("div");
+  actions.className = "deepResearchActions";
+  const actionStatus = document.createElement("span");
+  actionStatus.className = "deepResearchActionStatus";
+  actionStatus.setAttribute("role", "status");
+  actionStatus.setAttribute("aria-live", "polite");
+  const setActionStatus = (message, tone = "") => {
+    actionStatus.textContent = message;
+    actionStatus.dataset.tone = tone;
+  };
+  const copy = document.createElement("button");
+  copy.type = "button";
+  copy.className = "deepResearchAction";
+  copy.textContent = currentLanguage === "en" ? "Copy report" : "复制报告";
+  copy.addEventListener("click", async () => {
+    copy.disabled = true;
+    try {
+      await writeDiagnosticsClipboard(deepResearchMarkdown(payload));
+      setActionStatus(currentLanguage === "en" ? "Report copied" : "报告已复制", "success");
+    } catch (_) {
+      setActionStatus(currentLanguage === "en" ? "Copy failed" : "复制失败", "error");
+    } finally {
+      copy.disabled = false;
+    }
+  });
+  const download = document.createElement("button");
+  download.type = "button";
+  download.className = "deepResearchAction";
+  download.textContent = currentLanguage === "en" ? "Download .md" : "下载 .md";
+  download.addEventListener("click", () => {
+    try {
+      downloadDeepResearchMarkdown(payload);
+      setActionStatus(currentLanguage === "en" ? "Markdown downloaded" : "Markdown 已下载", "success");
+    } catch (_) {
+      setActionStatus(currentLanguage === "en" ? "Download failed" : "下载失败", "error");
+    }
+  });
+  actions.append(copy, download);
+  const continuePrompt = deepResearchContinuePrompt(payload);
+  if (continuePrompt) {
+    const continueResearch = document.createElement("button");
+    continueResearch.type = "button";
+    continueResearch.className = "deepResearchAction deepResearchContinue";
+    continueResearch.textContent = currentLanguage === "en" ? "Continue research" : "继续查证";
+    continueResearch.addEventListener("click", () => {
+      continueResearch.disabled = true;
+      setActionStatus(currentLanguage === "en" ? "Continuing research…" : "正在继续查证…", "loading");
+      sendTextPrompt(continuePrompt).then((succeeded) => {
+        continueResearch.disabled = false;
+        setActionStatus(
+          succeeded
+            ? (currentLanguage === "en" ? "Follow-up research started" : "已发起新一轮查证")
+            : (currentLanguage === "en" ? "Unable to continue" : "继续查证失败"),
+          succeeded ? "success" : "error"
+        );
+      });
+    });
+    actions.appendChild(continueResearch);
+  }
+  actions.appendChild(actionStatus);
+  card.appendChild(actions);
 
   const footer = document.createElement("p");
   footer.className = "deepResearchFooter";
@@ -9485,10 +9703,10 @@ function shutdownVoiceSessionForPageHide() {
 
 async function sendTextPrompt(text) {
   const final = (text || "").trim();
-  if (!final) return;
+  if (!final) return false;
   if (!canUseBackendNow()) {
     showAccessGate(textFor("access.required", "请先输入访问口令。"), "warning", "access.required");
-    return;
+    return false;
   }
   const requestId = textPromptSeq + 1;
   textPromptSeq = requestId;
@@ -9527,7 +9745,7 @@ async function sendTextPrompt(text) {
     if (requestId !== textPromptSeq) {
       logLine("stale text prompt skipped");
       flushLogRenderNow();
-      return;
+      return false;
     }
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -9573,10 +9791,11 @@ async function sendTextPrompt(text) {
     setState("idle", { preserveSubtitle: true });
     clearActiveProactiveConversation();
     logLine(`text reply · ${payload.route || "client"}${payload.skill ? `/${payload.skill}` : ""}`);
+    return true;
   } catch (err) {
     if (requestId !== textPromptSeq) {
       logLine("stale text prompt failure skipped");
-      return;
+      return false;
     }
     const message = `文字发送失败：${err.message || "网络不可用"}`;
     appendAssistantConversation(message, { kind: "error" });
@@ -9584,7 +9803,7 @@ async function sendTextPrompt(text) {
     flushLogRenderNow();
     setState("error");
     setSttHint("文字发送失败。网络恢复后再试一次。");
-    return;
+    return false;
   }
 }
 

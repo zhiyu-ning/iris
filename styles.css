@@ -57,8 +57,8 @@
   --control-hover-filter: brightness(1.018) saturate(1.06);
   --control-active-filter: brightness(0.985) saturate(1.02);
   --control-press-shadow: inset 0 2px 5px rgba(24, 42, 67, 0.08);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=369");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=369");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=370");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=370");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -212,8 +212,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 22px 54px rgba(85, 91, 255, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=369");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=369");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=370");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=370");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -269,8 +269,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=369");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=369");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=370");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=370");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -2055,7 +2055,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=369");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=370");
 }
 
 .brandName {
@@ -10529,7 +10529,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 /* v354 Iris companion interface: portrait-led entry, calm conversation, and card-based settings. */
 :root {
-  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=369");
+  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=370");
   --iris-violet: #7567f8;
   --iris-violet-deep: #5547e8;
   --iris-lilac: #b9b0ff;
@@ -11850,7 +11850,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 .accessConnectingGlyph,
 .capabilitySuggestionMark,
 .sheetGlyph {
-  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=369");
+  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=370");
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -12746,7 +12746,7 @@ body {
   height: 76px;
   display: block;
   border-radius: 22px;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=369") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=370") center / 58px 58px no-repeat;
   filter: drop-shadow(0 12px 24px rgba(104, 85, 224, 0.16));
 }
 
@@ -14383,7 +14383,7 @@ body.documentEvidenceOpen {
   }
 }
 
-/* Deep Research evidence map, v369. */
+/* Deep Research evidence map, v370. */
 .message[data-kind="deep_research"] {
   width: min(96%, 720px);
   max-width: min(96%, 720px);
@@ -14549,6 +14549,14 @@ body.documentEvidenceOpen {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 9%, transparent);
 }
 
+.deepResearchSummary {
+  margin: -2px 1px 0;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 640;
+  line-height: 1.58;
+}
+
 .deepResearchClaims {
   display: grid;
   gap: 8px;
@@ -14634,6 +14642,19 @@ body.documentEvidenceOpen {
   line-height: 1.55;
 }
 
+.deepResearchCaveats {
+  display: grid;
+  gap: 3px;
+  margin: 0 0 0 32px;
+  padding: 7px 9px 7px 22px;
+  border-left: 2px solid color-mix(in srgb, var(--status-listening) 35%, var(--line));
+  border-radius: 0 10px 10px 0;
+  color: var(--ink-dim);
+  background: color-mix(in srgb, var(--status-listening) 5%, transparent);
+  font-size: 9px;
+  line-height: 1.48;
+}
+
 .deepResearchClaimSources {
   min-width: 0;
   display: flex;
@@ -14661,9 +14682,36 @@ body.documentEvidenceOpen {
 }
 
 .deepResearchClaimSources a:focus-visible,
-.deepResearchSource:focus-visible {
+.deepResearchSource:focus-visible,
+.deepResearchSourcesDisclosure summary:focus-visible,
+.deepResearchAction:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--accent) 58%, transparent);
   outline-offset: 2px;
+}
+
+.deepResearchLimitations {
+  display: grid;
+  gap: 6px;
+  padding: 10px 11px;
+  border: 1px solid color-mix(in srgb, var(--status-listening) 19%, var(--line));
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--status-listening) 5%, transparent);
+}
+
+.deepResearchLimitations > strong {
+  color: var(--ink);
+  font-size: 9.5px;
+  font-weight: 780;
+}
+
+.deepResearchLimitations ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 17px;
+  color: var(--ink-dim);
+  font-size: 9px;
+  line-height: 1.48;
 }
 
 .deepResearchSources {
@@ -14735,6 +14783,116 @@ body.documentEvidenceOpen {
   white-space: nowrap;
 }
 
+.deepResearchSourcesDisclosure {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.deepResearchSourcesDisclosure summary {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 11px;
+  border: 1px solid color-mix(in srgb, var(--accent) 13%, var(--line));
+  border-radius: 13px;
+  color: color-mix(in srgb, var(--accent) 72%, var(--ink));
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  cursor: pointer;
+  font-size: 9px;
+  font-weight: 720;
+  list-style: none;
+}
+
+.deepResearchSourcesDisclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.deepResearchSourcesDisclosure summary::after {
+  content: "+";
+  color: var(--ink-dim);
+  font-size: 15px;
+  font-weight: 540;
+  line-height: 1;
+}
+
+.deepResearchSourcesDisclosure[open] summary::after {
+  content: "−";
+}
+
+.deepResearchSourcesMore {
+  display: grid;
+  gap: 6px;
+  padding-top: 1px;
+}
+
+.deepResearchActions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.deepResearchAction {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 11px;
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  border-radius: 12px;
+  color: var(--ink-soft);
+  background: color-mix(in srgb, var(--button-bg) 78%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 68%, transparent);
+  cursor: pointer;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 720;
+}
+
+.deepResearchAction:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 27%, var(--line));
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 7%, var(--button-bg));
+}
+
+.deepResearchAction:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.deepResearchContinue {
+  border-color: color-mix(in srgb, var(--accent) 23%, var(--line));
+  color: color-mix(in srgb, var(--accent) 75%, var(--ink));
+  background: color-mix(in srgb, var(--accent) 8%, var(--button-bg));
+}
+
+.deepResearchActionStatus {
+  min-height: 18px;
+  flex: 1 0 100%;
+  color: var(--ink-dim);
+  font-size: 8.5px;
+  font-weight: 650;
+}
+
+.deepResearchActionStatus:empty {
+  display: none;
+}
+
+.deepResearchActionStatus[data-tone="success"] {
+  color: color-mix(in srgb, var(--status-answering) 74%, var(--ink));
+}
+
+.deepResearchActionStatus[data-tone="error"] {
+  color: color-mix(in srgb, var(--danger) 74%, var(--ink));
+}
+
+.deepResearchActionStatus[data-tone="loading"] {
+  color: color-mix(in srgb, var(--status-listening) 76%, var(--ink));
+}
+
 .deepResearchFooter {
   margin: 0;
   color: var(--ink-dim);
@@ -14790,14 +14948,30 @@ body.documentEvidenceOpen {
   }
 
   .deepResearchClaim > p,
+  .deepResearchCaveats,
   .deepResearchClaimSources {
     margin-left: 30px;
+  }
+
+  .deepResearchActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .deepResearchAction {
+    width: 100%;
+  }
+
+  .deepResearchContinue,
+  .deepResearchActionStatus {
+    grid-column: 1 / -1;
   }
 }
 
 @media (prefers-reduced-transparency: reduce) {
   .deepResearchCard,
   .deepResearchClaim,
+  .deepResearchLimitations,
   .deepResearchSource {
     background: var(--panel-bg);
   }
@@ -14845,7 +15019,7 @@ body > .dock.unifiedComposer {
   width: 76px !important;
   height: 76px !important;
   display: block !important;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=369") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=370") center / 58px 58px no-repeat;
 }
 
 #accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessFocusIntro > .accessFocusGlyph,
