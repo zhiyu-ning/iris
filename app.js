@@ -45,6 +45,8 @@ const els = {
   projectName: document.getElementById("projectNameInput"),
   projectInstructions: document.getElementById("projectInstructionsInput"),
   projectMeta: document.getElementById("projectMeta"),
+  projectFilesStatus: document.getElementById("projectFilesStatus"),
+  projectFileList: document.getElementById("projectFileList"),
   projectSave: document.getElementById("projectSaveButton"),
   projectArchive: document.getElementById("projectArchiveButton"),
   memoryRefresh: document.getElementById("memoryRefreshButton"),
@@ -114,7 +116,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "365";
+const VOICE_UI_VERSION = "366";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -559,6 +561,16 @@ const UI_TEXT = {
     "project.instructions": "项目说明",
     "project.instructionsPlaceholder": "告诉 Iris 这个项目的目标、背景和回答偏好",
     "project.instructionsHint": "说明只影响项目内回答，不会扩大工具权限。",
+    "project.files": "项目文件",
+    "project.filesHint": "提问时自动检索这些文件",
+    "project.filesEmpty": "这个项目还没有文件",
+    "project.filesLoading": "正在读取",
+    "project.filesUnavailable": "文件不可用",
+    "project.filesLoadFailed": "暂时无法读取项目文件，请稍后重试",
+    "project.fileRemove": "移除",
+    "project.fileRemoving": "正在移除",
+    "project.fileRemoved": "已从项目移除",
+    "project.fileRemoveFailed": "移除失败",
     "project.save": "保存项目",
     "project.archive": "归档项目",
     "project.restore": "恢复项目",
@@ -794,6 +806,16 @@ const UI_TEXT = {
     "project.instructions": "Project instructions",
     "project.instructionsPlaceholder": "Give Iris the goals, context, and response preferences for this project",
     "project.instructionsHint": "Instructions shape project replies but never expand tool permissions.",
+    "project.files": "Project files",
+    "project.filesHint": "Iris searches these files when relevant",
+    "project.filesEmpty": "No files in this project yet",
+    "project.filesLoading": "Loading",
+    "project.filesUnavailable": "File unavailable",
+    "project.filesLoadFailed": "Project files are temporarily unavailable. Try again shortly.",
+    "project.fileRemove": "Remove",
+    "project.fileRemoving": "Removing",
+    "project.fileRemoved": "Removed from project",
+    "project.fileRemoveFailed": "Remove failed",
     "project.save": "Save project",
     "project.archive": "Archive project",
     "project.restore": "Restore project",
@@ -1089,6 +1111,11 @@ let conversationLibrarySearchTimer = 0;
 let projectLibraryItems = [];
 let projectLibraryLoaded = false;
 let projectLibraryLoading = false;
+let projectDocumentItems = [];
+let projectDocumentProjectId = "";
+let projectDocumentLoading = false;
+let projectDocumentError = "";
+let projectDocumentRequestSeq = 0;
 let currentProjectFilterId = "";
 let projectFilterTouched = false;
 let activeAssistantMessageId = "";
@@ -1145,7 +1172,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v365-project-spaces";
+const WEB_VERSION = "voice-ui-web-polish-v366-project-knowledge";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -1808,11 +1835,15 @@ function clientDocumentComparisonPayload(actionPayloads) {
   if (documents.length < 2 && !citations.length && !conflicts.length) return null;
   const supportedStatuses = new Set(["SUPPORTED", "CONFLICT", "PARTIAL_EVIDENCE", "INSUFFICIENT_EVIDENCE"]);
   const rawStatus = boundedDocumentComparisonText(source.verification_status, 64).toUpperCase();
+  const mode = boundedDocumentComparisonText(source.mode, 40) === "project_knowledge"
+    ? "project_knowledge"
+    : "comparison";
   return {
     documents: documents.slice(0, 12),
     documentIds,
     citations,
     conflicts,
+    mode,
     comparisonReady: Boolean(source.comparison_ready),
     verificationStatus: supportedStatuses.has(rawStatus)
       ? rawStatus
@@ -1820,8 +1851,9 @@ function clientDocumentComparisonPayload(actionPayloads) {
   };
 }
 
-function documentComparisonStatusMeta(status = "") {
+function documentComparisonStatusMeta(status = "", mode = "comparison") {
   const en = currentLanguage === "en";
+  const projectKnowledge = mode === "project_knowledge";
   const value = String(status || "").toUpperCase();
   if (value === "CONFLICT") {
     return {
@@ -1833,20 +1865,26 @@ function documentComparisonStatusMeta(status = "") {
   if (value === "PARTIAL_EVIDENCE") {
     return {
       label: en ? "Partial evidence" : "部分证据",
-      description: en ? "Some files did not provide enough evidence." : "部分文件没有检索到足够证据。",
+      description: projectKnowledge
+        ? (en ? "The answer uses only project files with relevant evidence." : "本次回答只使用检索到相关证据的项目文件。")
+        : (en ? "Some files did not provide enough evidence." : "部分文件没有检索到足够证据。"),
       tone: "partial"
     };
   }
   if (value === "INSUFFICIENT_EVIDENCE") {
     return {
       label: en ? "Evidence needed" : "证据不足",
-      description: en ? "The current files cannot support a reliable comparison." : "当前文件还不足以支持可靠比较。",
+      description: projectKnowledge
+        ? (en ? "Project files do not support this answer yet." : "当前项目文件还不足以支持这个回答。")
+        : (en ? "The current files cannot support a reliable comparison." : "当前文件还不足以支持可靠比较。"),
       tone: "insufficient"
     };
   }
   return {
     label: en ? "Evidence aligned" : "证据一致",
-    description: en ? "The cited evidence supports this comparison." : "本轮引用证据支持这次比较。",
+    description: projectKnowledge
+      ? (en ? "The cited project evidence supports this answer." : "本轮项目证据支持这个回答。")
+      : (en ? "The cited evidence supports this comparison." : "本轮引用证据支持这次比较。"),
     tone: "supported"
   };
 }
@@ -2449,22 +2487,32 @@ function openDocumentEvidenceDialog(payload, opener = null) {
 
 function appendDocumentComparisonCard(item, payload) {
   if (!item || !payload) return;
-  const status = documentComparisonStatusMeta(payload.verificationStatus);
+  const projectKnowledge = payload.mode === "project_knowledge";
+  const status = documentComparisonStatusMeta(payload.verificationStatus, payload.mode);
   const card = document.createElement("section");
   card.className = "documentComparisonCard";
   card.dataset.tone = status.tone;
-  card.setAttribute("aria-label", currentLanguage === "en" ? "Document comparison evidence" : "文件比较证据");
+  card.setAttribute(
+    "aria-label",
+    projectKnowledge
+      ? (currentLanguage === "en" ? "Project knowledge evidence" : "项目知识证据")
+      : (currentLanguage === "en" ? "Document comparison evidence" : "文件比较证据")
+  );
 
   const header = document.createElement("div");
   header.className = "documentComparisonHeader";
   const heading = document.createElement("div");
   const kicker = document.createElement("span");
   kicker.className = "documentComparisonKicker";
-  kicker.textContent = "DOCUMENT WORKSPACE";
+  kicker.textContent = projectKnowledge ? "PROJECT KNOWLEDGE" : "DOCUMENT WORKSPACE";
   const title = document.createElement("strong");
-  title.textContent = currentLanguage === "en"
-    ? `${payload.documents.length} files checked`
-    : `已核对 ${payload.documents.length} 份文件`;
+  title.textContent = projectKnowledge
+    ? (currentLanguage === "en"
+      ? `${payload.documents.length} project files searched`
+      : `已检索 ${payload.documents.length} 份项目文件`)
+    : (currentLanguage === "en"
+      ? `${payload.documents.length} files checked`
+      : `已核对 ${payload.documents.length} 份文件`);
   heading.append(kicker, title);
   const statusChip = document.createElement("span");
   statusChip.className = "documentComparisonStatus";
@@ -2995,6 +3043,182 @@ function projectConversationCount(projectId) {
   return conversationLibraryItems.filter((item) => String(item.project_id || "") === String(projectId || "")).length;
 }
 
+function resetProjectDocumentLibrary(projectId = "") {
+  projectDocumentItems = [];
+  projectDocumentProjectId = String(projectId || "");
+  projectDocumentLoading = false;
+  projectDocumentError = "";
+  projectDocumentRequestSeq += 1;
+  renderProjectDocumentLibrary();
+}
+
+function projectDocumentAddedLabel(value) {
+  const parsed = new Date(String(value || ""));
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toLocaleDateString(currentLanguage === "en" ? "en-US" : "zh-CN", {
+    month: "short",
+    day: "numeric"
+  });
+}
+
+function projectDocumentDetailLabel(item = {}) {
+  if (!item.available) return textFor("project.filesUnavailable", "文件不可用");
+  const details = [];
+  const pages = Math.max(0, Number(item.page_count || 0));
+  const chars = Math.max(0, Number(item.char_count || 0));
+  if (pages) details.push(currentLanguage === "en" ? `${pages} pages` : `${pages} 页`);
+  else if (chars) details.push(currentLanguage === "en" ? `${chars.toLocaleString("en-US")} chars` : `${chars.toLocaleString("zh-CN")} 字`);
+  const added = projectDocumentAddedLabel(item.added_at);
+  if (added) details.push(added);
+  return details.join(" · ") || (currentLanguage === "en" ? "Ready for retrieval" : "可供检索");
+}
+
+function renderProjectDocumentLibrary() {
+  if (!els.projectFileList || !els.projectFilesStatus) return;
+  const project = currentProjectRecord();
+  if (!project) {
+    els.projectFilesStatus.textContent = "";
+    els.projectFileList.replaceChildren();
+    return;
+  }
+  if (projectDocumentLoading && projectDocumentProjectId === project.project_id) {
+    els.projectFilesStatus.textContent = textFor("project.filesLoading", "正在读取");
+  } else if (projectDocumentError && projectDocumentProjectId === project.project_id) {
+    els.projectFilesStatus.textContent = currentLanguage === "en" ? "Unavailable" : "暂时不可用";
+  } else {
+    els.projectFilesStatus.textContent = currentLanguage === "en"
+      ? `${projectDocumentItems.length} files`
+      : `${projectDocumentItems.length} 份`;
+  }
+  const fragment = document.createDocumentFragment();
+  if (
+    !projectDocumentLoading
+    && projectDocumentProjectId === project.project_id
+    && !projectDocumentItems.length
+  ) {
+    const empty = document.createElement("p");
+    empty.className = "projectFileEmpty";
+    empty.textContent = projectDocumentError
+      || textFor("project.filesEmpty", "这个项目还没有文件");
+    fragment.appendChild(empty);
+  }
+  projectDocumentItems.forEach((item) => {
+    const row = document.createElement("article");
+    row.className = "projectFileItem";
+    row.dataset.available = item.available ? "true" : "false";
+    const identity = document.createElement("div");
+    identity.className = "projectFileIdentity";
+    const mark = document.createElement("span");
+    mark.className = "projectFileMark";
+    const type = String(item.document_type || "").trim().toUpperCase();
+    mark.textContent = (type || "FILE").slice(0, 5);
+    const copy = document.createElement("div");
+    const name = document.createElement("strong");
+    name.textContent = String(item.filename || item.document_id || (currentLanguage === "en" ? "File" : "文件"));
+    name.title = name.textContent;
+    const meta = document.createElement("small");
+    meta.textContent = projectDocumentDetailLabel(item);
+    copy.append(name, meta);
+    identity.append(mark, copy);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "projectFileRemove";
+    remove.textContent = textFor("project.fileRemove", "移除");
+    remove.setAttribute("aria-label", `${remove.textContent} ${name.textContent}`);
+    remove.addEventListener("click", () => {
+      removeProjectDocument(project.project_id, item.document_id, remove);
+    });
+    row.append(identity, remove);
+    fragment.appendChild(row);
+  });
+  els.projectFileList.replaceChildren(fragment);
+}
+
+async function refreshProjectDocuments(projectId, { force = false } = {}) {
+  const requestedProjectId = String(projectId || "").trim();
+  if (!requestedProjectId) {
+    resetProjectDocumentLibrary("");
+    return;
+  }
+  if (
+    !force
+    && projectDocumentProjectId === requestedProjectId
+    && (projectDocumentLoading || projectDocumentItems.length)
+  ) {
+    renderProjectDocumentLibrary();
+    return;
+  }
+  if (!canUseBackendNow()) return;
+  const requestSeq = ++projectDocumentRequestSeq;
+  if (projectDocumentProjectId !== requestedProjectId) {
+    projectDocumentItems = [];
+  }
+  projectDocumentProjectId = requestedProjectId;
+  projectDocumentLoading = true;
+  projectDocumentError = "";
+  renderProjectDocumentLibrary();
+  try {
+    const response = await fetch(
+      backendUrl(`/client/v1/projects/${encodeURIComponent(requestedProjectId)}/documents`),
+      { headers: authHeaders(), cache: "no-store" }
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    if (requestSeq !== projectDocumentRequestSeq || currentProjectFilterId !== requestedProjectId) return;
+    projectDocumentItems = Array.isArray(payload.items) ? payload.items : [];
+    projectDocumentError = "";
+  } catch (err) {
+    if (requestSeq !== projectDocumentRequestSeq) return;
+    projectDocumentError = textFor(
+      "project.filesLoadFailed",
+      "暂时无法读取项目文件，请稍后重试"
+    );
+    logLine(`project files load failed ${err && err.message || err}`);
+  } finally {
+    if (requestSeq === projectDocumentRequestSeq) {
+      projectDocumentLoading = false;
+      renderProjectDocumentLibrary();
+    }
+  }
+}
+
+async function removeProjectDocument(projectId, documentId, button) {
+  const safeProjectId = String(projectId || "").trim();
+  const safeDocumentId = String(documentId || "").trim();
+  if (!safeProjectId || !safeDocumentId || (button && button.disabled)) return;
+  if (button) {
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+    button.textContent = textFor("project.fileRemoving", "正在移除");
+  }
+  try {
+    const response = await fetch(
+      backendUrl(`/client/v1/projects/${encodeURIComponent(safeProjectId)}/documents/${encodeURIComponent(safeDocumentId)}`),
+      { method: "DELETE", headers: authHeaders() }
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    projectDocumentItems = projectDocumentItems.filter((item) => String(item.document_id || "") !== safeDocumentId);
+    projectDocumentError = "";
+    renderProjectDocumentLibrary();
+    projectLibraryLoaded = false;
+    await refreshProjectLibrary({ force: true });
+    setConversationFeedback(textFor("project.fileRemoved", "已从项目移除"), "success");
+  } catch (err) {
+    setConversationFeedback(
+      `${textFor("project.fileRemoveFailed", "移除失败")}：${err && err.message || err}`,
+      "error"
+    );
+    renderProjectDocumentLibrary();
+  }
+}
+
 function renderProjectSpaceControl() {
   if (!els.projectSelect) return;
   const selected = String(currentProjectFilterId || "");
@@ -3015,7 +3239,10 @@ function renderProjectSpaceControl() {
 
   const project = currentProjectRecord();
   if (els.projectEditor) els.projectEditor.hidden = !project;
-  if (!project) return;
+  if (!project) {
+    resetProjectDocumentLibrary("");
+    return;
+  }
   if (els.projectName && document.activeElement !== els.projectName) {
     els.projectName.value = String(project.name || "");
   }
@@ -3038,6 +3265,11 @@ function renderProjectSpaceControl() {
       ? textFor("project.restore", "恢复项目")
       : textFor("project.archive", "归档项目");
     els.projectArchive.dataset.archived = archived ? "true" : "false";
+  }
+  if (projectDocumentProjectId !== project.project_id) {
+    void refreshProjectDocuments(project.project_id);
+  } else {
+    renderProjectDocumentLibrary();
   }
 }
 
@@ -7704,6 +7936,16 @@ async function resumePendingDocumentUploadReconciliation() {
   }
 }
 
+function refreshCurrentProjectFilesAfterUpload() {
+  const projectId = String(currentProjectFilterId || "").trim();
+  if (!projectId) return;
+  projectLibraryLoaded = false;
+  void Promise.allSettled([
+    refreshProjectLibrary({ force: true }),
+    refreshProjectDocuments(projectId, { force: true })
+  ]);
+}
+
 function acceptUploadedDocument(payload, uploadMessageId, recovered = false) {
   clearPendingDocumentUpload(String(payload && payload.upload_id || ""));
   currentDocumentId = payload.id || "";
@@ -7726,6 +7968,7 @@ function acceptUploadedDocument(payload, uploadMessageId, recovered = false) {
   currentDocumentReadyAssistantMessageId = appendAssistantConversation(accepted, { kind: "document_ready" });
   setDocumentBusy(false);
   setDocumentContextVisible(false);
+  refreshCurrentProjectFilesAfterUpload();
   if (recovered) logLine(`document upload response reconciled ${currentDocumentId}`);
 }
 
@@ -7883,6 +8126,7 @@ function finishDocumentBatch(batch) {
   activeDocumentBatch = null;
   setDocumentContextVisible(false);
   setDocumentBusy(false);
+  if (readyItems.length) refreshCurrentProjectFilesAfterUpload();
 }
 
 async function pollDocumentBatch(batch) {
