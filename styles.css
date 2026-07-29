@@ -13177,6 +13177,8 @@ body.documentEvidenceOpen {
   }
 }
 
+/* End cross-document evidence. Keep the performance contract scoped to this block. */
+
 /* v360 screenshot stability lock. This block is intentionally last. */
 body > .dock.unifiedComposer {
   opacity: 1;
