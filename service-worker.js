@@ -1,23 +1,23 @@
-const VERSION = "361";
-const CACHE = "iris-pages-v361-office-macro-inventory";
+const VERSION = "362";
+const CACHE = "iris-pages-v362-proactive-conversation";
 const ASSETS = [
-  "/iris/styles.css?v=361",
-  "/iris/public-config.js?v=361",
-  "/iris/app.js?v=361",
-  "/iris/manifest.json?v=361",
-  "/iris/assets/brand/iris-companion-avatar.jpg?v=361",
-  "/iris/assets/brand/iris-app-icon-dark-192.png?v=361",
-  "/iris/assets/brand/iris-app-icon-dark-512.png?v=361",
-  "/iris/assets/brand/iris-app-icon-dark-192.webp?v=361",
-  "/iris/assets/brand/iris-app-icon-dark-512.webp?v=361",
-  "/iris/assets/brand/iris-app-icon-light-192.png?v=361",
-  "/iris/assets/brand/iris-app-icon-light-512.png?v=361",
-  "/iris/assets/brand/iris-app-icon-light-192.webp?v=361",
-  "/iris/assets/brand/iris-app-icon-light-512.webp?v=361",
-  "/iris/assets/brand/iris-symbol-light-192.webp?v=361",
-  "/iris/assets/brand/iris-symbol-light-512.webp?v=361",
-  "/iris/assets/brand/iris-symbol-light-192.png?v=361",
-  "/iris/assets/brand/iris-symbol-light-512.png?v=361"
+  "/iris/styles.css?v=362",
+  "/iris/public-config.js?v=362",
+  "/iris/app.js?v=362",
+  "/iris/manifest.json?v=362",
+  "/iris/assets/brand/iris-companion-avatar.jpg?v=362",
+  "/iris/assets/brand/iris-app-icon-dark-192.png?v=362",
+  "/iris/assets/brand/iris-app-icon-dark-512.png?v=362",
+  "/iris/assets/brand/iris-app-icon-dark-192.webp?v=362",
+  "/iris/assets/brand/iris-app-icon-dark-512.webp?v=362",
+  "/iris/assets/brand/iris-app-icon-light-192.png?v=362",
+  "/iris/assets/brand/iris-app-icon-light-512.png?v=362",
+  "/iris/assets/brand/iris-app-icon-light-192.webp?v=362",
+  "/iris/assets/brand/iris-app-icon-light-512.webp?v=362",
+  "/iris/assets/brand/iris-symbol-light-192.webp?v=362",
+  "/iris/assets/brand/iris-symbol-light-512.webp?v=362",
+  "/iris/assets/brand/iris-symbol-light-192.png?v=362",
+  "/iris/assets/brand/iris-symbol-light-512.png?v=362"
 ];
 
 function isCurrentVersionedStatic(url) {

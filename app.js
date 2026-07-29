@@ -84,7 +84,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "361";
+const VOICE_UI_VERSION = "362";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -983,6 +983,7 @@ let accessSlowNoticeTimer = 0;
 let proactiveScanTimer = 0;
 let proactiveScanInFlight = false;
 let proactiveScanLastAt = 0;
+let activeProactiveNotificationId = "";
 const renderedProactiveKeys = new Set();
 
 const VAD = {
@@ -1010,7 +1011,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v361-office-macro-inventory";
+const WEB_VERSION = "voice-ui-web-polish-v362-proactive-conversation";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -4261,7 +4262,8 @@ function authEvent() {
     client_type: "web",
     client_id: clientId,
     user_id: currentSubjectId(),
-    voice_profile: selectedVoiceProfile()
+    voice_profile: selectedVoiceProfile(),
+    proactive_notification_id: activeProactiveNotificationId
   };
 }
 
@@ -4313,7 +4315,7 @@ function scheduleProactiveScan(delayMs = PROACTIVE_SCAN_INTERVAL_MS) {
 
 function proactiveItemKey(item) {
   const trigger = item && item.trigger && typeof item.trigger === "object" ? item.trigger : {};
-  return String(trigger.dedupe_key || trigger.trigger_id || `${item && item.kind || "proactive"}:${trigger.item || ""}`).trim();
+  return String(item && item.notification_id || trigger.dedupe_key || trigger.trigger_id || `${item && item.kind || "proactive"}:${trigger.item || ""}`).trim();
 }
 
 function proactiveItemText(item) {
@@ -4326,6 +4328,39 @@ function proactiveItemText(item) {
   return `${primary}\n${nextStep}`;
 }
 
+async function acknowledgeProactiveItem(item, event = "seen") {
+  const notificationId = String(item && item.notification_id || "").trim();
+  if (!notificationId || !canUseBackendNow()) return false;
+  const response = await fetch(backendUrl("/client/v1/proactive/events"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders()
+    },
+    cache: "no-store",
+    body: JSON.stringify({
+      notification_id: notificationId,
+      event,
+      user_id: currentSubjectId(),
+      channel: "web",
+      client_id: voiceClientId()
+    })
+  });
+  if (!response.ok) {
+    handleUnauthorizedResponse(response);
+    return false;
+  }
+  return true;
+}
+
+function clearActiveProactiveConversation() {
+  if (!activeProactiveNotificationId) return;
+  activeProactiveNotificationId = "";
+  if (ws && ws.readyState === WebSocket.OPEN && voiceSocketAuthenticated) {
+    send(authEvent());
+  }
+}
+
 function renderProactiveItems(items) {
   if (!Array.isArray(items)) return 0;
   let rendered = 0;
@@ -4335,15 +4370,25 @@ function renderProactiveItems(items) {
     const key = proactiveItemKey(item);
     if (!text || !key || renderedProactiveKeys.has(key)) return;
     renderedProactiveKeys.add(key);
+    const notificationId = String(item.notification_id || "").trim();
+    if (notificationId) activeProactiveNotificationId = notificationId;
     const contextual = item.kind === "contextual_followup";
     appendAssistantConversation(text, {
-      id: `proactive_${Math.abs(key.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`,
+      id: notificationId || `proactive_${Math.abs(key.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`,
       label: currentLanguage === "en"
         ? (contextual ? "Iris · Follow-up" : "Iris · Reminder")
         : (contextual ? "Iris · 想起你了" : "Iris · 提醒"),
       kind: "proactive_followup",
       forceScroll: false
     });
+    if (notificationId) {
+      acknowledgeProactiveItem(item, "seen").catch((error) => {
+        logLine(`proactive receipt failed ${error && error.message || "unknown"}`);
+      });
+      if (ws && ws.readyState === WebSocket.OPEN && voiceSocketAuthenticated) {
+        send(authEvent());
+      }
+    }
     rendered += 1;
   });
   return rendered;
@@ -4380,7 +4425,10 @@ async function runProactiveScan() {
       handleUnauthorizedResponse(response);
       throw new Error(payload.detail && payload.detail.error || payload.detail || `proactive_scan_${response.status}`);
     }
-    const rendered = renderProactiveItems(payload.items);
+    const inboxItems = payload.inbox && Array.isArray(payload.inbox.items)
+      ? payload.inbox.items
+      : [];
+    const rendered = renderProactiveItems(inboxItems.length ? inboxItems : payload.items);
     const contextualStatus = payload.sources && payload.sources.contextual && payload.sources.contextual.analysis
       ? payload.sources.contextual.analysis.status || ""
       : "";
@@ -7386,7 +7434,8 @@ async function sendTextPrompt(text) {
           locale: navigator.language || "zh-CN",
           foreground: document.visibilityState !== "hidden",
           voice_profile: selectedVoiceProfile(),
-          voice_output: false
+          voice_output: false,
+          proactive_notification_id: activeProactiveNotificationId || null
         },
         capabilities: WEB_TEXT_CAPABILITIES,
         auth: { token: persistedVoiceToken || "" }
@@ -7421,6 +7470,7 @@ async function sendTextPrompt(text) {
     });
     setSubtitle(reply, { speaker: "IRIS", resetFlow: true });
     setState("idle", { preserveSubtitle: true });
+    clearActiveProactiveConversation();
     logLine(`text reply · ${payload.route || "client"}${payload.skill ? `/${payload.skill}` : ""}`);
   } catch (err) {
     const message = `文字发送失败：${err.message || "网络不可用"}`;
@@ -8294,6 +8344,7 @@ function handleServerEvent(event) {
   }
   if (type === "agent_text_delta") {
     if (event.response_id && currentResponseId && event.response_id !== currentResponseId) return;
+    clearActiveProactiveConversation();
     lastReply = event.text || "";
     if (!activeAssistantMessageId) {
       activeAssistantMessageId = appendAssistantConversation(lastReply || " ", {
