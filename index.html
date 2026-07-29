@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=362" type="image/png" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=362" />
-    <link rel="manifest" href="/iris/manifest.json?v=362" />
-    <link rel="stylesheet" href="/iris/styles.css?v=362" />
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=363" type="image/png" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=363" />
+    <link rel="manifest" href="/iris/manifest.json?v=363" />
+    <link rel="stylesheet" href="/iris/styles.css?v=363" />
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -165,7 +165,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=362" alt="" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=363" alt="" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -232,7 +232,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=362" alt="" />
+              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=363" alt="" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
@@ -359,6 +359,94 @@
             <button id="memorySearchClearButton" type="button" aria-label="清空记忆搜索" data-i18n="action.clear" data-i18n-aria-label="memory.clearSearch">清除</button>
           </div>
           <div id="memoryList" class="memoryList" aria-live="polite"></div>
+          </div>
+        </details>
+
+        <details class="settingsGroup navGroup proactiveGroup">
+          <summary class="navSummary">
+            <span class="navIcon proactiveIcon" aria-hidden="true"></span>
+            <span class="navCopy">
+              <span class="navTitle" data-i18n="settings.proactive">主动陪伴</span>
+              <span id="proactiveStatus" class="navSub" role="status" aria-live="polite" data-tone="info">读取偏好中</span>
+            </span>
+          </summary>
+          <div class="groupBody proactiveControls">
+            <section id="proactiveOverview" class="proactiveOverview" data-enabled="true">
+              <div>
+                <span class="proactiveKicker" data-i18n="proactive.kicker">PROACTIVE CARE</span>
+                <strong id="proactiveOverviewTitle" data-i18n="proactive.onTitle">主动陪伴已开启</strong>
+                <p id="proactiveOverviewHint" data-i18n="proactive.onHint">Iris 会在有依据、时机合适时自然来找你。</p>
+              </div>
+              <label class="proactiveSwitch" for="proactiveEnabled">
+                <input id="proactiveEnabled" type="checkbox" checked />
+                <span aria-hidden="true"></span>
+                <span class="srOnly" data-i18n="proactive.enabled">开启主动陪伴</span>
+              </label>
+            </section>
+
+            <div class="proactivePreferenceGrid">
+              <label class="proactiveField" for="proactiveDailyLimit">
+                <span data-i18n="proactive.dailyLimit">每天最多</span>
+                <select id="proactiveDailyLimit">
+                  <option value="1">1 次</option>
+                  <option value="2">2 次</option>
+                  <option value="4" selected>4 次</option>
+                  <option value="6">6 次</option>
+                  <option value="8">8 次</option>
+                </select>
+              </label>
+              <label class="proactiveField" for="proactiveInterval">
+                <span data-i18n="proactive.interval">最短间隔</span>
+                <select id="proactiveInterval">
+                  <option value="30">30 分钟</option>
+                  <option value="60" selected>1 小时</option>
+                  <option value="120">2 小时</option>
+                  <option value="240">4 小时</option>
+                </select>
+              </label>
+            </div>
+
+            <fieldset class="proactiveQuiet">
+              <legend data-i18n="proactive.quietHours">安静时段</legend>
+              <label>
+                <span data-i18n="proactive.quietStart">开始</span>
+                <input id="proactiveQuietStart" type="time" value="23:30" />
+              </label>
+              <span class="proactiveQuietDivider" aria-hidden="true">—</span>
+              <label>
+                <span data-i18n="proactive.quietEnd">结束</span>
+                <input id="proactiveQuietEnd" type="time" value="08:00" />
+              </label>
+            </fieldset>
+
+            <fieldset class="proactiveTopics">
+              <legend data-i18n="proactive.sources">可以主动提起</legend>
+              <label>
+                <input id="proactiveEmotion" type="checkbox" checked />
+                <span data-i18n="proactive.emotion">情绪回访</span>
+              </label>
+              <label>
+                <input id="proactiveGoal" type="checkbox" checked />
+                <span data-i18n="proactive.goal">目标进展</span>
+              </label>
+              <label>
+                <input id="proactiveCalendar" type="checkbox" checked />
+                <span data-i18n="proactive.calendar">日程准备</span>
+              </label>
+            </fieldset>
+
+            <p id="proactiveControlFeedback" class="proactiveControlFeedback" role="status" aria-live="polite"></p>
+
+            <section class="proactiveInboxSection">
+              <div class="proactiveInboxHeader">
+                <div>
+                  <span data-i18n="proactive.inboxKicker">RECENT</span>
+                  <strong data-i18n="proactive.inbox">最近主动消息</strong>
+                </div>
+                <button id="proactiveRefreshButton" type="button" data-i18n="action.refresh">刷新</button>
+              </div>
+              <div id="proactiveInbox" class="proactiveInbox" aria-live="polite"></div>
+            </section>
           </div>
         </details>
 
@@ -493,7 +581,7 @@
         </div>
       </aside>
     </main>
-    <script src="/iris/public-config.js?v=362"></script>
-    <script src="/iris/app.js?v=362"></script>
+    <script src="/iris/public-config.js?v=363"></script>
+    <script src="/iris/app.js?v=363"></script>
   </body>
 </html>

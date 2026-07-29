@@ -57,8 +57,8 @@
   --control-hover-filter: brightness(1.018) saturate(1.06);
   --control-active-filter: brightness(0.985) saturate(1.02);
   --control-press-shadow: inset 0 2px 5px rgba(24, 42, 67, 0.08);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=362");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=362");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=363");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=363");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -212,8 +212,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 22px 54px rgba(85, 91, 255, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=362");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=362");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=363");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=363");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -269,8 +269,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=362");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=362");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=363");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=363");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -2055,7 +2055,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=362");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=363");
 }
 
 .brandName {
@@ -9816,7 +9816,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 /* v354 Iris companion interface: portrait-led entry, calm conversation, and card-based settings. */
 :root {
-  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=362");
+  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=363");
   --iris-violet: #7567f8;
   --iris-violet-deep: #5547e8;
   --iris-lilac: #b9b0ff;
@@ -11137,7 +11137,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 .accessConnectingGlyph,
 .capabilitySuggestionMark,
 .sheetGlyph {
-  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=362");
+  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=363");
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -11377,7 +11377,7 @@ body.keyboardOpen .conversationStream {
   }
 }
 
-/* v362 Iris Pearl visual system. This is the single final presentation layer. */
+/* v363 Iris Pearl visual system. This is the single final presentation layer. */
 :root {
   --iris-pearl: rgba(255, 255, 255, 0.88);
   --iris-pearl-strong: rgba(255, 255, 255, 0.96);
@@ -12033,7 +12033,7 @@ body {
   height: 76px;
   display: block;
   border-radius: 22px;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=362") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=363") center / 58px 58px no-repeat;
   filter: drop-shadow(0 12px 24px rgba(104, 85, 224, 0.16));
 }
 
@@ -13179,7 +13179,7 @@ body.documentEvidenceOpen {
 
 /* End cross-document evidence. Keep the performance contract scoped to this block. */
 
-/* v362 screenshot stability lock. This block is intentionally last. */
+/* v363 screenshot stability lock. */
 body > .dock.unifiedComposer {
   opacity: 1;
   visibility: visible;
@@ -13221,7 +13221,7 @@ body > .dock.unifiedComposer {
   width: 76px !important;
   height: 76px !important;
   display: block !important;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=362") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=363") center / 58px 58px no-repeat;
 }
 
 #accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessFocusIntro > .accessFocusGlyph,
@@ -13261,5 +13261,379 @@ body > .dock.unifiedComposer {
 
   body:not(.detailsOpen):not(.accessLocked) .conversationShell {
     width: 100%;
+  }
+}
+
+/* v363 proactive companion control center. */
+.proactiveIcon::before {
+  width: 19px;
+  height: 19px;
+  border: 1.8px solid currentColor;
+  border-radius: 50% 50% 46% 54%;
+  transform: rotate(45deg);
+}
+
+.proactiveIcon::after {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow:
+    -8px 0 0 -1px color-mix(in srgb, var(--accent) 52%, transparent),
+    8px 0 0 -1px color-mix(in srgb, var(--accent) 52%, transparent);
+}
+
+.proactiveGroup .groupBody {
+  margin-left: 0;
+}
+
+.proactiveControls {
+  display: grid;
+  gap: 12px;
+}
+
+.proactiveOverview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 15px;
+  border: 1px solid color-mix(in srgb, var(--accent) 11%, var(--iris-hairline));
+  border-radius: 17px;
+  background:
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--accent) 11%, transparent), transparent 50%),
+    color-mix(in srgb, var(--iris-pearl-strong) 88%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.proactiveOverview[data-enabled="false"] {
+  filter: saturate(0.58);
+  opacity: 0.78;
+}
+
+.proactiveOverview > div {
+  display: grid;
+  gap: 3px;
+}
+
+.proactiveKicker,
+.proactiveInboxHeader span {
+  color: color-mix(in srgb, var(--accent) 62%, var(--ink-dim));
+  font-size: 8px;
+  font-weight: 780;
+  letter-spacing: 0.16em;
+}
+
+.proactiveOverview strong,
+.proactiveInboxHeader strong {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.proactiveOverview p {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: 9.5px;
+  line-height: 1.45;
+}
+
+.proactiveSwitch {
+  position: relative;
+  width: 43px;
+  height: 25px;
+  flex: 0 0 auto;
+}
+
+.proactiveSwitch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.proactiveSwitch > span[aria-hidden="true"] {
+  position: absolute;
+  inset: 0;
+  border: 1px solid color-mix(in srgb, var(--ink-dim) 19%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-dim) 12%, var(--iris-pearl));
+  box-shadow: inset 0 1px 3px rgba(43, 38, 77, 0.08);
+  transition: background 180ms ease, border-color 180ms ease;
+}
+
+.proactiveSwitch > span[aria-hidden="true"]::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 3px 8px rgba(42, 36, 86, 0.19);
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.proactiveSwitch input:checked + span {
+  border-color: color-mix(in srgb, var(--accent) 58%, transparent);
+  background: linear-gradient(135deg, #8d7cff, #6d5bf0);
+}
+
+.proactiveSwitch input:checked + span::after {
+  transform: translateX(18px);
+}
+
+.proactiveSwitch input:focus-visible + span {
+  outline: 2px solid var(--control-focus-ring);
+  outline-offset: 3px;
+}
+
+.proactivePreferenceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.proactiveField,
+.proactiveQuiet label {
+  display: grid;
+  gap: 5px;
+  color: var(--ink-dim);
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.proactiveField select,
+.proactiveQuiet input {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--iris-hairline);
+  border-radius: 12px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--iris-pearl-strong) 94%, transparent);
+  font: inherit;
+  font-size: 11px;
+}
+
+.proactiveQuiet,
+.proactiveTopics {
+  min-width: 0;
+  margin: 0;
+  padding: 11px;
+  border: 1px solid var(--iris-hairline);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--iris-pearl) 72%, transparent);
+}
+
+.proactiveQuiet {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: 8px;
+}
+
+.proactiveQuiet legend,
+.proactiveTopics legend {
+  padding: 0 5px;
+  color: var(--ink-dim);
+  font-size: 9px;
+  font-weight: 680;
+}
+
+.proactiveQuietDivider {
+  padding-bottom: 10px;
+  color: color-mix(in srgb, var(--ink-dim) 45%, transparent);
+}
+
+.proactiveTopics {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.proactiveTopics label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--iris-hairline);
+  border-radius: 999px;
+  color: var(--ink-dim);
+  background: color-mix(in srgb, var(--iris-pearl-strong) 84%, transparent);
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.proactiveTopics input {
+  width: 12px;
+  height: 12px;
+  accent-color: var(--accent);
+}
+
+.proactiveControlFeedback {
+  min-height: 16px;
+  margin: -3px 3px 0;
+  color: var(--ink-dim);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.proactiveControlFeedback:empty {
+  min-height: 0;
+}
+
+.proactiveControlFeedback[data-tone="success"] {
+  color: color-mix(in srgb, var(--status-online) 72%, var(--ink));
+}
+
+.proactiveControlFeedback[data-tone="error"] {
+  color: var(--status-error);
+}
+
+.proactiveInboxSection {
+  display: grid;
+  gap: 8px;
+  padding-top: 3px;
+}
+
+.proactiveInboxHeader {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.proactiveInboxHeader > div {
+  display: grid;
+  gap: 2px;
+}
+
+.proactiveInboxHeader button,
+.proactiveInboxItem button {
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--iris-hairline);
+  border-radius: 999px;
+  color: var(--ink-dim);
+  background: color-mix(in srgb, var(--iris-pearl-strong) 88%, transparent);
+  font-size: 9px;
+  font-weight: 680;
+}
+
+.proactiveInbox {
+  display: grid;
+  gap: 7px;
+}
+
+.proactiveInboxItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--iris-hairline);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--iris-pearl-strong) 84%, transparent);
+}
+
+.proactiveInboxItem > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.proactiveInboxItem span {
+  color: var(--ink-dim);
+  font-size: 8px;
+}
+
+.proactiveInboxItem p,
+.proactiveInboxEmpty {
+  margin: 0;
+  color: var(--ink);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.proactiveInboxEmpty {
+  padding: 15px 12px;
+  border: 1px dashed color-mix(in srgb, var(--ink-dim) 16%, transparent);
+  border-radius: 14px;
+  color: var(--ink-dim);
+  text-align: center;
+}
+
+.message[data-kind="proactive_followup"][data-proactive-state="dismissed"] {
+  opacity: 0.72;
+}
+
+.message[data-kind="proactive_followup"] .messageActions {
+  opacity: 1;
+  border-top-color: color-mix(in srgb, var(--accent) 11%, var(--iris-hairline));
+  background: color-mix(in srgb, var(--iris-pearl) 46%, transparent);
+}
+
+.message[data-kind="proactive_followup"] .messageActions button[data-action-key="dismiss"] {
+  color: color-mix(in srgb, var(--ink) 66%, transparent);
+  border-color: color-mix(in srgb, var(--ink-dim) 15%, var(--iris-hairline));
+  background: color-mix(in srgb, var(--iris-pearl-strong) 88%, transparent);
+}
+
+.message[data-kind="proactive_followup"][data-proactive-state="dismissed"] .messageActions button {
+  display: none;
+}
+
+:root[data-theme="pure-black"] .proactiveOverview,
+:root[data-theme="pure-black"] .proactiveQuiet,
+:root[data-theme="pure-black"] .proactiveTopics,
+:root[data-theme="pure-black"] .proactiveInboxItem {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(31, 32, 45, 0.84);
+}
+
+:root[data-theme="pure-black"] .proactiveField select,
+:root[data-theme="pure-black"] .proactiveQuiet input,
+:root[data-theme="pure-black"] .proactiveTopics label,
+:root[data-theme="pure-black"] .proactiveInboxHeader button,
+:root[data-theme="pure-black"] .proactiveInboxItem button {
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(242, 240, 252, 0.78);
+  background: #242632;
+}
+
+@media (max-width: 370px) {
+  .proactivePreferenceGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .proactiveInboxItem {
+    grid-template-columns: 1fr;
+  }
+
+  .proactiveInboxItem button {
+    justify-self: start;
+  }
+}
+
+@media (min-width: 900px) and (min-height: 680px) {
+  .detailSheet .settingsList {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .detailSheet .settingsGroup.navGroup,
+  .detailSheet .settingsGroup.navGroup[open],
+  .detailSheet .settingsGroup.navGroup:not([open]) {
+    width: 100%;
+    flex: 0 0 auto;
+    align-self: stretch;
+  }
+
+  .detailSheet .settingsGroup.navGroup[open] {
+    height: auto;
   }
 }

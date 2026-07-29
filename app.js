@@ -38,6 +38,21 @@ const els = {
   memoryOverview: document.getElementById("memoryOverview"),
   memoryStatus: document.getElementById("memoryStatus"),
   memoryList: document.getElementById("memoryList"),
+  proactiveStatus: document.getElementById("proactiveStatus"),
+  proactiveOverview: document.getElementById("proactiveOverview"),
+  proactiveOverviewTitle: document.getElementById("proactiveOverviewTitle"),
+  proactiveOverviewHint: document.getElementById("proactiveOverviewHint"),
+  proactiveEnabled: document.getElementById("proactiveEnabled"),
+  proactiveDailyLimit: document.getElementById("proactiveDailyLimit"),
+  proactiveInterval: document.getElementById("proactiveInterval"),
+  proactiveQuietStart: document.getElementById("proactiveQuietStart"),
+  proactiveQuietEnd: document.getElementById("proactiveQuietEnd"),
+  proactiveEmotion: document.getElementById("proactiveEmotion"),
+  proactiveGoal: document.getElementById("proactiveGoal"),
+  proactiveCalendar: document.getElementById("proactiveCalendar"),
+  proactiveFeedback: document.getElementById("proactiveControlFeedback"),
+  proactiveRefresh: document.getElementById("proactiveRefreshButton"),
+  proactiveInbox: document.getElementById("proactiveInbox"),
   reviewRefresh: document.getElementById("reviewWorkbenchRefreshButton"),
   reviewTabs: document.getElementById("reviewWorkbenchTabs"),
   reviewOverview: document.getElementById("reviewWorkbenchOverview"),
@@ -84,7 +99,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "362";
+const VOICE_UI_VERSION = "363";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -533,6 +548,30 @@ const UI_TEXT = {
     "model.message.switchFailed": "模型切换失败：{reason}",
     "settings.memory": "记忆",
     "settings.memorySub": "偏好 · 项目 · 待确认",
+    "settings.proactive": "主动陪伴",
+    "settings.proactiveSub": "时机 · 频率 · 最近消息",
+    "proactive.kicker": "PROACTIVE CARE",
+    "proactive.enabled": "开启主动陪伴",
+    "proactive.onTitle": "主动陪伴已开启",
+    "proactive.onHint": "Iris 会在有依据、时机合适时自然来找你。",
+    "proactive.offTitle": "主动陪伴已暂停",
+    "proactive.offHint": "提醒和回访都先安静下来，随时可以恢复。",
+    "proactive.dailyLimit": "每天最多",
+    "proactive.interval": "最短间隔",
+    "proactive.quietHours": "安静时段",
+    "proactive.quietStart": "开始",
+    "proactive.quietEnd": "结束",
+    "proactive.sources": "可以主动提起",
+    "proactive.emotion": "情绪回访",
+    "proactive.goal": "目标进展",
+    "proactive.calendar": "日程准备",
+    "proactive.inboxKicker": "RECENT",
+    "proactive.inbox": "最近主动消息",
+    "proactive.empty": "最近没有等待处理的主动消息。",
+    "proactive.dismiss": "忽略这条",
+    "proactive.dismissed": "已收起，不会再沿着这条继续问。",
+    "proactive.saved": "主动陪伴偏好已保存。",
+    "proactive.saveFailed": "暂时没能保存，请稍后重试。",
     "settings.review": "审阅",
     "settings.reviewSub": "动作 · 学习 · 待处理",
     "review.tabsAria": "审阅范围",
@@ -724,6 +763,30 @@ const UI_TEXT = {
     "model.message.switchFailed": "Model switch failed: {reason}",
     "settings.memory": "Memory",
     "settings.memorySub": "Prefs · Projects · Review",
+    "settings.proactive": "Proactive care",
+    "settings.proactiveSub": "Timing · Frequency · Recent",
+    "proactive.kicker": "PROACTIVE CARE",
+    "proactive.enabled": "Enable proactive care",
+    "proactive.onTitle": "Proactive care is on",
+    "proactive.onHint": "Iris may check in when there is evidence and the timing feels right.",
+    "proactive.offTitle": "Proactive care is paused",
+    "proactive.offHint": "Reminders and check-ins will stay quiet until you resume them.",
+    "proactive.dailyLimit": "Daily maximum",
+    "proactive.interval": "Minimum interval",
+    "proactive.quietHours": "Quiet hours",
+    "proactive.quietStart": "Start",
+    "proactive.quietEnd": "End",
+    "proactive.sources": "Iris may bring up",
+    "proactive.emotion": "Emotional follow-up",
+    "proactive.goal": "Goal progress",
+    "proactive.calendar": "Calendar preparation",
+    "proactive.inboxKicker": "RECENT",
+    "proactive.inbox": "Recent proactive messages",
+    "proactive.empty": "No proactive messages are waiting for you.",
+    "proactive.dismiss": "Dismiss",
+    "proactive.dismissed": "Dismissed. Iris will not continue this thread.",
+    "proactive.saved": "Proactive care preferences saved.",
+    "proactive.saveFailed": "Could not save this preference. Try again.",
     "settings.review": "Review",
     "settings.reviewSub": "Actions · Learning · Pending",
     "review.tabsAria": "Review scope",
@@ -984,6 +1047,11 @@ let proactiveScanTimer = 0;
 let proactiveScanInFlight = false;
 let proactiveScanLastAt = 0;
 let activeProactiveNotificationId = "";
+let proactivePreferencesLoaded = false;
+let proactivePreferencesLoading = false;
+let proactivePreferencesSaving = false;
+let proactivePreferencesSnapshot = null;
+let proactiveInboxItems = [];
 const renderedProactiveKeys = new Set();
 
 const VAD = {
@@ -1011,7 +1079,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v362-proactive-conversation";
+const WEB_VERSION = "voice-ui-web-polish-v363-proactive-control-center";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -2433,9 +2501,11 @@ function appendConversationMessage(role, text, options = {}) {
     feedback.setAttribute("role", "status");
     feedback.setAttribute("aria-live", "polite");
     const hasRemoteAction = options.actions.some((button) => button && button.dataset && button.dataset.remoteAction === "true");
-    feedback.textContent = hasRemoteAction
-      ? (currentLanguage === "en" ? "Nothing happens until you confirm." : "确认后才会执行。")
-      : (currentLanguage === "en" ? "Choose an action when ready." : "需要时选择一个操作。");
+    feedback.textContent = String(options.actionHint || "").trim() || (
+      hasRemoteAction
+        ? (currentLanguage === "en" ? "Nothing happens until you confirm." : "确认后才会执行。")
+        : (currentLanguage === "en" ? "Choose an action when ready." : "需要时选择一个操作。")
+    );
     actions.appendChild(feedback);
     item.appendChild(actions);
   }
@@ -3136,6 +3206,9 @@ function applyLanguage(language, { persist = true, refreshState = true } = {}) {
   }
   if (lastReviewWorkbenchPayload && els.reviewList && typeof renderReviewWorkbench === "function") {
     renderReviewWorkbench(lastReviewWorkbenchPayload);
+  }
+  if (proactivePreferencesSnapshot && typeof renderProactivePreferences === "function") {
+    renderProactivePreferences(proactivePreferencesSnapshot);
   }
   if (currentDocumentId && typeof setDocumentStatus === "function") {
     setDocumentStatus(currentDocumentStatusLine() || (currentLanguage === "en" ? "File" : "文件"), "ready");
@@ -3922,6 +3995,9 @@ function openDetails() {
   if (els.memoryRefresh && !memoryControlLoaded && !memoryControlLoading) {
     refreshMemoryControlCenter().catch((err) => logLine(err.message || "memory refresh failed"));
   }
+  if (els.proactiveRefresh && !proactivePreferencesLoaded && !proactivePreferencesLoading) {
+    loadProactiveControlCenter().catch((err) => logLine(err.message || "proactive preferences failed"));
+  }
 }
 
 function closeDetails({ restoreFocus = true } = {}) {
@@ -4038,6 +4114,11 @@ function initSettingsGroupAutoScroll() {
         scrollSettingsGroupIntoView(group);
         if (group.classList.contains("reviewGroup") && !reviewWorkbenchLoaded && !reviewWorkbenchLoading) {
           refreshReviewWorkbench().catch((err) => logLine(err.message || "review workbench refresh failed"));
+        }
+        if (group.classList.contains("proactiveGroup") && !proactivePreferencesLoading) {
+          loadProactiveControlCenter({ force: true }).catch((err) => {
+            logLine(err.message || "proactive preferences failed");
+          });
         }
       }
     });
@@ -4353,6 +4434,308 @@ async function acknowledgeProactiveItem(item, event = "seen") {
   return true;
 }
 
+function setProactiveControlFeedback(message = "", tone = "info") {
+  if (!els.proactiveFeedback) return;
+  els.proactiveFeedback.textContent = String(message || "").trim();
+  els.proactiveFeedback.dataset.tone = tone;
+}
+
+function setProactiveControlsBusy(busy) {
+  proactivePreferencesSaving = Boolean(busy);
+  [
+    els.proactiveEnabled,
+    els.proactiveDailyLimit,
+    els.proactiveInterval,
+    els.proactiveQuietStart,
+    els.proactiveQuietEnd,
+    els.proactiveEmotion,
+    els.proactiveGoal,
+    els.proactiveCalendar,
+    els.proactiveRefresh
+  ].forEach((control) => {
+    if (control) control.disabled = proactivePreferencesSaving;
+  });
+  if (els.proactiveOverview) {
+    els.proactiveOverview.dataset.busy = proactivePreferencesSaving ? "true" : "false";
+  }
+}
+
+function ensureProactiveSelectValue(select, value, suffixZh, suffixEn) {
+  if (!select) return;
+  const normalized = String(value);
+  if (!Array.from(select.options).some((option) => option.value === normalized)) {
+    const option = document.createElement("option");
+    option.value = normalized;
+    option.textContent = `${normalized} ${currentLanguage === "en" ? suffixEn : suffixZh}`;
+    select.appendChild(option);
+  }
+  select.value = normalized;
+}
+
+function localizeProactiveSelectOptions() {
+  if (els.proactiveDailyLimit) {
+    Array.from(els.proactiveDailyLimit.options).forEach((option) => {
+      option.textContent = currentLanguage === "en"
+        ? `${option.value} per day`
+        : `${option.value} 次`;
+    });
+  }
+  if (els.proactiveInterval) {
+    const zhLabels = {
+      "30": "30 分钟",
+      "60": "1 小时",
+      "120": "2 小时",
+      "240": "4 小时"
+    };
+    const enLabels = {
+      "30": "30 minutes",
+      "60": "1 hour",
+      "120": "2 hours",
+      "240": "4 hours"
+    };
+    Array.from(els.proactiveInterval.options).forEach((option) => {
+      const labels = currentLanguage === "en" ? enLabels : zhLabels;
+      option.textContent = labels[option.value]
+        || (currentLanguage === "en" ? `${option.value} minutes` : `${option.value} 分钟`);
+    });
+  }
+}
+
+function proactiveInboxTime(value) {
+  const date = new Date(String(value || ""));
+  if (!Number.isFinite(date.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat(currentLanguage === "en" ? "en" : "zh-CN", {
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(date);
+  } catch (error) {
+    return "";
+  }
+}
+
+function renderProactiveInbox(items) {
+  proactiveInboxItems = Array.isArray(items) ? items.filter((item) => item && item.notification_id) : [];
+  if (!els.proactiveInbox) return;
+  els.proactiveInbox.replaceChildren();
+  if (!proactiveInboxItems.length) {
+    const empty = document.createElement("p");
+    empty.className = "proactiveInboxEmpty";
+    empty.textContent = textFor("proactive.empty", "最近没有等待处理的主动消息。");
+    els.proactiveInbox.appendChild(empty);
+    return;
+  }
+  proactiveInboxItems.forEach((item) => {
+    const trigger = item.trigger && typeof item.trigger === "object" ? item.trigger : {};
+    const card = document.createElement("article");
+    card.className = "proactiveInboxItem";
+    card.dataset.notificationId = String(item.notification_id);
+    const copy = document.createElement("div");
+    const meta = document.createElement("span");
+    const contextual = item.kind === "contextual_followup";
+    meta.textContent = [
+      currentLanguage === "en"
+        ? (contextual ? "Follow-up" : "Reminder")
+        : (contextual ? "回访" : "提醒"),
+      proactiveInboxTime(item.created_at)
+    ].filter(Boolean).join(" · ");
+    const text = document.createElement("p");
+    text.textContent = String(trigger.item || "").trim();
+    copy.append(meta, text);
+    const dismiss = document.createElement("button");
+    dismiss.type = "button";
+    dismiss.textContent = textFor("proactive.dismiss", "忽略这条");
+    dismiss.addEventListener("click", () => {
+      dismissProactiveNotification(item.notification_id, { button: dismiss }).catch((error) => {
+        logLine(`proactive dismiss failed ${error && error.message || "unknown"}`);
+      });
+    });
+    card.append(copy, dismiss);
+    els.proactiveInbox.appendChild(card);
+  });
+}
+
+function renderProactivePreferences(payload) {
+  proactivePreferencesSnapshot = payload && typeof payload === "object" ? payload : {};
+  const preferences = payload && payload.preferences && typeof payload.preferences === "object"
+    ? payload.preferences
+    : {};
+  const enabled = preferences.enabled !== false;
+  const dailyLimit = Number(preferences.max_active_messages_per_day) || 4;
+  const interval = Number(preferences.soft_message_interval_minutes) || 60;
+  const quiet = Array.isArray(preferences.quiet_hours) ? preferences.quiet_hours : ["23:30", "08:00"];
+  if (els.proactiveEnabled) els.proactiveEnabled.checked = enabled;
+  ensureProactiveSelectValue(els.proactiveDailyLimit, dailyLimit, "次", "per day");
+  ensureProactiveSelectValue(els.proactiveInterval, interval, "分钟", "minutes");
+  localizeProactiveSelectOptions();
+  if (els.proactiveQuietStart) els.proactiveQuietStart.value = quiet[0] || "23:30";
+  if (els.proactiveQuietEnd) els.proactiveQuietEnd.value = quiet[1] || "08:00";
+  if (els.proactiveEmotion) els.proactiveEmotion.checked = preferences.allow_emotion_followup !== false;
+  if (els.proactiveGoal) els.proactiveGoal.checked = preferences.allow_goal_followup !== false;
+  if (els.proactiveCalendar) els.proactiveCalendar.checked = preferences.allow_calendar_preparation !== false;
+  if (els.proactiveOverview) els.proactiveOverview.dataset.enabled = enabled ? "true" : "false";
+  if (els.proactiveOverviewTitle) {
+    els.proactiveOverviewTitle.textContent = enabled
+      ? textFor("proactive.onTitle", "主动陪伴已开启")
+      : textFor("proactive.offTitle", "主动陪伴已暂停");
+  }
+  if (els.proactiveOverviewHint) {
+    els.proactiveOverviewHint.textContent = enabled
+      ? textFor("proactive.onHint", "Iris 会在有依据、时机合适时自然来找你。")
+      : textFor("proactive.offHint", "提醒和回访都先安静下来，随时可以恢复。");
+  }
+  if (els.proactiveStatus) {
+    els.proactiveStatus.textContent = enabled
+      ? (currentLanguage === "en" ? `On · up to ${dailyLimit} daily` : `开启 · 每天最多 ${dailyLimit} 次`)
+      : (currentLanguage === "en" ? "Paused" : "已暂停");
+    els.proactiveStatus.dataset.tone = enabled ? "success" : "muted";
+  }
+  renderProactiveInbox(payload && payload.inbox && payload.inbox.items);
+  if (!enabled) {
+    clearProactiveScanSchedule();
+    clearActiveProactiveConversation();
+  } else if (!proactiveScanTimer) {
+    scheduleProactiveScan(2200);
+  }
+}
+
+async function loadProactiveControlCenter({ force = false } = {}) {
+  if (proactivePreferencesLoading || (!force && proactivePreferencesLoaded)) return;
+  if (!canUseBackendNow()) return;
+  proactivePreferencesLoading = true;
+  if (els.proactiveStatus) {
+    els.proactiveStatus.textContent = currentLanguage === "en" ? "Loading preferences" : "读取偏好中";
+    els.proactiveStatus.dataset.tone = "loading";
+  }
+  try {
+    const params = new URLSearchParams({ channel: "web", user_id: currentSubjectId() });
+    const response = await fetch(backendUrl(`/client/v1/proactive/preferences?${params.toString()}`), {
+      method: "GET",
+      headers: authHeaders(),
+      cache: "no-store"
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `proactive_preferences_${response.status}`);
+    }
+    proactivePreferencesLoaded = true;
+    renderProactivePreferences(payload);
+    setProactiveControlFeedback("");
+  } catch (error) {
+    if (els.proactiveStatus) {
+      els.proactiveStatus.textContent = currentLanguage === "en" ? "Preferences unavailable" : "偏好暂不可用";
+      els.proactiveStatus.dataset.tone = "error";
+    }
+    throw error;
+  } finally {
+    proactivePreferencesLoading = false;
+  }
+}
+
+async function saveProactivePreferences(preferences) {
+  if (proactivePreferencesSaving || !canUseBackendNow()) return;
+  setProactiveControlsBusy(true);
+  setProactiveControlFeedback(
+    currentLanguage === "en" ? "Saving…" : "正在保存…",
+    "loading"
+  );
+  try {
+    const response = await fetch(backendUrl("/client/v1/proactive/preferences"), {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders()
+      },
+      cache: "no-store",
+      body: JSON.stringify({
+        user_id: currentSubjectId(),
+        channel: "web",
+        client_id: voiceClientId(),
+        preferences
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `proactive_preferences_${response.status}`);
+    }
+    proactivePreferencesLoaded = true;
+    renderProactivePreferences(payload);
+    setProactiveControlFeedback(textFor("proactive.saved", "主动陪伴偏好已保存。"), "success");
+  } catch (error) {
+    setProactiveControlFeedback(textFor("proactive.saveFailed", "暂时没能保存，请稍后重试。"), "error");
+    await loadProactiveControlCenter({ force: true }).catch(() => {});
+    throw error;
+  } finally {
+    setProactiveControlsBusy(false);
+  }
+}
+
+async function dismissProactiveNotification(notificationId, { button = null } = {}) {
+  const normalized = String(notificationId || "").trim();
+  if (!normalized || (button && button.dataset.loading === "true")) return;
+  if (button) {
+    button.dataset.loading = "true";
+    button.disabled = true;
+  }
+  try {
+    const dismissed = await acknowledgeProactiveItem({ notification_id: normalized }, "dismissed");
+    if (!dismissed) throw new Error("proactive_dismiss_failed");
+    if (activeProactiveNotificationId === normalized) clearActiveProactiveConversation();
+    proactiveInboxItems = proactiveInboxItems.filter(
+      (item) => String(item.notification_id || "") !== normalized
+    );
+    renderProactiveInbox(proactiveInboxItems);
+    const message = findConversationMessage(normalized);
+    if (message) {
+      message.dataset.proactiveState = "dismissed";
+      const group = message.querySelector(".messageActions");
+      if (group) {
+        group.dataset.state = "selected";
+        group.querySelectorAll("button").forEach((control) => {
+          control.disabled = true;
+          control.setAttribute("aria-pressed", control === button ? "true" : "false");
+        });
+        const feedback = group.querySelector(".messageActionFeedback");
+        if (feedback) {
+          feedback.dataset.tone = "success";
+          feedback.textContent = textFor(
+            "proactive.dismissed",
+            "已收起，不会再沿着这条继续问。"
+          );
+        }
+      }
+    }
+    setProactiveControlFeedback(
+      textFor("proactive.dismissed", "已收起，不会再沿着这条继续问。"),
+      "success"
+    );
+  } finally {
+    if (button && !button.closest('[data-proactive-state="dismissed"]')) {
+      button.dataset.loading = "false";
+      button.disabled = false;
+    }
+  }
+}
+
+function proactiveDismissAction(notificationId) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = textFor("proactive.dismiss", "忽略这条");
+  button.dataset.remoteAction = "true";
+  button.dataset.actionKey = "dismiss";
+  button.dataset.variant = "neutral";
+  button.addEventListener("click", () => {
+    dismissProactiveNotification(notificationId, { button }).catch((error) => {
+      logLine(`proactive dismiss failed ${error && error.message || "unknown"}`);
+    });
+  });
+  return button;
+}
+
 function clearActiveProactiveConversation() {
   if (!activeProactiveNotificationId) return;
   activeProactiveNotificationId = "";
@@ -4379,6 +4762,10 @@ function renderProactiveItems(items) {
         ? (contextual ? "Iris · Follow-up" : "Iris · Reminder")
         : (contextual ? "Iris · 想起你了" : "Iris · 提醒"),
       kind: "proactive_followup",
+      actions: notificationId ? [proactiveDismissAction(notificationId)] : [],
+      actionHint: currentLanguage === "en"
+        ? "Dismiss only if you do not want to continue this thread."
+        : "不想继续这条时，可以把它收起。",
       forceScroll: false
     });
     if (notificationId) {
@@ -9120,6 +9507,54 @@ if (els.memorySearchClear) {
     refreshMemoryControlCenter().catch((err) => logLine(err.message || "memory search clear failed"));
   });
 }
+if (els.proactiveRefresh) {
+  els.proactiveRefresh.addEventListener("click", () => {
+    loadProactiveControlCenter({ force: true }).catch((err) => {
+      logLine(err.message || "proactive preferences refresh failed");
+    });
+  });
+}
+if (els.proactiveEnabled) {
+  els.proactiveEnabled.addEventListener("change", () => {
+    saveProactivePreferences({ enabled: els.proactiveEnabled.checked }).catch((err) => {
+      logLine(err.message || "proactive enabled preference failed");
+    });
+  });
+}
+if (els.proactiveDailyLimit) {
+  els.proactiveDailyLimit.addEventListener("change", () => {
+    saveProactivePreferences({
+      max_active_messages_per_day: Number(els.proactiveDailyLimit.value)
+    }).catch((err) => logLine(err.message || "proactive daily limit failed"));
+  });
+}
+if (els.proactiveInterval) {
+  els.proactiveInterval.addEventListener("change", () => {
+    saveProactivePreferences({
+      soft_message_interval_minutes: Number(els.proactiveInterval.value)
+    }).catch((err) => logLine(err.message || "proactive interval failed"));
+  });
+}
+function saveProactiveQuietHours() {
+  if (!els.proactiveQuietStart || !els.proactiveQuietEnd) return;
+  saveProactivePreferences({
+    quiet_hours: [els.proactiveQuietStart.value, els.proactiveQuietEnd.value]
+  }).catch((err) => logLine(err.message || "proactive quiet hours failed"));
+}
+if (els.proactiveQuietStart) els.proactiveQuietStart.addEventListener("change", saveProactiveQuietHours);
+if (els.proactiveQuietEnd) els.proactiveQuietEnd.addEventListener("change", saveProactiveQuietHours);
+[
+  [els.proactiveEmotion, "allow_emotion_followup"],
+  [els.proactiveGoal, "allow_goal_followup"],
+  [els.proactiveCalendar, "allow_calendar_preparation"]
+].forEach(([control, field]) => {
+  if (!control) return;
+  control.addEventListener("change", () => {
+    saveProactivePreferences({ [field]: control.checked }).catch((err) => {
+      logLine(err.message || `proactive ${field} failed`);
+    });
+  });
+});
 if (els.reviewRefresh) {
   els.reviewRefresh.addEventListener("click", () => {
     refreshReviewWorkbench({ force: true }).catch((err) => logLine(err.message || "review refresh failed"));
