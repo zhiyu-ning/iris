@@ -84,10 +84,10 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "360";
+const VOICE_UI_VERSION = "361";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
-  "doc", "xls", "ppt", "docx", "xlsx", "pptx", "odt", "ods", "odp", "eml",
+  "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
   "png", "jpg", "jpeg", "webp", "tif", "tiff", "heic", "heif"
 ]);
 const IRIS_PUBLIC_CONFIG = Object.freeze({
@@ -1010,7 +1010,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v360-iris-pearl";
+const WEB_VERSION = "voice-ui-web-polish-v361-office-macro-inventory";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -6078,6 +6078,9 @@ function documentPageCountLabel(count) {
 }
 
 function documentTypeBadge(doc) {
+  const filename = String(doc && doc.filename || "").toLowerCase();
+  const extension = filename.includes(".") ? filename.split(".").pop() : "";
+  if (["docm", "xlsm", "pptm"].includes(extension)) return extension.toUpperCase();
   const kind = String(doc && doc.document_type || "").toUpperCase();
   const labels = {
     TEXT: "TXT",
@@ -6105,8 +6108,13 @@ function documentTypeBadge(doc) {
 }
 
 function documentUnitCountLabel(doc) {
-  const value = Number(doc && doc.page_count);
-  if (!Number.isFinite(value) || value <= 0) return "";
+  const rawValue = Number(doc && doc.page_count);
+  if (!Number.isFinite(rawValue) || rawValue <= 0) return "";
+  const filename = String(doc && doc.filename || "").toLowerCase();
+  const extension = filename.includes(".") ? filename.split(".").pop() : "";
+  const value = ["docm", "xlsm", "pptm"].includes(extension)
+    ? Math.max(1, rawValue - 1)
+    : rawValue;
   const kind = String(doc && doc.document_type || "").toLowerCase();
   if (["xls", "xlsx", "ods"].includes(kind)) return currentLanguage === "en" ? `${value} ${value === 1 ? "sheet" : "sheets"}` : `${value} 个工作表`;
   if (["ppt", "pptx", "odp"].includes(kind)) return currentLanguage === "en" ? `${value} ${value === 1 ? "slide" : "slides"}` : `${value} 张幻灯片`;
@@ -6237,12 +6245,37 @@ const DOCUMENT_INTERNAL_WARNING_PREFIXES = [
   "mineru_exit_"
 ];
 
+const DOCUMENT_WARNING_TRANSLATIONS = new Map([
+  [
+    "VBA macros detected. Iris indexed a read-only inventory and did not execute any code.",
+    "检测到 VBA 宏。Iris 只建立了只读清单，没有执行任何代码。"
+  ],
+  [
+    "A macro-enabled Office container was detected, but no VBA project was present. No code was executed.",
+    "这是支持宏的 Office 文件，但没有发现 VBA 工程，也没有执行任何代码。"
+  ],
+  [
+    "ActiveX package parts were detected and were not executed.",
+    "检测到 ActiveX 组件。Iris 只记录了组件清单，没有执行它们。"
+  ],
+  [
+    "At least one VBA project could not be fully inspected; its hash and safety status remain available.",
+    "至少一个 VBA 工程未能完整检查；Iris 仍保留了文件指纹和安全状态。"
+  ]
+]);
+
+function documentUserWarning(warning) {
+  if (currentLanguage === "en") return warning;
+  return DOCUMENT_WARNING_TRANSLATIONS.get(warning) || warning;
+}
+
 function documentUserWarnings(warnings) {
   if (!Array.isArray(warnings)) return [];
   return warnings
     .map((warning) => String(warning || "").trim())
     .filter(Boolean)
-    .filter((warning) => !DOCUMENT_INTERNAL_WARNING_PREFIXES.some((prefix) => warning.startsWith(prefix)));
+    .filter((warning) => !DOCUMENT_INTERNAL_WARNING_PREFIXES.some((prefix) => warning.startsWith(prefix)))
+    .map(documentUserWarning);
 }
 
 function logDocumentDiagnostics(warnings) {
