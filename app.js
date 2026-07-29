@@ -2,6 +2,12 @@ const els = {
   home: document.querySelector(".home"),
   dock: document.querySelector(".dock"),
   conversationStream: document.getElementById("conversationStream"),
+  conversationSearchNavigator: document.getElementById("conversationSearchNavigator"),
+  conversationSearchNavigatorQuery: document.getElementById("conversationSearchNavigatorQuery"),
+  conversationSearchNavigatorPosition: document.getElementById("conversationSearchNavigatorPosition"),
+  conversationSearchPrevious: document.getElementById("conversationSearchPreviousButton"),
+  conversationSearchNext: document.getElementById("conversationSearchNextButton"),
+  conversationSearchClose: document.getElementById("conversationSearchCloseButton"),
   subtitleSpeaker: document.getElementById("subtitleSpeaker"),
   subtitle: document.getElementById("subtitleText"),
   caption: document.querySelector(".captionFloat"),
@@ -116,7 +122,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "372";
+const VOICE_UI_VERSION = "373";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -554,6 +560,13 @@ const UI_TEXT = {
     "conversation.searchTitleMatch": "标题命中",
     "conversation.searchMessageMatch": "消息内命中",
     "conversation.searchLocated": "已定位到历史消息",
+    "conversation.searchPrevious": "上一个命中",
+    "conversation.searchNext": "下一个命中",
+    "conversation.searchClose": "关闭命中导航",
+    "conversation.searchPosition": "第 {current} / {total} 处",
+    "conversation.historyEarlier": "载入更早消息",
+    "conversation.historyLater": "载入更新消息",
+    "conversation.historyLoading": "正在载入…",
     "conversation.archived": "归档",
     "conversation.branch": "从这里分支",
     "conversation.branched": "已创建独立分支",
@@ -807,6 +820,13 @@ const UI_TEXT = {
     "conversation.searchTitleMatch": "Title match",
     "conversation.searchMessageMatch": "Message match",
     "conversation.searchLocated": "Located historical message",
+    "conversation.searchPrevious": "Previous match",
+    "conversation.searchNext": "Next match",
+    "conversation.searchClose": "Close match navigator",
+    "conversation.searchPosition": "{current} of {total}",
+    "conversation.historyEarlier": "Load earlier messages",
+    "conversation.historyLater": "Load newer messages",
+    "conversation.historyLoading": "Loading…",
     "conversation.archived": "Archived",
     "conversation.branch": "Branch from here",
     "conversation.branched": "Independent branch created",
@@ -1120,6 +1140,16 @@ let conversationMessageSeq = 0;
 let conversationHistoryLoaded = false;
 let conversationHistoryLoading = false;
 let conversationHistoryRequestSeq = 0;
+let conversationHistoryWindow = {
+  start: 0,
+  end: 0,
+  total: 0,
+  hasMoreBefore: false,
+  hasMoreAfter: false
+};
+let conversationHistoryPageLoading = false;
+let conversationSearchSession = null;
+let conversationSearchNavigationBusy = false;
 let conversationLibraryLoaded = false;
 let conversationLibraryLoading = false;
 let conversationLibraryItems = [];
@@ -1188,7 +1218,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v372-durable-conversation-search";
+const WEB_VERSION = "voice-ui-web-polish-v373-conversation-match-navigation";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -3556,8 +3586,14 @@ function appendConversationMessage(role, text, options = {}) {
   if (role === "assistant" && options.feedbackTarget) {
     attachMessageFeedbackControls(item, options.feedbackTarget);
   }
-  els.conversationStream.appendChild(item);
-  scheduleConversationScroll({ force: options.forceScroll, allowed: shouldScroll });
+  if (options.beforeElement && options.beforeElement.parentNode === els.conversationStream) {
+    els.conversationStream.insertBefore(item, options.beforeElement);
+  } else {
+    els.conversationStream.appendChild(item);
+  }
+  if (!options.suppressScroll) {
+    scheduleConversationScroll({ force: options.forceScroll, allowed: shouldScroll });
+  }
   if (options.revealFromStart && shouldScroll) {
     revealConversationMessage(id, { block: "start" });
   }
@@ -4701,7 +4737,7 @@ function appendSearchHighlightedText(parent, text, rawHighlights) {
   }
 }
 
-function conversationSearchMatchLabel(match) {
+function conversationSearchMatchLabel(match, item = null) {
   if (!match) return "";
   if (match.kind === "title") {
     return textFor("conversation.searchTitleMatch", "标题命中");
@@ -4709,7 +4745,155 @@ function conversationSearchMatchLabel(match) {
   const role = match.role === "user" ? textFor("role.user", "你") : "Iris";
   const timestamp = match.time ? conversationUpdatedLabel(match.time) : "";
   const kind = textFor("conversation.searchMessageMatch", "消息内命中");
-  return [role, timestamp, kind].filter(Boolean).join(" · ");
+  const count = Math.max(0, Number(item && item.search_message_match_count) || 0);
+  const countLabel = count > 1
+    ? (currentLanguage === "en" ? `${count} matches` : `${count} 处`)
+    : "";
+  return [role, timestamp, kind, countLabel].filter(Boolean).join(" · ");
+}
+
+function clearConversationSearchSession() {
+  conversationSearchSession = null;
+  conversationSearchNavigationBusy = false;
+  renderConversationSearchNavigator();
+}
+
+function renderConversationSearchNavigator() {
+  const session = conversationSearchSession;
+  const visible = Boolean(
+    session
+    && session.conversationId === currentConversationId
+    && session.query
+    && session.total > 0
+  );
+  if (!els.conversationSearchNavigator) return;
+  els.conversationSearchNavigator.hidden = !visible;
+  if (!visible) return;
+  const current = Math.min(session.total, Math.max(0, session.activeOrdinal) + 1);
+  if (els.conversationSearchNavigatorQuery) {
+    els.conversationSearchNavigatorQuery.textContent = `“${session.query}”`;
+    els.conversationSearchNavigatorQuery.title = session.query;
+  }
+  if (els.conversationSearchNavigatorPosition) {
+    els.conversationSearchNavigatorPosition.textContent = formatTextFor(
+      "conversation.searchPosition",
+      "第 {current} / {total} 处",
+      { current, total: session.total }
+    );
+  }
+  if (els.conversationSearchPrevious) {
+    els.conversationSearchPrevious.disabled = conversationSearchNavigationBusy || session.activeOrdinal <= 0;
+    els.conversationSearchPrevious.setAttribute(
+      "aria-label",
+      textFor("conversation.searchPrevious", "上一个命中")
+    );
+  }
+  if (els.conversationSearchNext) {
+    els.conversationSearchNext.disabled = (
+      conversationSearchNavigationBusy
+      || session.activeOrdinal >= session.total - 1
+    );
+    els.conversationSearchNext.setAttribute(
+      "aria-label",
+      textFor("conversation.searchNext", "下一个命中")
+    );
+  }
+  if (els.conversationSearchClose) {
+    els.conversationSearchClose.disabled = conversationSearchNavigationBusy;
+    els.conversationSearchClose.setAttribute(
+      "aria-label",
+      textFor("conversation.searchClose", "关闭命中导航")
+    );
+  }
+  els.conversationSearchNavigator.dataset.busy = conversationSearchNavigationBusy ? "true" : "false";
+}
+
+async function conversationSearchMatchAtOrdinal(ordinal) {
+  const session = conversationSearchSession;
+  if (!session) return null;
+  const target = Math.max(0, Math.min(session.total - 1, Number(ordinal) || 0));
+  if (session.matches.has(target)) return session.matches.get(target);
+  const pageSize = 30;
+  const offset = Math.floor(target / pageSize) * pageSize;
+  const params = new URLSearchParams({
+    q: session.query,
+    offset: String(offset),
+    limit: String(pageSize)
+  });
+  const response = await fetch(
+    backendUrl(`/client/v1/conversations/${encodeURIComponent(session.conversationId)}/matches?${params}`),
+    { headers: authHeaders(), cache: "no-store" }
+  );
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    handleUnauthorizedResponse(response);
+    throw new Error(payload.detail || `HTTP ${response.status}`);
+  }
+  if (!conversationSearchSession || conversationSearchSession !== session) return null;
+  session.total = Math.max(0, Number(payload.count) || 0);
+  (Array.isArray(payload.items) ? payload.items : []).forEach((item) => {
+    const itemOrdinal = Number(item && item.ordinal);
+    if (Number.isInteger(itemOrdinal) && itemOrdinal >= 0) {
+      session.matches.set(itemOrdinal, item);
+    }
+  });
+  renderConversationSearchNavigator();
+  return session.matches.get(target) || null;
+}
+
+async function navigateConversationSearch(delta) {
+  const session = conversationSearchSession;
+  if (!session || conversationSearchNavigationBusy) return;
+  const target = Math.max(
+    0,
+    Math.min(session.total - 1, session.activeOrdinal + Number(delta || 0))
+  );
+  if (target === session.activeOrdinal) return;
+  conversationSearchNavigationBusy = true;
+  renderConversationSearchNavigator();
+  try {
+    const match = await conversationSearchMatchAtOrdinal(target);
+    if (!match || !match.turn_id) throw new Error("search_match_unavailable");
+    if (!conversationSearchSession || conversationSearchSession !== session) return;
+    session.activeOrdinal = target;
+    renderConversationSearchNavigator();
+    await switchConversation(session.conversationId, {
+      anchorTurnId: String(match.turn_id || ""),
+      anchorMessageIndex: Number(match.message_index),
+      preserveSearchNavigation: true
+    });
+  } catch (error) {
+    setConversationFeedback(
+      `${currentLanguage === "en" ? "Unable to locate match" : "暂时无法定位这处内容"}：${error.message || ""}`,
+      "error"
+    );
+  } finally {
+    conversationSearchNavigationBusy = false;
+    renderConversationSearchNavigator();
+  }
+}
+
+function openConversationSearchResult(item, searchMatch) {
+  if (!searchMatch || searchMatch.kind !== "message") {
+    clearConversationSearchSession();
+    return switchConversation(item.conversation_id);
+  }
+  const query = String(els.conversationSearch && els.conversationSearch.value || "").trim();
+  const ordinal = Math.max(0, Number(searchMatch.ordinal) || 0);
+  const total = Math.max(1, Number(item.search_message_match_count) || 1);
+  conversationSearchSession = {
+    conversationId: String(item.conversation_id || ""),
+    query,
+    total,
+    activeOrdinal: Math.min(total - 1, ordinal),
+    matches: new Map([[Math.min(total - 1, ordinal), searchMatch]])
+  };
+  renderConversationSearchNavigator();
+  return switchConversation(item.conversation_id, {
+    anchorTurnId: String(searchMatch.turn_id || ""),
+    anchorMessageIndex: Number(searchMatch.message_index),
+    preserveSearchNavigation: true
+  });
 }
 
 function renderConversationLibrary() {
@@ -4770,7 +4954,7 @@ function renderConversationLibrary() {
     if (searchMatch) {
       const matchMeta = document.createElement("span");
       matchMeta.className = "conversationSearchMatchMeta";
-      matchMeta.textContent = conversationSearchMatchLabel(searchMatch);
+      matchMeta.textContent = conversationSearchMatchLabel(searchMatch, item);
       select.appendChild(matchMeta);
     }
     if (item.parent_conversation_id) {
@@ -4783,14 +4967,7 @@ function renderConversationLibrary() {
     }
     select.appendChild(meta);
     select.addEventListener("click", () => {
-      switchConversation(item.conversation_id, {
-        anchorTurnId: searchMatch && searchMatch.kind === "message"
-          ? String(searchMatch.turn_id || "")
-          : "",
-        anchorMessageIndex: searchMatch && searchMatch.kind === "message"
-          ? Number(searchMatch.message_index)
-          : -1
-      }).catch((error) => {
+      openConversationSearchResult(item, searchMatch).catch((error) => {
         setConversationFeedback(`${currentLanguage === "en" ? "Switch failed" : "切换失败"}：${error.message || ""}`, "error");
       });
     });
@@ -4906,7 +5083,7 @@ function resetConversationDocumentContext() {
   setDocumentUploadStatus("", "info", false);
 }
 
-function resetConversationSurface() {
+function resetConversationSurface({ preserveSearchNavigation = false } = {}) {
   conversationHistoryRequestSeq += 1;
   textPromptSeq += 1;
   if (els.conversationStream) els.conversationStream.replaceChildren();
@@ -4915,6 +5092,15 @@ function resetConversationSurface() {
   connectionStatusMessageId = "";
   conversationHistoryLoaded = false;
   conversationHistoryLoading = false;
+  conversationHistoryPageLoading = false;
+  conversationHistoryWindow = {
+    start: 0,
+    end: 0,
+    total: 0,
+    hasMoreBefore: false,
+    hasMoreAfter: false
+  };
+  if (!preserveSearchNavigation) clearConversationSearchSession();
   resetConversationDocumentContext();
   ensureAssistantConversationAnchor();
 }
@@ -4933,7 +5119,15 @@ function focusConversationSearchHit(turnId, historyIndex = -1) {
   void target.offsetWidth;
   target.classList.add("conversationSearchAnchorHit");
   target.setAttribute("tabindex", "-1");
-  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  const targetTop = target.offsetTop;
+  const centeredTop = Math.max(
+    0,
+    targetTop - (els.conversationStream.clientHeight - target.offsetHeight) / 2
+  );
+  els.conversationStream.scrollTo({
+    top: centeredTop,
+    behavior: "auto"
+  });
   target.focus({ preventScroll: true });
   window.setTimeout(() => {
     target.classList.remove("conversationSearchAnchorHit");
@@ -4951,12 +5145,18 @@ async function switchConversation(
   {
     keepDetails = false,
     anchorTurnId = "",
-    anchorMessageIndex = -1
+    anchorMessageIndex = -1,
+    preserveSearchNavigation = false
   } = {}
 ) {
   const nextId = String(conversationId || "").trim();
   const safeAnchorTurnId = String(anchorTurnId || "").trim();
-  if (!nextId || (nextId === currentConversationId && !safeAnchorTurnId)) {
+  if (!nextId) {
+    if (!keepDetails) closeDetails();
+    return;
+  }
+  if (nextId === currentConversationId && !safeAnchorTurnId) {
+    if (!preserveSearchNavigation) clearConversationSearchSession();
     if (!keepDetails) closeDetails();
     return;
   }
@@ -4979,8 +5179,9 @@ async function switchConversation(
     projectFilterTouched = false;
     rememberSelectedConversation(nextId);
   }
-  resetConversationSurface();
+  resetConversationSurface({ preserveSearchNavigation });
   renderConversationLibrary();
+  renderConversationSearchNavigator();
   const historyPayload = await loadConversationHistory({
     force: true,
     anchorTurnId: safeAnchorTurnId,
@@ -5104,6 +5305,190 @@ function historyMessageLabel(role, time) {
   })}`;
 }
 
+function appendConversationHistoryItem(
+  item,
+  historyIndex,
+  {
+    beforeElement = null,
+    forceScroll = false,
+    suppressScroll = false
+  } = {}
+) {
+  if (!els.conversationStream || !item || historyIndex < 0) return "";
+  if (els.conversationStream.querySelector(`[data-history-index="${historyIndex}"]`)) return "";
+  const role = item.role === "user" ? "user" : "assistant";
+  const documentComparison = role === "assistant"
+    ? clientDocumentComparisonPayload(item.ui_payload)
+    : null;
+  const multiIntent = role === "assistant"
+    ? clientMultiIntentPayload(item.ui_payload)
+    : null;
+  const researchVerification = role === "assistant"
+    ? clientResearchVerificationPayload(item.ui_payload)
+    : null;
+  const deepResearch = role === "assistant"
+    ? clientDeepResearchPayload(item.ui_payload)
+    : null;
+  return appendConversationMessage(role, item.content || "", {
+    id: `history_${historyIndex}_${Math.abs(String(item.time || historyIndex).split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`,
+    label: historyMessageLabel(role, item.time),
+    kind: documentComparison
+      ? "document_comparison"
+      : deepResearch
+        ? "deep_research"
+        : researchVerification
+          ? "research_verification"
+          : multiIntent
+            ? "multi_intent"
+            : "history",
+    forceScroll,
+    suppressScroll,
+    beforeElement,
+    turnId: String(item.turn_id || ""),
+    historyIndex,
+    documentComparison,
+    multiIntent,
+    researchVerification,
+    deepResearch,
+    feedbackTarget: role === "assistant" && item.turn_id ? {
+      turn_id: item.turn_id,
+      response_id: item.response_id || "",
+      channel: item.client_type === "voice" ? "voice" : "web"
+    } : null
+  });
+}
+
+function updateConversationHistoryWindow(payload, { merge = false } = {}) {
+  const start = Math.max(0, Number(payload && payload.window_start) || 0);
+  const end = Math.max(start, Number(payload && payload.window_end) || 0);
+  const total = Math.max(end, Number(payload && payload.total_messages) || 0);
+  if (merge && conversationHistoryWindow.total) {
+    conversationHistoryWindow = {
+      start: Math.min(conversationHistoryWindow.start, start),
+      end: Math.max(conversationHistoryWindow.end, end),
+      total,
+      hasMoreBefore: Math.min(conversationHistoryWindow.start, start) > 0,
+      hasMoreAfter: Math.max(conversationHistoryWindow.end, end) < total
+    };
+    return;
+  }
+  conversationHistoryWindow = {
+    start,
+    end,
+    total,
+    hasMoreBefore: Boolean(payload && payload.has_more_before),
+    hasMoreAfter: Boolean(payload && payload.has_more_after)
+  };
+}
+
+function conversationHistoryPager(direction) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "conversationHistoryPager";
+  button.dataset.direction = direction;
+  button.disabled = conversationHistoryPageLoading;
+  button.setAttribute("aria-busy", conversationHistoryPageLoading ? "true" : "false");
+  button.textContent = conversationHistoryPageLoading
+    ? textFor("conversation.historyLoading", "正在载入…")
+    : direction === "before"
+      ? textFor("conversation.historyEarlier", "载入更早消息")
+      : textFor("conversation.historyLater", "载入更新消息");
+  button.addEventListener("click", () => {
+    loadConversationHistoryPage(direction).catch((error) => {
+      setConversationFeedback(
+        `${currentLanguage === "en" ? "History load failed" : "历史消息载入失败"}：${error.message || ""}`,
+        "error"
+      );
+    });
+  });
+  return button;
+}
+
+function renderConversationHistoryPagers() {
+  if (!els.conversationStream) return;
+  els.conversationStream.querySelectorAll(".conversationHistoryPager").forEach((item) => item.remove());
+  if (!conversationHistoryWindow.total) return;
+  const firstHistoryItem = els.conversationStream.querySelector("[data-history-index]");
+  if (conversationHistoryWindow.hasMoreBefore) {
+    const before = conversationHistoryPager("before");
+    if (firstHistoryItem) els.conversationStream.insertBefore(before, firstHistoryItem);
+    else els.conversationStream.appendChild(before);
+  }
+  if (conversationHistoryWindow.hasMoreAfter) {
+    els.conversationStream.appendChild(conversationHistoryPager("after"));
+  }
+}
+
+async function loadConversationHistoryPage(direction) {
+  if (
+    conversationHistoryPageLoading
+    || !els.conversationStream
+    || !currentConversationId
+    || !["before", "after"].includes(direction)
+  ) return;
+  if (direction === "before" && !conversationHistoryWindow.hasMoreBefore) return;
+  if (direction === "after" && !conversationHistoryWindow.hasMoreAfter) return;
+  els.conversationStream.scrollTo({
+    top: els.conversationStream.scrollTop,
+    behavior: "auto"
+  });
+  conversationHistoryPageLoading = true;
+  renderConversationHistoryPagers();
+  const requestedConversationId = currentConversationId;
+  const pageSize = 80;
+  const requestedStart = direction === "before"
+    ? Math.max(0, conversationHistoryWindow.start - pageSize)
+    : conversationHistoryWindow.end;
+  const requestedLimit = direction === "before"
+    ? Math.max(1, conversationHistoryWindow.start - requestedStart)
+    : pageSize;
+  try {
+    const params = new URLSearchParams({
+      conversation_id: requestedConversationId,
+      durable_window: "true",
+      window_start: String(requestedStart),
+      window_limit: String(requestedLimit)
+    });
+    const response = await fetch(
+      backendUrl(`/client/v1/conversation/history?${params}`),
+      { headers: authHeaders(), cache: "no-store" }
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (requestedConversationId !== currentConversationId) return;
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `history_${response.status}`);
+    }
+    const items = Array.isArray(payload.items) ? payload.items : [];
+    els.conversationStream.querySelectorAll(".conversationHistoryPager").forEach((item) => item.remove());
+    const previousHeight = els.conversationStream.scrollHeight;
+    const previousTop = els.conversationStream.scrollTop;
+    const beforeElement = direction === "before"
+      ? els.conversationStream.querySelector("[data-history-index]")
+      : null;
+    const windowStart = Math.max(0, Number(payload.window_start) || 0);
+    items.forEach((item, index) => {
+      appendConversationHistoryItem(item, windowStart + index, {
+        beforeElement,
+        suppressScroll: true
+      });
+    });
+    updateConversationHistoryWindow(payload, { merge: true });
+    renderConversationHistoryPagers();
+    if (direction === "before") {
+      const addedHeight = els.conversationStream.scrollHeight - previousHeight;
+      els.conversationStream.scrollTo({
+        top: previousTop + Math.max(0, addedHeight),
+        behavior: "auto"
+      });
+    }
+    logLine(`loaded ${items.length} ${direction} durable conversation messages`);
+  } finally {
+    conversationHistoryPageLoading = false;
+    renderConversationHistoryPagers();
+  }
+}
+
 async function loadConversationHistory({
   force = false,
   anchorTurnId = "",
@@ -5122,7 +5507,12 @@ async function loadConversationHistory({
   conversationHistoryRequestSeq = requestId;
   conversationHistoryLoading = true;
   try {
-    const params = new URLSearchParams({ since_hours: "336", limit: "120" });
+    const params = new URLSearchParams({
+      since_hours: "336",
+      limit: "120",
+      durable_window: "true",
+      window_limit: "120"
+    });
     if (currentConversationId) params.set("conversation_id", currentConversationId);
     const safeAnchorTurnId = String(anchorTurnId || "").trim();
     if (safeAnchorTurnId) {
@@ -5157,49 +5547,19 @@ async function loadConversationHistory({
       renderConversationBranchContext(payload.conversation);
     }
     const items = Array.isArray(payload.items) ? payload.items : [];
-    if (!items.length) return;
+    updateConversationHistoryWindow(payload);
+    if (!items.length) {
+      renderConversationHistoryPagers();
+      return payload;
+    }
     clearWelcomeMessageForHistory();
     const windowStart = Math.max(0, Number(payload.window_start) || 0);
     items.forEach((item, index) => {
-      const role = item && item.role === "user" ? "user" : "assistant";
-      const documentComparison = role === "assistant"
-        ? clientDocumentComparisonPayload(item && item.ui_payload)
-        : null;
-      const multiIntent = role === "assistant"
-        ? clientMultiIntentPayload(item && item.ui_payload)
-        : null;
-      const researchVerification = role === "assistant"
-        ? clientResearchVerificationPayload(item && item.ui_payload)
-        : null;
-      const deepResearch = role === "assistant"
-        ? clientDeepResearchPayload(item && item.ui_payload)
-        : null;
-      appendConversationMessage(role, item.content || "", {
-        id: `history_${index}_${Math.abs(String(item.time || index).split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`,
-        label: historyMessageLabel(role, item.time),
-        kind: documentComparison
-          ? "document_comparison"
-          : deepResearch
-            ? "deep_research"
-            : researchVerification
-              ? "research_verification"
-              : multiIntent
-                ? "multi_intent"
-                : "history",
-        forceScroll: !safeAnchorTurnId && index === items.length - 1,
-        turnId: String(item.turn_id || ""),
-        historyIndex: windowStart + index,
-        documentComparison,
-        multiIntent,
-        researchVerification,
-        deepResearch,
-        feedbackTarget: role === "assistant" && item.turn_id ? {
-          turn_id: item.turn_id,
-          response_id: item.response_id || "",
-          channel: item.client_type === "voice" ? "voice" : "web"
-        } : null
+      appendConversationHistoryItem(item, windowStart + index, {
+        forceScroll: !safeAnchorTurnId && index === items.length - 1
       });
     });
+    renderConversationHistoryPagers();
     ensureAssistantConversationAnchor();
     logLine(
       safeAnchorTurnId
@@ -5444,6 +5804,12 @@ function applyLanguage(language, { persist = true, refreshState = true } = {}) {
   }
   if (conversationLibraryItems.length && typeof renderConversationLibrary === "function") {
     renderConversationLibrary();
+  }
+  if (typeof renderConversationSearchNavigator === "function") {
+    renderConversationSearchNavigator();
+  }
+  if (typeof renderConversationHistoryPagers === "function") {
+    renderConversationHistoryPagers();
   }
   if (currentDocumentId && typeof setDocumentStatus === "function") {
     setDocumentStatus(currentDocumentStatusLine() || (currentLanguage === "en" ? "File" : "文件"), "ready");
@@ -11826,6 +12192,19 @@ if (els.conversationSearch) {
       setConversationFeedback(`${currentLanguage === "en" ? "Search failed" : "搜索失败"}：${error.message || ""}`, "error");
     });
   });
+}
+if (els.conversationSearchPrevious) {
+  els.conversationSearchPrevious.addEventListener("click", () => {
+    navigateConversationSearch(-1);
+  });
+}
+if (els.conversationSearchNext) {
+  els.conversationSearchNext.addEventListener("click", () => {
+    navigateConversationSearch(1);
+  });
+}
+if (els.conversationSearchClose) {
+  els.conversationSearchClose.addEventListener("click", clearConversationSearchSession);
 }
 if (els.conversationIncludeArchived) {
   els.conversationIncludeArchived.addEventListener("change", () => {
