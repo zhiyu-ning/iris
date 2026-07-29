@@ -116,7 +116,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "366";
+const VOICE_UI_VERSION = "367";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -1172,7 +1172,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v366-project-knowledge";
+const WEB_VERSION = "voice-ui-web-polish-v367-multi-intent";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -1848,6 +1848,56 @@ function clientDocumentComparisonPayload(actionPayloads) {
     verificationStatus: supportedStatuses.has(rawStatus)
       ? rawStatus
       : (conflicts.length ? "CONFLICT" : citations.length ? "SUPPORTED" : "INSUFFICIENT_EVIDENCE")
+  };
+}
+
+function clientMultiIntentPayload(actionPayloads) {
+  const source = actionPayloads && typeof actionPayloads === "object"
+    ? actionPayloads.multi_intent
+    : null;
+  if (!source || typeof source !== "object") return null;
+
+  const allowedCapabilities = new Set(["calendar", "mail"]);
+  const allowedStatuses = new Set(["succeeded", "failed"]);
+  const seenCapabilities = new Set();
+  const items = (Array.isArray(source.items) ? source.items : [])
+    .slice(0, 4)
+    .flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const capability = boundedDocumentComparisonText(item.capability, 32).toLowerCase();
+      const status = boundedDocumentComparisonText(item.status, 32).toLowerCase();
+      if (
+        !allowedCapabilities.has(capability)
+        || !allowedStatuses.has(status)
+        || seenCapabilities.has(capability)
+      ) {
+        return [];
+      }
+      seenCapabilities.add(capability);
+      return [{
+        capability,
+        status,
+        operationId: boundedDocumentComparisonText(item.operation_id, 160),
+        verified: Boolean(item.verified),
+        durationMs: Math.max(0, Math.min(Number(item.duration_ms) || 0, 3600000)),
+        errorCode: boundedDocumentComparisonText(item.error_code, 120)
+      }];
+    });
+  if (items.length < 2) return null;
+
+  const completedCount = items.filter((item) => item.status === "succeeded").length;
+  const failedCount = items.length - completedCount;
+  const status = failedCount === 0 ? "complete" : completedCount === 0 ? "failed" : "partial";
+  return {
+    planId: boundedDocumentComparisonText(source.plan_id, 80),
+    mode: "parallel_read",
+    status,
+    items,
+    completedCount,
+    failedCount,
+    totalCount: items.length,
+    sideEffect: false,
+    requiresConfirmation: false
   };
 }
 
@@ -2571,6 +2621,109 @@ function appendDocumentComparisonCard(item, payload) {
   item.appendChild(card);
 }
 
+function multiIntentStatusMeta(payload) {
+  const en = currentLanguage === "en";
+  if (payload.status === "partial") {
+    return {
+      label: en ? "Partly complete" : "部分完成",
+      title: en
+        ? `${payload.completedCount} of ${payload.totalCount} completed`
+        : `${payload.completedCount}/${payload.totalCount} 项已完成`,
+      tone: "partial"
+    };
+  }
+  if (payload.status === "failed") {
+    return {
+      label: en ? "Unavailable" : "未完成",
+      title: en ? "Neither read completed" : `${payload.totalCount} 项均未完成`,
+      tone: "failed"
+    };
+  }
+  return {
+    label: en ? "Complete" : "已完成",
+    title: en
+      ? `${payload.totalCount} reads completed together`
+      : `${payload.totalCount} 项已一起处理`,
+    tone: "complete"
+  };
+}
+
+function multiIntentCapabilityMeta(capability) {
+  const en = currentLanguage === "en";
+  if (capability === "calendar") {
+    return {
+      title: en ? "Calendar" : "日历",
+      detail: en ? "Schedule read" : "日程读取",
+      symbol: "日"
+    };
+  }
+  return {
+    title: en ? "Mail" : "邮件",
+    detail: en ? "Inbox read" : "收件箱读取",
+    symbol: "邮"
+  };
+}
+
+function appendMultiIntentCard(item, payload) {
+  if (!item || !payload) return;
+  const status = multiIntentStatusMeta(payload);
+  const card = document.createElement("section");
+  card.className = "multiIntentCard";
+  card.dataset.tone = status.tone;
+  card.setAttribute("aria-label", currentLanguage === "en" ? "Multi-step read result" : "多步骤读取结果");
+
+  const header = document.createElement("div");
+  header.className = "multiIntentHeader";
+  const heading = document.createElement("div");
+  const kicker = document.createElement("span");
+  kicker.className = "multiIntentKicker";
+  kicker.textContent = "TOGETHER";
+  const title = document.createElement("strong");
+  title.textContent = status.title;
+  heading.append(kicker, title);
+  const chip = document.createElement("span");
+  chip.className = "multiIntentStatus";
+  chip.textContent = status.label;
+  header.append(heading, chip);
+  card.appendChild(header);
+
+  const list = document.createElement("div");
+  list.className = "multiIntentList";
+  payload.items.forEach((result) => {
+    const capability = multiIntentCapabilityMeta(result.capability);
+    const row = document.createElement("div");
+    row.className = "multiIntentRow";
+    row.dataset.status = result.status;
+    const symbol = document.createElement("span");
+    symbol.className = "multiIntentSymbol";
+    symbol.textContent = capability.symbol;
+    symbol.setAttribute("aria-hidden", "true");
+    const copy = document.createElement("span");
+    copy.className = "multiIntentCopy";
+    const name = document.createElement("strong");
+    name.textContent = capability.title;
+    const detail = document.createElement("span");
+    detail.textContent = capability.detail;
+    copy.append(name, detail);
+    const resultLabel = document.createElement("span");
+    resultLabel.className = "multiIntentResult";
+    resultLabel.textContent = result.status === "succeeded"
+      ? (currentLanguage === "en" ? "Done" : "完成")
+      : (currentLanguage === "en" ? "Unavailable" : "未完成");
+    row.append(symbol, copy, resultLabel);
+    list.appendChild(row);
+  });
+  card.appendChild(list);
+
+  const footer = document.createElement("p");
+  footer.className = "multiIntentFooter";
+  footer.textContent = currentLanguage === "en"
+    ? "Read-only · Nothing was changed"
+    : "只读操作 · 没有修改日历或邮箱";
+  card.appendChild(footer);
+  item.appendChild(card);
+}
+
 function setMessageBodyText(body, text, options = {}) {
   if (!body) return;
   const kind = options.kind || "";
@@ -2603,6 +2756,9 @@ function appendConversationMessage(role, text, options = {}) {
   item.append(meta, body);
   if (role === "assistant" && options.documentComparison) {
     appendDocumentComparisonCard(item, options.documentComparison);
+  }
+  if (role === "assistant" && options.multiIntent) {
+    appendMultiIntentCard(item, options.multiIntent);
   }
   if (Array.isArray(options.actions) && options.actions.length) {
     const actions = document.createElement("div");
@@ -2948,13 +3104,15 @@ async function executeClientMessageAction(button, action) {
     currentConversationId = payload.conversation_id || currentConversationId;
     const actionButtons = clientMessageActionButtons(payload.action_payloads);
     const documentComparison = clientDocumentComparisonPayload(payload.action_payloads);
+    const multiIntent = clientMultiIntentPayload(payload.action_payloads);
     const reply = clientReplyForDisplay(String(payload.reply || "").trim(), actionButtons) || (currentLanguage === "en" ? "The operation finished." : "操作已完成。");
     appendAssistantConversation(reply, {
       id: payload.response_id ? `assistant_${payload.response_id}` : "",
-      kind: documentComparison ? "document_comparison" : payload.skill || payload.route || "operation_result",
+      kind: documentComparison ? "document_comparison" : multiIntent ? "multi_intent" : payload.skill || payload.route || "operation_result",
       forceScroll: true,
       actions: actionButtons,
       documentComparison,
+      multiIntent,
       feedbackTarget: payload.feedback || (payload.turn_id ? {
         turn_id: payload.turn_id,
         response_id: payload.response_id || "",
@@ -3902,12 +4060,16 @@ async function loadConversationHistory({ force = false } = {}) {
       const documentComparison = role === "assistant"
         ? clientDocumentComparisonPayload(item && item.ui_payload)
         : null;
+      const multiIntent = role === "assistant"
+        ? clientMultiIntentPayload(item && item.ui_payload)
+        : null;
       appendConversationMessage(role, item.content || "", {
         id: `history_${index}_${Math.abs(String(item.time || index).split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`,
         label: historyMessageLabel(role, item.time),
-        kind: documentComparison ? "document_comparison" : "history",
+        kind: documentComparison ? "document_comparison" : multiIntent ? "multi_intent" : "history",
         forceScroll: index === items.length - 1,
         documentComparison,
+        multiIntent,
         feedbackTarget: role === "assistant" && item.turn_id ? {
           turn_id: item.turn_id,
           response_id: item.response_id || "",
@@ -8811,14 +8973,16 @@ async function sendTextPrompt(text) {
     });
     const actionButtons = clientMessageActionButtons(payload.action_payloads);
     const documentComparison = clientDocumentComparisonPayload(payload.action_payloads);
+    const multiIntent = clientMultiIntentPayload(payload.action_payloads);
     const reply = clientReplyForDisplay(String(payload.reply || "").trim(), actionButtons) || "我没有拿到可显示的回复。";
     els.reply.textContent = reply;
     appendAssistantConversation(reply, {
       id: payload.response_id ? `assistant_${payload.response_id}` : "",
-      kind: documentComparison ? "document_comparison" : payload.skill || payload.route || "text_reply",
+      kind: documentComparison ? "document_comparison" : multiIntent ? "multi_intent" : payload.skill || payload.route || "text_reply",
       forceScroll: true,
       actions: actionButtons,
       documentComparison,
+      multiIntent,
       feedbackTarget: payload.feedback || (payload.turn_id ? {
         turn_id: payload.turn_id,
         response_id: payload.response_id || "",
