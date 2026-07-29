@@ -116,7 +116,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "368";
+const VOICE_UI_VERSION = "369";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -1172,7 +1172,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v368-research-verification";
+const WEB_VERSION = "voice-ui-web-polish-v369-deep-research";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -1996,6 +1996,115 @@ function clientResearchVerificationPayload(actionPayloads) {
     citations,
     webSources,
     steps,
+    sideEffect: false,
+    requiresConfirmation: false
+  };
+}
+
+function clientDeepResearchPayload(actionPayloads) {
+  const source = actionPayloads && typeof actionPayloads === "object"
+    ? actionPayloads.deep_research
+    : null;
+  if (!source || typeof source !== "object") return null;
+  const allowedStatuses = new Set(["COMPLETE", "PARTIAL", "INSUFFICIENT_EVIDENCE"]);
+  const rawStatus = boundedDocumentComparisonText(source.status, 64).toUpperCase();
+  if (!allowedStatuses.has(rawStatus)) return null;
+
+  const sourceRows = (Array.isArray(source.sources) ? source.sources : [])
+    .slice(0, 24)
+    .flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const sourceId = boundedDocumentComparisonText(item.source_id, 40).replace(/[^A-Za-z0-9_-]/g, "");
+      const rawUrl = boundedDocumentComparisonText(item.url, 1200);
+      let parsed;
+      try {
+        parsed = new URL(rawUrl);
+      } catch (_) {
+        return [];
+      }
+      const trustTier = boundedDocumentComparisonText(item.trust_tier, 16).toLowerCase();
+      const sourceRole = boundedDocumentComparisonText(item.source_role, 24).toLowerCase();
+      if (
+        !sourceId
+        || !["http:", "https:"].includes(parsed.protocol)
+        || !["high", "medium", "low"].includes(trustTier)
+        || !["primary", "authoritative", "secondary", "low_quality"].includes(sourceRole)
+      ) {
+        return [];
+      }
+      return [{
+        sourceId,
+        title: boundedDocumentComparisonText(item.title || parsed.hostname, 260),
+        url: parsed.href,
+        domain: boundedDocumentComparisonText(item.domain || parsed.hostname, 160),
+        published: boundedDocumentComparisonText(item.published, 80),
+        trustTier,
+        sourceRole,
+        authorityScore: Math.max(0, Math.min(100, Number(item.authority_score) || 0))
+      }];
+    });
+  const dedupedSources = [];
+  const sourceById = new Map();
+  sourceRows.forEach((sourceItem) => {
+    if (sourceById.has(sourceItem.sourceId)) return;
+    sourceById.set(sourceItem.sourceId, sourceItem);
+    dedupedSources.push(sourceItem);
+  });
+
+  const claims = (Array.isArray(source.claims) ? source.claims : [])
+    .slice(0, 4)
+    .flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const questionId = boundedDocumentComparisonText(item.question_id, 40).replace(/[^A-Za-z0-9_-]/g, "");
+      let status = boundedDocumentComparisonText(item.status, 24).toUpperCase();
+      if (!questionId || !["SUPPORTED", "CONFLICT", "OPEN"].includes(status)) return [];
+      const sourceIds = (Array.isArray(item.source_ids) ? item.source_ids : [])
+        .map((value) => boundedDocumentComparisonText(value, 40).replace(/[^A-Za-z0-9_-]/g, ""))
+        .filter((value, index, values) => value && sourceById.has(value) && values.indexOf(value) === index)
+        .slice(0, 6);
+      if (status !== "OPEN" && !sourceIds.length) status = "OPEN";
+      return [{
+        claimId: boundedDocumentComparisonText(item.claim_id, 40).replace(/[^A-Za-z0-9_-]/g, ""),
+        questionId,
+        question: boundedDocumentComparisonText(item.question, 320),
+        status,
+        conclusion: boundedDocumentComparisonText(item.conclusion, 1600),
+        sourceIds,
+        caveats: (Array.isArray(item.caveats) ? item.caveats : [])
+          .map((value) => boundedDocumentComparisonText(value, 320))
+          .filter(Boolean)
+          .slice(0, 4)
+      }];
+    });
+  if (claims.length < 2) return null;
+  const verifiedCount = claims.filter((item) => item.status !== "OPEN").length;
+  const normalizedStatus = verifiedCount === 0
+    ? "INSUFFICIENT_EVIDENCE"
+    : verifiedCount === claims.length
+      ? "COMPLETE"
+      : "PARTIAL";
+  const budget = source.budget && typeof source.budget === "object" ? source.budget : {};
+  return {
+    planId: boundedDocumentComparisonText(source.plan_id, 80),
+    topic: boundedDocumentComparisonText(source.topic, 600),
+    status: normalizedStatus,
+    executiveSummary: boundedDocumentComparisonText(source.executive_summary, 2400),
+    claims,
+    sources: dedupedSources,
+    coverageRatio: claims.length ? verifiedCount / claims.length : 0,
+    limitations: (Array.isArray(source.limitations) ? source.limitations : [])
+      .map((value) => boundedDocumentComparisonText(value, 320))
+      .filter(Boolean)
+      .slice(0, 6),
+    budget: {
+      searchesPlanned: Math.max(0, Math.min(4, Number(budget.searches_planned) || claims.length)),
+      searchesExecuted: Math.max(0, Math.min(4, Number(budget.searches_executed) || 0)),
+      searchesSucceeded: Math.max(0, Math.min(4, Number(budget.searches_succeeded) || 0)),
+      sourceCount: dedupedSources.length,
+      modelCalls: Math.max(0, Math.min(8, Number(budget.model_calls) || 0)),
+      wallTimeMs: Math.max(0, Math.min(90000, Number(budget.wall_time_ms) || 0)),
+      budgetExhausted: Boolean(budget.budget_exhausted)
+    },
     sideEffect: false,
     requiresConfirmation: false
   };
@@ -2957,6 +3066,193 @@ function appendResearchVerificationCard(item, payload) {
   item.appendChild(card);
 }
 
+function deepResearchStatusMeta(status = "") {
+  const en = currentLanguage === "en";
+  if (String(status || "").toUpperCase() === "COMPLETE") {
+    return {
+      label: en ? "Complete" : "研究完成",
+      title: en ? "Evidence map complete" : "证据地图已完成",
+      tone: "complete"
+    };
+  }
+  if (String(status || "").toUpperCase() === "INSUFFICIENT_EVIDENCE") {
+    return {
+      label: en ? "Insufficient" : "证据不足",
+      title: en ? "Research needs sources" : "研究尚缺可靠来源",
+      tone: "insufficient"
+    };
+  }
+  return {
+    label: en ? "Partial" : "部分完成",
+    title: en ? "Open questions remain" : "仍有问题等待确认",
+    tone: "partial"
+  };
+}
+
+function deepResearchClaimMeta(status = "") {
+  const en = currentLanguage === "en";
+  const value = String(status || "").toUpperCase();
+  if (value === "SUPPORTED") {
+    return { label: en ? "Supported" : "已支持", tone: "supported" };
+  }
+  if (value === "CONFLICT") {
+    return { label: en ? "Conflict" : "有冲突", tone: "conflict" };
+  }
+  return { label: en ? "Open" : "待确认", tone: "open" };
+}
+
+function deepResearchSourceRoleLabel(role = "") {
+  const en = currentLanguage === "en";
+  const labels = {
+    primary: en ? "Primary" : "一手来源",
+    authoritative: en ? "Authority" : "权威来源",
+    secondary: en ? "Secondary" : "二手来源",
+    low_quality: en ? "Low confidence" : "低可信"
+  };
+  return labels[role] || labels.secondary;
+}
+
+function appendDeepResearchCard(item, payload) {
+  if (!item || !payload) return;
+  const status = deepResearchStatusMeta(payload.status);
+  const sourceById = new Map(payload.sources.map((source) => [source.sourceId, source]));
+  const card = document.createElement("section");
+  card.className = "deepResearchCard";
+  card.dataset.tone = status.tone;
+  card.setAttribute("aria-label", currentLanguage === "en" ? "Deep research report" : "深度研究报告");
+
+  const header = document.createElement("div");
+  header.className = "deepResearchHeader";
+  const heading = document.createElement("div");
+  const kicker = document.createElement("span");
+  kicker.className = "deepResearchKicker";
+  kicker.textContent = "DEEP RESEARCH";
+  const title = document.createElement("strong");
+  title.textContent = payload.topic || status.title;
+  const subtitle = document.createElement("span");
+  subtitle.textContent = status.title;
+  heading.append(kicker, title, subtitle);
+  const statusChip = document.createElement("span");
+  statusChip.className = "deepResearchStatus";
+  statusChip.textContent = status.label;
+  header.append(heading, statusChip);
+  card.appendChild(header);
+
+  const metrics = document.createElement("div");
+  metrics.className = "deepResearchMetrics";
+  const metricValues = [
+    {
+      value: `${Math.round(payload.coverageRatio * 100)}%`,
+      label: currentLanguage === "en" ? "coverage" : "证据覆盖"
+    },
+    {
+      value: String(payload.claims.length),
+      label: currentLanguage === "en" ? "questions" : "研究问题"
+    },
+    {
+      value: String(payload.sources.length),
+      label: currentLanguage === "en" ? "sources" : "公开来源"
+    }
+  ];
+  metricValues.forEach((metric) => {
+    const node = document.createElement("span");
+    const value = document.createElement("strong");
+    value.textContent = metric.value;
+    const label = document.createElement("small");
+    label.textContent = metric.label;
+    node.append(value, label);
+    metrics.appendChild(node);
+  });
+  const coverage = document.createElement("span");
+  coverage.className = "deepResearchCoverage";
+  coverage.style.setProperty("--research-coverage", `${Math.round(payload.coverageRatio * 100)}%`);
+  coverage.setAttribute("aria-hidden", "true");
+  metrics.prepend(coverage);
+  card.appendChild(metrics);
+
+  const claims = document.createElement("div");
+  claims.className = "deepResearchClaims";
+  payload.claims.forEach((claim, index) => {
+    const claimMeta = deepResearchClaimMeta(claim.status);
+    const row = document.createElement("article");
+    row.className = "deepResearchClaim";
+    row.dataset.tone = claimMeta.tone;
+    const claimHead = document.createElement("div");
+    const number = document.createElement("span");
+    number.className = "deepResearchClaimNumber";
+    number.textContent = String(index + 1).padStart(2, "0");
+    const question = document.createElement("strong");
+    question.textContent = claim.question;
+    const claimStatus = document.createElement("span");
+    claimStatus.className = "deepResearchClaimStatus";
+    claimStatus.textContent = claimMeta.label;
+    claimHead.append(number, question, claimStatus);
+    row.appendChild(claimHead);
+
+    const conclusion = document.createElement("p");
+    conclusion.textContent = claim.conclusion;
+    row.appendChild(conclusion);
+
+    const claimSources = claim.sourceIds
+      .map((sourceId) => sourceById.get(sourceId))
+      .filter(Boolean)
+      .slice(0, 3);
+    if (claimSources.length) {
+      const references = document.createElement("div");
+      references.className = "deepResearchClaimSources";
+      claimSources.forEach((source) => {
+        const link = document.createElement("a");
+        link.href = source.url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = source.domain || source.title;
+        link.title = source.title;
+        references.appendChild(link);
+      });
+      row.appendChild(references);
+    }
+    claims.appendChild(row);
+  });
+  card.appendChild(claims);
+
+  if (payload.sources.length) {
+    const registry = document.createElement("div");
+    registry.className = "deepResearchSources";
+    const registryTitle = document.createElement("span");
+    registryTitle.className = "deepResearchSourcesTitle";
+    registryTitle.textContent = currentLanguage === "en" ? "Source quality" : "来源质量";
+    registry.appendChild(registryTitle);
+    payload.sources.slice(0, 5).forEach((source) => {
+      const link = document.createElement("a");
+      link.href = source.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.className = "deepResearchSource";
+      link.dataset.role = source.sourceRole;
+      const marker = document.createElement("span");
+      marker.className = "deepResearchSourceScore";
+      marker.textContent = String(Math.round(source.authorityScore));
+      const sourceCopy = document.createElement("span");
+      const sourceTitle = document.createElement("strong");
+      sourceTitle.textContent = source.title || source.domain;
+      const sourceMeta = document.createElement("span");
+      sourceMeta.textContent = `${deepResearchSourceRoleLabel(source.sourceRole)} · ${source.domain}`;
+      sourceCopy.append(sourceTitle, sourceMeta);
+      link.append(marker, sourceCopy);
+      registry.appendChild(link);
+    });
+    card.appendChild(registry);
+  }
+
+  const footer = document.createElement("p");
+  footer.className = "deepResearchFooter";
+  footer.textContent = currentLanguage === "en"
+    ? `Read-only · ${payload.budget.searchesSucceeded}/${payload.budget.searchesExecuted} searches completed`
+    : `只读研究 · ${payload.budget.searchesSucceeded}/${payload.budget.searchesExecuted} 个检索已完成`;
+  card.appendChild(footer);
+  item.appendChild(card);
+}
+
 function setMessageBodyText(body, text, options = {}) {
   if (!body) return;
   const kind = options.kind || "";
@@ -2996,6 +3292,9 @@ function appendConversationMessage(role, text, options = {}) {
   if (role === "assistant" && options.researchVerification) {
     appendResearchVerificationCard(item, options.researchVerification);
   }
+  if (role === "assistant" && options.deepResearch) {
+    appendDeepResearchCard(item, options.deepResearch);
+  }
   if (Array.isArray(options.actions) && options.actions.length) {
     const actions = document.createElement("div");
     actions.className = "messageActions";
@@ -3021,6 +3320,9 @@ function appendConversationMessage(role, text, options = {}) {
   }
   els.conversationStream.appendChild(item);
   scheduleConversationScroll({ force: options.forceScroll, allowed: shouldScroll });
+  if (options.revealFromStart && shouldScroll) {
+    revealConversationMessage(id, { block: "start" });
+  }
   return id;
 }
 
@@ -3342,21 +3644,26 @@ async function executeClientMessageAction(button, action) {
     const documentComparison = clientDocumentComparisonPayload(payload.action_payloads);
     const multiIntent = clientMultiIntentPayload(payload.action_payloads);
     const researchVerification = clientResearchVerificationPayload(payload.action_payloads);
+    const deepResearch = clientDeepResearchPayload(payload.action_payloads);
     const reply = clientReplyForDisplay(String(payload.reply || "").trim(), actionButtons) || (currentLanguage === "en" ? "The operation finished." : "操作已完成。");
     appendAssistantConversation(reply, {
       id: payload.response_id ? `assistant_${payload.response_id}` : "",
       kind: documentComparison
         ? "document_comparison"
-        : researchVerification
-          ? "research_verification"
-          : multiIntent
-            ? "multi_intent"
-            : payload.skill || payload.route || "operation_result",
+        : deepResearch
+          ? "deep_research"
+          : researchVerification
+            ? "research_verification"
+            : multiIntent
+              ? "multi_intent"
+              : payload.skill || payload.route || "operation_result",
       forceScroll: true,
       actions: actionButtons,
       documentComparison,
       multiIntent,
       researchVerification,
+      deepResearch,
+      revealFromStart: Boolean(deepResearch),
       feedbackTarget: payload.feedback || (payload.turn_id ? {
         turn_id: payload.turn_id,
         response_id: payload.response_id || "",
@@ -4310,20 +4617,26 @@ async function loadConversationHistory({ force = false } = {}) {
       const researchVerification = role === "assistant"
         ? clientResearchVerificationPayload(item && item.ui_payload)
         : null;
+      const deepResearch = role === "assistant"
+        ? clientDeepResearchPayload(item && item.ui_payload)
+        : null;
       appendConversationMessage(role, item.content || "", {
         id: `history_${index}_${Math.abs(String(item.time || index).split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`,
         label: historyMessageLabel(role, item.time),
         kind: documentComparison
           ? "document_comparison"
-          : researchVerification
-            ? "research_verification"
-            : multiIntent
-              ? "multi_intent"
-              : "history",
+          : deepResearch
+            ? "deep_research"
+            : researchVerification
+              ? "research_verification"
+              : multiIntent
+                ? "multi_intent"
+                : "history",
         forceScroll: index === items.length - 1,
         documentComparison,
         multiIntent,
         researchVerification,
+        deepResearch,
         feedbackTarget: role === "assistant" && item.turn_id ? {
           turn_id: item.turn_id,
           response_id: item.response_id || "",
@@ -9229,22 +9542,27 @@ async function sendTextPrompt(text) {
     const documentComparison = clientDocumentComparisonPayload(payload.action_payloads);
     const multiIntent = clientMultiIntentPayload(payload.action_payloads);
     const researchVerification = clientResearchVerificationPayload(payload.action_payloads);
+    const deepResearch = clientDeepResearchPayload(payload.action_payloads);
     const reply = clientReplyForDisplay(String(payload.reply || "").trim(), actionButtons) || "我没有拿到可显示的回复。";
     els.reply.textContent = reply;
     appendAssistantConversation(reply, {
       id: payload.response_id ? `assistant_${payload.response_id}` : "",
       kind: documentComparison
         ? "document_comparison"
-        : researchVerification
-          ? "research_verification"
-          : multiIntent
-            ? "multi_intent"
-            : payload.skill || payload.route || "text_reply",
+        : deepResearch
+          ? "deep_research"
+          : researchVerification
+            ? "research_verification"
+            : multiIntent
+              ? "multi_intent"
+              : payload.skill || payload.route || "text_reply",
       forceScroll: true,
       actions: actionButtons,
       documentComparison,
       multiIntent,
       researchVerification,
+      deepResearch,
+      revealFromStart: Boolean(deepResearch),
       feedbackTarget: payload.feedback || (payload.turn_id ? {
         turn_id: payload.turn_id,
         response_id: payload.response_id || "",

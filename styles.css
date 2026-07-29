@@ -57,8 +57,8 @@
   --control-hover-filter: brightness(1.018) saturate(1.06);
   --control-active-filter: brightness(0.985) saturate(1.02);
   --control-press-shadow: inset 0 2px 5px rgba(24, 42, 67, 0.08);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=368");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=368");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=369");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=369");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -212,8 +212,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 22px 54px rgba(85, 91, 255, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=368");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=368");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=369");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=369");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -269,8 +269,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=368");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=368");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=369");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=369");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -2055,7 +2055,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=368");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=369");
 }
 
 .brandName {
@@ -10529,7 +10529,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 /* v354 Iris companion interface: portrait-led entry, calm conversation, and card-based settings. */
 :root {
-  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=368");
+  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=369");
   --iris-violet: #7567f8;
   --iris-violet-deep: #5547e8;
   --iris-lilac: #b9b0ff;
@@ -11850,7 +11850,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 .accessConnectingGlyph,
 .capabilitySuggestionMark,
 .sheetGlyph {
-  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=368");
+  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=369");
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -12746,7 +12746,7 @@ body {
   height: 76px;
   display: block;
   border-radius: 22px;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=368") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=369") center / 58px 58px no-repeat;
   filter: drop-shadow(0 12px 24px rgba(104, 85, 224, 0.16));
 }
 
@@ -14383,6 +14383,426 @@ body.documentEvidenceOpen {
   }
 }
 
+/* Deep Research evidence map, v369. */
+.message[data-kind="deep_research"] {
+  width: min(96%, 720px);
+  max-width: min(96%, 720px);
+  padding: 14px 15px 16px;
+  overflow: visible;
+  border-color: color-mix(in srgb, var(--accent) 19%, var(--line));
+}
+
+.message[data-kind="deep_research"] .messageMeta {
+  width: 100%;
+  padding-bottom: 9px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 54%, transparent);
+}
+
+.deepResearchCard {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 13px;
+  padding: 15px;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--line));
+  border-radius: 22px;
+  color: var(--ink-soft);
+  background:
+    radial-gradient(circle at 2% -8%, color-mix(in srgb, #5f8dff 13%, transparent), transparent 39%),
+    radial-gradient(circle at 104% 105%, color-mix(in srgb, #ee9ac9 10%, transparent), transparent 42%),
+    linear-gradient(150deg, color-mix(in srgb, var(--field-bg) 84%, transparent), color-mix(in srgb, var(--assistant-bubble) 96%, transparent));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 74%, transparent),
+    0 17px 38px color-mix(in srgb, var(--shadow) 28%, transparent);
+}
+
+.deepResearchCard[data-tone="partial"] {
+  border-color: color-mix(in srgb, var(--status-listening) 25%, var(--line));
+}
+
+.deepResearchCard[data-tone="insufficient"] {
+  border-color: color-mix(in srgb, var(--danger) 20%, var(--line));
+}
+
+.deepResearchHeader {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 13px;
+}
+
+.deepResearchHeader > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.deepResearchHeader strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.28;
+  letter-spacing: -0.016em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deepResearchHeader > div > span:last-child {
+  color: var(--ink-dim);
+  font-size: 9.5px;
+  font-weight: 630;
+}
+
+.deepResearchKicker {
+  color: color-mix(in srgb, var(--accent) 78%, var(--ink-dim));
+  font-size: 8.5px;
+  font-weight: 850;
+  line-height: 1;
+  letter-spacing: 0.19em;
+}
+
+.deepResearchStatus {
+  min-height: 28px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--status-answering) 23%, transparent);
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--status-answering) 78%, var(--ink));
+  background: color-mix(in srgb, var(--status-answering) 9%, transparent);
+  font-size: 10px;
+  font-weight: 780;
+}
+
+.deepResearchCard[data-tone="partial"] .deepResearchStatus {
+  border-color: color-mix(in srgb, var(--status-listening) 25%, transparent);
+  color: color-mix(in srgb, var(--status-listening) 74%, var(--ink));
+  background: color-mix(in srgb, var(--status-listening) 9%, transparent);
+}
+
+.deepResearchCard[data-tone="insufficient"] .deepResearchStatus {
+  border-color: color-mix(in srgb, var(--danger) 22%, transparent);
+  color: color-mix(in srgb, var(--danger) 70%, var(--ink));
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+
+.deepResearchMetrics {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 39px repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 8px;
+  padding: 9px;
+  border: 1px solid color-mix(in srgb, var(--line) 62%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--assistant-bubble) 72%, transparent);
+}
+
+.deepResearchMetrics > span:not(.deepResearchCoverage) {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  padding-left: 8px;
+  border-left: 1px solid color-mix(in srgb, var(--line) 62%, transparent);
+}
+
+.deepResearchMetrics strong {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 790;
+  line-height: 1.1;
+}
+
+.deepResearchMetrics small {
+  overflow: hidden;
+  color: var(--ink-dim);
+  font-size: 8px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deepResearchCoverage {
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--assistant-bubble) 53%, transparent 55%),
+    conic-gradient(
+      color-mix(in srgb, var(--accent) 82%, #5d93ff) var(--research-coverage, 0%),
+      color-mix(in srgb, var(--line) 58%, transparent) 0
+    );
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 60%, transparent);
+}
+
+.deepResearchCoverage::after {
+  width: 5px;
+  height: 5px;
+  content: "";
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 78%, #5d93ff);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+.deepResearchClaims {
+  display: grid;
+  gap: 8px;
+}
+
+.deepResearchClaim {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  padding: 10px 11px;
+  border: 1px solid color-mix(in srgb, var(--line) 64%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--assistant-bubble) 76%, transparent);
+}
+
+.deepResearchClaim[data-tone="supported"] {
+  border-color: color-mix(in srgb, var(--status-answering) 17%, var(--line));
+}
+
+.deepResearchClaim[data-tone="conflict"] {
+  border-color: color-mix(in srgb, var(--danger) 20%, var(--line));
+}
+
+.deepResearchClaim[data-tone="open"] {
+  border-color: color-mix(in srgb, var(--status-listening) 20%, var(--line));
+}
+
+.deepResearchClaim > div:first-child {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+}
+
+.deepResearchClaimNumber {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: color-mix(in srgb, var(--accent) 72%, var(--ink));
+  background: color-mix(in srgb, var(--accent) 9%, var(--button-bg));
+  font-size: 8.5px;
+  font-weight: 820;
+}
+
+.deepResearchClaim > div:first-child > strong {
+  min-width: 0;
+  color: var(--ink);
+  font-size: 11.5px;
+  font-weight: 760;
+  line-height: 1.38;
+}
+
+.deepResearchClaimStatus {
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--status-answering) 76%, var(--ink));
+  background: color-mix(in srgb, var(--status-answering) 8%, transparent);
+  font-size: 8.5px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.deepResearchClaim[data-tone="conflict"] .deepResearchClaimStatus {
+  color: color-mix(in srgb, var(--danger) 70%, var(--ink));
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+
+.deepResearchClaim[data-tone="open"] .deepResearchClaimStatus {
+  color: color-mix(in srgb, var(--status-listening) 72%, var(--ink));
+  background: color-mix(in srgb, var(--status-listening) 8%, transparent);
+}
+
+.deepResearchClaim > p {
+  margin: 0 0 0 32px;
+  color: var(--ink-soft);
+  font-size: 10.5px;
+  line-height: 1.55;
+}
+
+.deepResearchClaimSources {
+  min-width: 0;
+  display: flex;
+  gap: 5px;
+  margin-left: 32px;
+  flex-wrap: wrap;
+}
+
+.deepResearchClaimSources a {
+  max-width: 180px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--line));
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--accent) 72%, var(--ink));
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  font-size: 8.5px;
+  font-weight: 690;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deepResearchClaimSources a:focus-visible,
+.deepResearchSource:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 58%, transparent);
+  outline-offset: 2px;
+}
+
+.deepResearchSources {
+  display: grid;
+  gap: 6px;
+  padding-top: 1px;
+}
+
+.deepResearchSourcesTitle {
+  margin: 0 2px;
+  color: var(--ink-dim);
+  font-size: 8.5px;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+}
+
+.deepResearchSource {
+  min-width: 0;
+  min-height: 43px;
+  display: grid;
+  grid-template-columns: 31px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 6px 9px 6px 7px;
+  border: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+  border-radius: 14px;
+  color: inherit;
+  background: color-mix(in srgb, var(--assistant-bubble) 66%, transparent);
+  text-decoration: none;
+}
+
+.deepResearchSource[data-role="primary"] {
+  border-color: color-mix(in srgb, var(--status-answering) 18%, var(--line));
+}
+
+.deepResearchSourceScore {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: color-mix(in srgb, var(--accent) 76%, var(--ink));
+  background: color-mix(in srgb, var(--accent) 9%, var(--button-bg));
+  font-size: 9px;
+  font-weight: 820;
+}
+
+.deepResearchSource > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.deepResearchSource strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 10.5px;
+  font-weight: 730;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deepResearchSource > span:last-child > span {
+  overflow: hidden;
+  color: var(--ink-dim);
+  font-size: 8.5px;
+  font-weight: 620;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deepResearchFooter {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: 9px;
+  font-weight: 640;
+}
+
+:root[data-theme="pure-black"] .deepResearchCard {
+  border-color: rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(circle at 2% -8%, rgba(93, 133, 255, 0.16), transparent 40%),
+    radial-gradient(circle at 104% 105%, rgba(235, 125, 185, 0.1), transparent 42%),
+    rgba(24, 23, 37, 0.98);
+}
+
+@media (max-width: 430px) {
+  .message[data-kind="deep_research"] {
+    width: min(94%, 520px);
+    max-width: 94%;
+    padding-inline: 13px;
+  }
+
+  .deepResearchCard {
+    padding: 13px;
+    border-radius: 20px;
+  }
+
+  .deepResearchHeader {
+    gap: 9px;
+  }
+
+  .deepResearchHeader strong {
+    max-width: 205px;
+  }
+
+  .deepResearchMetrics {
+    grid-template-columns: 35px repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    padding: 7px;
+  }
+
+  .deepResearchMetrics > span:not(.deepResearchCoverage) {
+    padding-left: 5px;
+  }
+
+  .deepResearchClaim > div:first-child {
+    grid-template-columns: 22px minmax(0, 1fr);
+  }
+
+  .deepResearchClaimStatus {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .deepResearchClaim > p,
+  .deepResearchClaimSources {
+    margin-left: 30px;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .deepResearchCard,
+  .deepResearchClaim,
+  .deepResearchSource {
+    background: var(--panel-bg);
+  }
+}
+
 /* v364 screenshot stability lock. */
 body > .dock.unifiedComposer {
   opacity: 1;
@@ -14425,7 +14845,7 @@ body > .dock.unifiedComposer {
   width: 76px !important;
   height: 76px !important;
   display: block !important;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=368") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=369") center / 58px 58px no-repeat;
 }
 
 #accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessFocusIntro > .accessFocusGlyph,
