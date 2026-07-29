@@ -57,8 +57,8 @@
   --control-hover-filter: brightness(1.018) saturate(1.06);
   --control-active-filter: brightness(0.985) saturate(1.02);
   --control-press-shadow: inset 0 2px 5px rgba(24, 42, 67, 0.08);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=367");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=367");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=368");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=368");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -212,8 +212,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 22px 54px rgba(85, 91, 255, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=367");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=367");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=368");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=368");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -269,8 +269,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=367");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=367");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=368");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=368");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -2055,7 +2055,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=367");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=368");
 }
 
 .brandName {
@@ -10529,7 +10529,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 /* v354 Iris companion interface: portrait-led entry, calm conversation, and card-based settings. */
 :root {
-  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=367");
+  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=368");
   --iris-violet: #7567f8;
   --iris-violet-deep: #5547e8;
   --iris-lilac: #b9b0ff;
@@ -11850,7 +11850,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 .accessConnectingGlyph,
 .capabilitySuggestionMark,
 .sheetGlyph {
-  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=367");
+  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=368");
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -12746,7 +12746,7 @@ body {
   height: 76px;
   display: block;
   border-radius: 22px;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=367") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=368") center / 58px 58px no-repeat;
   filter: drop-shadow(0 12px 24px rgba(104, 85, 224, 0.16));
 }
 
@@ -14100,6 +14100,289 @@ body.documentEvidenceOpen {
   }
 }
 
+/* Document + Web evidence verification, v368. */
+.message[data-kind="research_verification"] {
+  width: min(94%, 650px);
+  max-width: min(94%, 650px);
+  padding: 14px 15px 15px;
+  overflow: visible;
+  border-color: color-mix(in srgb, var(--accent) 17%, var(--line));
+}
+
+.message[data-kind="research_verification"] .messageMeta {
+  width: 100%;
+  padding-bottom: 9px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 54%, transparent);
+}
+
+.researchVerificationCard {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, var(--line));
+  border-radius: 20px;
+  color: var(--ink-soft);
+  background:
+    radial-gradient(circle at 6% -8%, color-mix(in srgb, var(--status-answering) 12%, transparent), transparent 40%),
+    radial-gradient(circle at 100% 110%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 46%),
+    color-mix(in srgb, var(--field-bg) 74%, var(--assistant-bubble));
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 72%, transparent),
+    0 14px 32px color-mix(in srgb, var(--shadow) 26%, transparent);
+}
+
+.researchVerificationCard[data-tone="conflict"] {
+  border-color: color-mix(in srgb, var(--danger) 23%, var(--line));
+}
+
+.researchVerificationCard[data-tone="partial"],
+.researchVerificationCard[data-tone="insufficient"] {
+  border-color: color-mix(in srgb, var(--status-listening) 24%, var(--line));
+}
+
+.researchVerificationHeader {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.researchVerificationHeader > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.researchVerificationHeader strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 790;
+  line-height: 1.24;
+  letter-spacing: -0.014em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.researchVerificationKicker {
+  color: color-mix(in srgb, var(--accent) 76%, var(--ink-dim));
+  font-size: 8.5px;
+  font-weight: 840;
+  line-height: 1;
+  letter-spacing: 0.18em;
+}
+
+.researchVerificationStatus {
+  min-height: 27px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--status-answering) 22%, transparent);
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--status-answering) 78%, var(--ink));
+  background: color-mix(in srgb, var(--status-answering) 9%, transparent);
+  font-size: 10px;
+  font-weight: 780;
+}
+
+.researchVerificationCard[data-tone="conflict"] .researchVerificationStatus {
+  border-color: color-mix(in srgb, var(--danger) 24%, transparent);
+  color: color-mix(in srgb, var(--danger) 72%, var(--ink));
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+
+.researchVerificationCard[data-tone="partial"] .researchVerificationStatus,
+.researchVerificationCard[data-tone="insufficient"] .researchVerificationStatus {
+  border-color: color-mix(in srgb, var(--status-listening) 24%, transparent);
+  color: color-mix(in srgb, var(--status-listening) 74%, var(--ink));
+  background: color-mix(in srgb, var(--status-listening) 9%, transparent);
+}
+
+.researchVerificationFlow {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.researchVerificationStage {
+  min-width: 0;
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 31px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid color-mix(in srgb, var(--line) 64%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--assistant-bubble) 76%, transparent);
+}
+
+.researchVerificationStageMarker {
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: color-mix(in srgb, var(--accent) 78%, var(--ink));
+  background: color-mix(in srgb, var(--accent) 10%, var(--button-bg));
+  font-size: 10.5px;
+  font-weight: 840;
+}
+
+.researchVerificationStage > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.researchVerificationStage strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 11.5px;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.researchVerificationStage > span:last-child > span {
+  color: var(--ink-dim);
+  font-size: 9.5px;
+  font-weight: 650;
+}
+
+.researchVerificationStage[data-status="failed"] {
+  border-color: color-mix(in srgb, var(--danger) 16%, var(--line));
+}
+
+.researchVerificationStage[data-status="failed"] .researchVerificationStageMarker {
+  color: color-mix(in srgb, var(--danger) 70%, var(--ink));
+  background: color-mix(in srgb, var(--danger) 8%, var(--button-bg));
+}
+
+.researchVerificationConnector {
+  color: color-mix(in srgb, var(--accent) 52%, var(--ink-dim));
+  font-size: 14px;
+  font-weight: 620;
+}
+
+.researchVerificationSources {
+  display: grid;
+  gap: 6px;
+}
+
+.researchVerificationSource {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--line) 58%, transparent);
+  border-radius: 12px;
+  color: inherit;
+  background: color-mix(in srgb, var(--assistant-bubble) 68%, transparent);
+  text-decoration: none;
+}
+
+.researchVerificationSource strong {
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-size: 10.5px;
+  font-weight: 710;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.researchVerificationSource span {
+  max-width: 130px;
+  overflow: hidden;
+  color: var(--ink-dim);
+  font-size: 9px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.researchVerificationSource:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 58%, transparent);
+  outline-offset: 2px;
+}
+
+.researchVerificationFooter {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--ink-dim);
+  font-size: 9.5px;
+  font-weight: 650;
+}
+
+.researchVerificationOpen {
+  min-height: 30px;
+  flex: 0 0 auto;
+  padding: 0 11px;
+  border: 1px solid color-mix(in srgb, var(--accent) 19%, var(--line));
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--accent) 78%, var(--ink));
+  background: color-mix(in srgb, var(--accent) 8%, var(--button-bg));
+  font: inherit;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.researchVerificationOpen:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 58%, transparent);
+  outline-offset: 2px;
+}
+
+:root[data-theme="pure-black"] .researchVerificationCard {
+  border-color: rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(circle at 8% -8%, rgba(110, 132, 255, 0.14), transparent 40%),
+    radial-gradient(circle at 100% 110%, rgba(201, 126, 255, 0.09), transparent 44%),
+    rgba(25, 24, 38, 0.98);
+}
+
+@media (max-width: 430px) {
+  .message[data-kind="research_verification"] {
+    width: min(92%, 500px);
+    max-width: 92%;
+  }
+
+  .researchVerificationFlow {
+    grid-template-columns: minmax(0, 1fr) 12px minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .researchVerificationSource {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+  }
+
+  .researchVerificationSource span {
+    max-width: 100%;
+  }
+
+  .researchVerificationFooter {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .researchVerificationCard {
+    background: var(--panel-bg);
+  }
+}
+
 /* v364 screenshot stability lock. */
 body > .dock.unifiedComposer {
   opacity: 1;
@@ -14142,7 +14425,7 @@ body > .dock.unifiedComposer {
   width: 76px !important;
   height: 76px !important;
   display: block !important;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=367") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=368") center / 58px 58px no-repeat;
 }
 
 #accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessFocusIntro > .accessFocusGlyph,

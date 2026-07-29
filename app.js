@@ -116,7 +116,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "367";
+const VOICE_UI_VERSION = "368";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -1172,7 +1172,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v367-multi-intent";
+const WEB_VERSION = "voice-ui-web-polish-v368-research-verification";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -1896,6 +1896,106 @@ function clientMultiIntentPayload(actionPayloads) {
     completedCount,
     failedCount,
     totalCount: items.length,
+    sideEffect: false,
+    requiresConfirmation: false
+  };
+}
+
+function clientResearchVerificationPayload(actionPayloads) {
+  const source = actionPayloads && typeof actionPayloads === "object"
+    ? actionPayloads.research_verification
+    : null;
+  if (!source || typeof source !== "object") return null;
+  const supportedStatuses = new Set([
+    "SUPPORTED",
+    "CONFLICT",
+    "PARTIAL_EVIDENCE",
+    "INSUFFICIENT_EVIDENCE"
+  ]);
+  const verificationStatus = boundedDocumentComparisonText(source.verification_status, 64).toUpperCase();
+  if (!supportedStatuses.has(verificationStatus)) return null;
+  const documents = (Array.isArray(source.documents) ? source.documents : [])
+    .slice(0, 4)
+    .flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const id = boundedDocumentComparisonText(item.id, 160);
+      const filename = boundedDocumentComparisonText(item.filename || id, 180);
+      if (!id && !filename) return [];
+      return [{
+        id,
+        filename,
+        documentType: boundedDocumentComparisonText(item.document_type, 80)
+      }];
+    });
+  const citations = (Array.isArray(source.document_citations) ? source.document_citations : [])
+    .slice(0, 16)
+    .flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const filename = boundedDocumentComparisonText(item.filename, 180);
+      const label = boundedDocumentComparisonText(
+        item.citation_label || item.source_label || item.chunk_id,
+        260
+      );
+      if (!filename && !label) return [];
+      return [{
+        documentId: boundedDocumentComparisonText(item.document_id, 160),
+        filename,
+        label: label || filename,
+        chunkId: boundedDocumentComparisonText(item.chunk_id, 160),
+        page: Number.isFinite(Number(item.page)) ? Math.max(1, Math.floor(Number(item.page))) : null,
+        evidenceAction: clientDocumentEvidenceAction(item.evidence_action || item.evidence)
+      }];
+    });
+  const webSources = (Array.isArray(source.web_sources) ? source.web_sources : [])
+    .slice(0, 10)
+    .flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const rawUrl = boundedDocumentComparisonText(item.url, 480);
+      let parsed;
+      try {
+        parsed = new URL(rawUrl);
+      } catch (_) {
+        return [];
+      }
+      if (!["http:", "https:"].includes(parsed.protocol)) return [];
+      return [{
+        title: boundedDocumentComparisonText(item.title || parsed.hostname, 260),
+        url: parsed.href,
+        domain: boundedDocumentComparisonText(item.domain || parsed.hostname, 160),
+        published: boundedDocumentComparisonText(item.published, 80)
+      }];
+    });
+  const allowedStepStatuses = new Set(["succeeded", "failed"]);
+  const steps = (Array.isArray(source.steps) ? source.steps : [])
+    .slice(0, 2)
+    .flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const capability = boundedDocumentComparisonText(item.capability, 32).toLowerCase();
+      const status = boundedDocumentComparisonText(item.status, 32).toLowerCase();
+      if (!["document", "web"].includes(capability) || !allowedStepStatuses.has(status)) return [];
+      return [{ capability, status, verified: Boolean(item.verified) }];
+    });
+  if (steps.length !== 2 || !documents.length) return null;
+  return {
+    planId: boundedDocumentComparisonText(source.plan_id, 80),
+    verificationStatus,
+    summary: boundedDocumentComparisonText(source.summary, 1200),
+    agreements: (Array.isArray(source.agreements) ? source.agreements : [])
+      .map((value) => boundedDocumentComparisonText(value, 320))
+      .filter(Boolean)
+      .slice(0, 6),
+    conflicts: (Array.isArray(source.conflicts) ? source.conflicts : [])
+      .map((value) => boundedDocumentComparisonText(value, 320))
+      .filter(Boolean)
+      .slice(0, 6),
+    limitations: (Array.isArray(source.limitations) ? source.limitations : [])
+      .map((value) => boundedDocumentComparisonText(value, 320))
+      .filter(Boolean)
+      .slice(0, 6),
+    documents,
+    citations,
+    webSources,
+    steps,
     sideEffect: false,
     requiresConfirmation: false
   };
@@ -2724,6 +2824,139 @@ function appendMultiIntentCard(item, payload) {
   item.appendChild(card);
 }
 
+function researchVerificationStatusMeta(status = "") {
+  const en = currentLanguage === "en";
+  const value = String(status || "").toUpperCase();
+  if (value === "SUPPORTED") {
+    return {
+      label: en ? "Supported" : "得到支持",
+      title: en ? "Sources align" : "文件与公开来源一致",
+      tone: "supported"
+    };
+  }
+  if (value === "CONFLICT") {
+    return {
+      label: en ? "Conflict" : "发现冲突",
+      title: en ? "Sources disagree" : "文件与公开来源不一致",
+      tone: "conflict"
+    };
+  }
+  if (value === "INSUFFICIENT_EVIDENCE") {
+    return {
+      label: en ? "Insufficient" : "证据不足",
+      title: en ? "Unable to verify" : "暂时无法可靠核验",
+      tone: "insufficient"
+    };
+  }
+  return {
+    label: en ? "Partial" : "部分核验",
+    title: en ? "More evidence needed" : "仍需要更多证据",
+    tone: "partial"
+  };
+}
+
+function appendResearchVerificationCard(item, payload) {
+  if (!item || !payload) return;
+  const status = researchVerificationStatusMeta(payload.verificationStatus);
+  const card = document.createElement("section");
+  card.className = "researchVerificationCard";
+  card.dataset.tone = status.tone;
+  card.setAttribute("aria-label", currentLanguage === "en" ? "Evidence verification" : "联合证据核验");
+
+  const header = document.createElement("div");
+  header.className = "researchVerificationHeader";
+  const copy = document.createElement("div");
+  const kicker = document.createElement("span");
+  kicker.className = "researchVerificationKicker";
+  kicker.textContent = "EVIDENCE CHECK";
+  const title = document.createElement("strong");
+  title.textContent = status.title;
+  copy.append(kicker, title);
+  const chip = document.createElement("span");
+  chip.className = "researchVerificationStatus";
+  chip.textContent = status.label;
+  header.append(copy, chip);
+  card.appendChild(header);
+
+  const flow = document.createElement("div");
+  flow.className = "researchVerificationFlow";
+  payload.steps.forEach((step, index) => {
+    const stage = document.createElement("div");
+    stage.className = "researchVerificationStage";
+    stage.dataset.status = step.status;
+    const marker = document.createElement("span");
+    marker.className = "researchVerificationStageMarker";
+    marker.textContent = step.capability === "document" ? "文" : "网";
+    const stageCopy = document.createElement("span");
+    const stageName = document.createElement("strong");
+    stageName.textContent = step.capability === "document"
+      ? (currentLanguage === "en" ? "Document" : "文件证据")
+      : (currentLanguage === "en" ? "Web" : "公开来源");
+    const stageState = document.createElement("span");
+    stageState.textContent = step.status === "succeeded"
+      ? (currentLanguage === "en" ? "Read" : "已读取")
+      : (currentLanguage === "en" ? "Unavailable" : "未完成");
+    stageCopy.append(stageName, stageState);
+    stage.append(marker, stageCopy);
+    flow.appendChild(stage);
+    if (index < payload.steps.length - 1) {
+      const connector = document.createElement("span");
+      connector.className = "researchVerificationConnector";
+      connector.setAttribute("aria-hidden", "true");
+      connector.textContent = "→";
+      flow.appendChild(connector);
+    }
+  });
+  card.appendChild(flow);
+
+  if (payload.webSources.length) {
+    const sources = document.createElement("div");
+    sources.className = "researchVerificationSources";
+    payload.webSources.slice(0, 3).forEach((source) => {
+      const link = document.createElement("a");
+      link.href = source.url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.className = "researchVerificationSource";
+      const sourceTitle = document.createElement("strong");
+      sourceTitle.textContent = source.title || source.domain;
+      const sourceDomain = document.createElement("span");
+      sourceDomain.textContent = source.domain || new URL(source.url).hostname;
+      link.append(sourceTitle, sourceDomain);
+      sources.appendChild(link);
+    });
+    card.appendChild(sources);
+  }
+
+  const footer = document.createElement("div");
+  footer.className = "researchVerificationFooter";
+  const counts = document.createElement("span");
+  counts.textContent = currentLanguage === "en"
+    ? `${payload.citations.length} document citations · ${payload.webSources.length} web sources`
+    : `${payload.citations.length} 条文件引用 · ${payload.webSources.length} 个公开来源`;
+  footer.appendChild(counts);
+  if (payload.citations.length) {
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "researchVerificationOpen";
+    open.textContent = currentLanguage === "en" ? "Document evidence" : "查看文件证据";
+    open.setAttribute("aria-haspopup", "dialog");
+    const evidencePayload = {
+      documents: payload.documents,
+      documentIds: payload.documents.map((documentItem) => documentItem.id).filter(Boolean),
+      citations: payload.citations,
+      conflicts: [],
+      mode: "project_knowledge",
+      comparisonReady: true,
+      verificationStatus: payload.verificationStatus
+    };
+    open.addEventListener("click", () => openDocumentEvidenceDialog(evidencePayload, open));
+    footer.appendChild(open);
+  }
+  card.appendChild(footer);
+  item.appendChild(card);
+}
+
 function setMessageBodyText(body, text, options = {}) {
   if (!body) return;
   const kind = options.kind || "";
@@ -2759,6 +2992,9 @@ function appendConversationMessage(role, text, options = {}) {
   }
   if (role === "assistant" && options.multiIntent) {
     appendMultiIntentCard(item, options.multiIntent);
+  }
+  if (role === "assistant" && options.researchVerification) {
+    appendResearchVerificationCard(item, options.researchVerification);
   }
   if (Array.isArray(options.actions) && options.actions.length) {
     const actions = document.createElement("div");
@@ -3105,14 +3341,22 @@ async function executeClientMessageAction(button, action) {
     const actionButtons = clientMessageActionButtons(payload.action_payloads);
     const documentComparison = clientDocumentComparisonPayload(payload.action_payloads);
     const multiIntent = clientMultiIntentPayload(payload.action_payloads);
+    const researchVerification = clientResearchVerificationPayload(payload.action_payloads);
     const reply = clientReplyForDisplay(String(payload.reply || "").trim(), actionButtons) || (currentLanguage === "en" ? "The operation finished." : "操作已完成。");
     appendAssistantConversation(reply, {
       id: payload.response_id ? `assistant_${payload.response_id}` : "",
-      kind: documentComparison ? "document_comparison" : multiIntent ? "multi_intent" : payload.skill || payload.route || "operation_result",
+      kind: documentComparison
+        ? "document_comparison"
+        : researchVerification
+          ? "research_verification"
+          : multiIntent
+            ? "multi_intent"
+            : payload.skill || payload.route || "operation_result",
       forceScroll: true,
       actions: actionButtons,
       documentComparison,
       multiIntent,
+      researchVerification,
       feedbackTarget: payload.feedback || (payload.turn_id ? {
         turn_id: payload.turn_id,
         response_id: payload.response_id || "",
@@ -4063,13 +4307,23 @@ async function loadConversationHistory({ force = false } = {}) {
       const multiIntent = role === "assistant"
         ? clientMultiIntentPayload(item && item.ui_payload)
         : null;
+      const researchVerification = role === "assistant"
+        ? clientResearchVerificationPayload(item && item.ui_payload)
+        : null;
       appendConversationMessage(role, item.content || "", {
         id: `history_${index}_${Math.abs(String(item.time || index).split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`,
         label: historyMessageLabel(role, item.time),
-        kind: documentComparison ? "document_comparison" : multiIntent ? "multi_intent" : "history",
+        kind: documentComparison
+          ? "document_comparison"
+          : researchVerification
+            ? "research_verification"
+            : multiIntent
+              ? "multi_intent"
+              : "history",
         forceScroll: index === items.length - 1,
         documentComparison,
         multiIntent,
+        researchVerification,
         feedbackTarget: role === "assistant" && item.turn_id ? {
           turn_id: item.turn_id,
           response_id: item.response_id || "",
@@ -8974,15 +9228,23 @@ async function sendTextPrompt(text) {
     const actionButtons = clientMessageActionButtons(payload.action_payloads);
     const documentComparison = clientDocumentComparisonPayload(payload.action_payloads);
     const multiIntent = clientMultiIntentPayload(payload.action_payloads);
+    const researchVerification = clientResearchVerificationPayload(payload.action_payloads);
     const reply = clientReplyForDisplay(String(payload.reply || "").trim(), actionButtons) || "我没有拿到可显示的回复。";
     els.reply.textContent = reply;
     appendAssistantConversation(reply, {
       id: payload.response_id ? `assistant_${payload.response_id}` : "",
-      kind: documentComparison ? "document_comparison" : multiIntent ? "multi_intent" : payload.skill || payload.route || "text_reply",
+      kind: documentComparison
+        ? "document_comparison"
+        : researchVerification
+          ? "research_verification"
+          : multiIntent
+            ? "multi_intent"
+            : payload.skill || payload.route || "text_reply",
       forceScroll: true,
       actions: actionButtons,
       documentComparison,
       multiIntent,
+      researchVerification,
       feedbackTarget: payload.feedback || (payload.turn_id ? {
         turn_id: payload.turn_id,
         response_id: payload.response_id || "",
