@@ -39,6 +39,14 @@ const els = {
   conversationIncludeArchived: document.getElementById("conversationIncludeArchived"),
   conversationFeedback: document.getElementById("conversationFeedback"),
   conversationList: document.getElementById("conversationList"),
+  projectSelect: document.getElementById("projectSpaceSelect"),
+  projectNew: document.getElementById("projectNewButton"),
+  projectEditor: document.getElementById("projectEditor"),
+  projectName: document.getElementById("projectNameInput"),
+  projectInstructions: document.getElementById("projectInstructionsInput"),
+  projectMeta: document.getElementById("projectMeta"),
+  projectSave: document.getElementById("projectSaveButton"),
+  projectArchive: document.getElementById("projectArchiveButton"),
   memoryRefresh: document.getElementById("memoryRefreshButton"),
   memorySearch: document.getElementById("memorySearchInput"),
   memorySearchClear: document.getElementById("memorySearchClearButton"),
@@ -106,7 +114,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "364";
+const VOICE_UI_VERSION = "365";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -542,6 +550,18 @@ const UI_TEXT = {
     "conversation.new": "新对话",
     "conversation.search": "搜索标题或内容",
     "conversation.archived": "归档",
+    "project.label": "当前空间",
+    "project.selectAria": "当前项目空间",
+    "project.personal": "个人空间",
+    "project.new": "新项目",
+    "project.kicker": "PROJECT SPACE",
+    "project.name": "项目名称",
+    "project.instructions": "项目说明",
+    "project.instructionsPlaceholder": "告诉 Iris 这个项目的目标、背景和回答偏好",
+    "project.instructionsHint": "说明只影响项目内回答，不会扩大工具权限。",
+    "project.save": "保存项目",
+    "project.archive": "归档项目",
+    "project.restore": "恢复项目",
     "settings.appearance": "外观",
     "settings.appearanceSub": "主题 · 模式",
     "settings.themeAria": "界面主题",
@@ -765,6 +785,18 @@ const UI_TEXT = {
     "conversation.new": "New chat",
     "conversation.search": "Search titles or content",
     "conversation.archived": "Archived",
+    "project.label": "Current space",
+    "project.selectAria": "Current project space",
+    "project.personal": "Personal space",
+    "project.new": "New project",
+    "project.kicker": "PROJECT SPACE",
+    "project.name": "Project name",
+    "project.instructions": "Project instructions",
+    "project.instructionsPlaceholder": "Give Iris the goals, context, and response preferences for this project",
+    "project.instructionsHint": "Instructions shape project replies but never expand tool permissions.",
+    "project.save": "Save project",
+    "project.archive": "Archive project",
+    "project.restore": "Restore project",
     "settings.appearance": "Appearance",
     "settings.appearanceSub": "Theme · Mode",
     "settings.themeAria": "Interface theme",
@@ -1054,6 +1086,11 @@ let conversationLibraryLoaded = false;
 let conversationLibraryLoading = false;
 let conversationLibraryItems = [];
 let conversationLibrarySearchTimer = 0;
+let projectLibraryItems = [];
+let projectLibraryLoaded = false;
+let projectLibraryLoading = false;
+let currentProjectFilterId = "";
+let projectFilterTouched = false;
 let activeAssistantMessageId = "";
 let connectionStatusMessageId = "";
 let lastUserConversationText = "";
@@ -1108,7 +1145,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v364-conversation-spaces";
+const WEB_VERSION = "voice-ui-web-polish-v365-project-spaces";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -2950,6 +2987,254 @@ function setConversationFeedback(message = "", tone = "info") {
   els.conversationFeedback.dataset.tone = tone;
 }
 
+function currentProjectRecord() {
+  return projectLibraryItems.find((item) => item.project_id === currentProjectFilterId) || null;
+}
+
+function projectConversationCount(projectId) {
+  return conversationLibraryItems.filter((item) => String(item.project_id || "") === String(projectId || "")).length;
+}
+
+function renderProjectSpaceControl() {
+  if (!els.projectSelect) return;
+  const selected = String(currentProjectFilterId || "");
+  const fragment = document.createDocumentFragment();
+  const personal = document.createElement("option");
+  personal.value = "";
+  personal.textContent = textFor("project.personal", "个人空间");
+  fragment.append(personal);
+  projectLibraryItems.forEach((project) => {
+    const option = document.createElement("option");
+    option.value = project.project_id;
+    option.textContent = `${project.name}${project.status === "archived" ? (currentLanguage === "en" ? " · Archived" : " · 已归档") : ""}`;
+    fragment.append(option);
+  });
+  els.projectSelect.replaceChildren(fragment);
+  els.projectSelect.value = projectLibraryItems.some((item) => item.project_id === selected) ? selected : "";
+  if (els.projectSelect.value !== selected) currentProjectFilterId = els.projectSelect.value;
+
+  const project = currentProjectRecord();
+  if (els.projectEditor) els.projectEditor.hidden = !project;
+  if (!project) return;
+  if (els.projectName && document.activeElement !== els.projectName) {
+    els.projectName.value = String(project.name || "");
+  }
+  if (els.projectInstructions && document.activeElement !== els.projectInstructions) {
+    els.projectInstructions.value = String(project.instructions || "");
+  }
+  if (els.projectMeta) {
+    const conversationCount = Math.max(0, Number(project.conversation_count ?? projectConversationCount(project.project_id)));
+    const documentCount = Math.max(0, Number(project.document_count || 0));
+    els.projectMeta.textContent = currentLanguage === "en"
+      ? `${conversationCount} chats · ${documentCount} files`
+      : `${conversationCount} 个会话 · ${documentCount} 份文件`;
+  }
+  const archived = project.status === "archived";
+  if (els.projectName) els.projectName.disabled = archived;
+  if (els.projectInstructions) els.projectInstructions.disabled = archived;
+  if (els.projectSave) els.projectSave.disabled = archived;
+  if (els.projectArchive) {
+    els.projectArchive.textContent = archived
+      ? textFor("project.restore", "恢复项目")
+      : textFor("project.archive", "归档项目");
+    els.projectArchive.dataset.archived = archived ? "true" : "false";
+  }
+}
+
+async function activateProjectSpace(projectId) {
+  const requestedProjectId = String(projectId || "");
+  if (conversationSwitchBlocked()) {
+    renderProjectSpaceControl();
+    setConversationFeedback(
+      currentLanguage === "en"
+        ? "Finish or cancel the current file upload before switching spaces."
+        : "请先完成或取消当前文件上传，再切换空间。",
+      "warning"
+    );
+    return;
+  }
+  currentProjectFilterId = requestedProjectId;
+  projectFilterTouched = true;
+  const current = currentConversationRecord();
+  if (String(current && current.project_id || "") !== requestedProjectId) {
+    const target = conversationLibraryItems.find((item) => (
+      item.status !== "archived"
+      && String(item.project_id || "") === requestedProjectId
+      && (!requestedProjectId ? Boolean(item.is_default) : true)
+    )) || conversationLibraryItems.find((item) => (
+      item.status !== "archived"
+      && String(item.project_id || "") === requestedProjectId
+    ));
+    if (target) {
+      await switchConversation(target.conversation_id, { keepDetails: true });
+      return;
+    }
+  }
+  renderProjectSpaceControl();
+  renderConversationLibrary();
+  setConversationFeedback("");
+}
+
+async function refreshProjectLibrary({ force = false } = {}) {
+  if (projectLibraryLoading || (!force && projectLibraryLoaded)) return;
+  if (!canUseBackendNow()) return;
+  projectLibraryLoading = true;
+  if (els.projectSelect) els.projectSelect.setAttribute("aria-busy", "true");
+  const params = new URLSearchParams();
+  if (els.conversationIncludeArchived && els.conversationIncludeArchived.checked) {
+    params.set("include_archived", "true");
+  }
+  try {
+    const response = await fetch(backendUrl(`/client/v1/projects${params.toString() ? `?${params}` : ""}`), {
+      headers: authHeaders(),
+      cache: "no-store"
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    projectLibraryItems = Array.isArray(payload.items) ? payload.items : [];
+    if (currentProjectFilterId && !projectLibraryItems.some((item) => item.project_id === currentProjectFilterId)) {
+      currentProjectFilterId = "";
+    }
+    projectLibraryLoaded = true;
+    renderProjectSpaceControl();
+  } finally {
+    projectLibraryLoading = false;
+    if (els.projectSelect) els.projectSelect.removeAttribute("aria-busy");
+  }
+}
+
+async function createNewProject() {
+  if (conversationSwitchBlocked()) {
+    setConversationFeedback(
+      currentLanguage === "en"
+        ? "Finish or cancel the current file upload before starting a project."
+        : "请先完成或取消当前文件上传，再新建项目。",
+      "warning"
+    );
+    return;
+  }
+  if (els.projectNew) {
+    els.projectNew.disabled = true;
+    els.projectNew.setAttribute("aria-busy", "true");
+  }
+  try {
+    const response = await fetch(backendUrl("/client/v1/projects"), {
+      method: "POST",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: currentSubjectId(),
+        name: currentLanguage === "en" ? "New project" : "新项目"
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    currentProjectFilterId = String(payload.project_id || "");
+    projectFilterTouched = true;
+    projectLibraryLoaded = false;
+    conversationLibraryLoaded = false;
+    await refreshProjectLibrary({ force: true });
+    await refreshConversationLibrary({ force: true });
+    await switchConversation(payload.conversation_id, { keepDetails: true });
+    renderProjectSpaceControl();
+    window.setTimeout(() => {
+      if (!els.projectName) return;
+      els.projectName.focus({ preventScroll: true });
+      els.projectName.select();
+    }, 80);
+    setConversationFeedback(currentLanguage === "en" ? "Project created." : "项目已创建。", "success");
+  } finally {
+    if (els.projectNew) {
+      els.projectNew.disabled = false;
+      els.projectNew.removeAttribute("aria-busy");
+    }
+  }
+}
+
+async function saveCurrentProject(event) {
+  if (event) event.preventDefault();
+  const project = currentProjectRecord();
+  if (!project || project.status === "archived") return;
+  const name = String(els.projectName && els.projectName.value || "").trim();
+  const instructions = String(els.projectInstructions && els.projectInstructions.value || "").trim();
+  if (!name) {
+    setConversationFeedback(currentLanguage === "en" ? "Enter a project name." : "请填写项目名称。", "warning");
+    return;
+  }
+  if (els.projectSave) {
+    els.projectSave.disabled = true;
+    els.projectSave.setAttribute("aria-busy", "true");
+  }
+  try {
+    const response = await fetch(backendUrl(`/client/v1/projects/${encodeURIComponent(project.project_id)}`), {
+      method: "PATCH",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: currentSubjectId(), name, instructions })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    projectLibraryLoaded = false;
+    await refreshProjectLibrary({ force: true });
+    setConversationFeedback(currentLanguage === "en" ? "Project updated." : "项目设置已保存。", "success");
+  } finally {
+    if (els.projectSave) {
+      els.projectSave.disabled = false;
+      els.projectSave.removeAttribute("aria-busy");
+    }
+  }
+}
+
+async function toggleCurrentProjectArchived() {
+  const project = currentProjectRecord();
+  if (!project) return;
+  const archived = project.status === "archived";
+  if (els.projectArchive) els.projectArchive.disabled = true;
+  try {
+    const response = await fetch(backendUrl(`/client/v1/projects/${encodeURIComponent(project.project_id)}`), {
+      method: "PATCH",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: currentSubjectId(),
+        status: archived ? "active" : "archived"
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    if (!archived) {
+      const current = currentConversationRecord();
+      if (current && current.project_id === project.project_id) {
+        const next = conversationLibraryItems.find((item) => item.is_default)
+          || conversationLibraryItems.find((item) => !item.project_id && item.status !== "archived");
+        if (next) await switchConversation(next.conversation_id);
+      }
+      currentProjectFilterId = "";
+    }
+    projectLibraryLoaded = false;
+    conversationLibraryLoaded = false;
+    await refreshProjectLibrary({ force: true });
+    await refreshConversationLibrary({ force: true });
+    setConversationFeedback(
+      archived
+        ? (currentLanguage === "en" ? "Project restored." : "项目已恢复。")
+        : (currentLanguage === "en" ? "Project archived." : "项目已归档。"),
+      "success"
+    );
+  } finally {
+    if (els.projectArchive) els.projectArchive.disabled = false;
+  }
+}
+
 function currentConversationRecord() {
   return conversationLibraryItems.find((item) => item.conversation_id === currentConversationId) || null;
 }
@@ -2963,6 +3248,7 @@ function updateConversationIdentity(record = currentConversationRecord()) {
     els.conversationStatus.textContent = title;
     els.conversationStatus.title = title;
   }
+  renderProjectSpaceControl();
 }
 
 function conversationUpdatedLabel(value) {
@@ -3060,7 +3346,12 @@ function renderConversationLibrary() {
   if (!els.conversationList) return;
   els.conversationList.replaceChildren();
   updateConversationIdentity();
-  if (!conversationLibraryItems.length) {
+  const visibleItems = conversationLibraryItems.filter((item) => (
+    currentProjectFilterId
+      ? String(item.project_id || "") === currentProjectFilterId
+      : !String(item.project_id || "")
+  ));
+  if (!visibleItems.length) {
     const empty = document.createElement("p");
     empty.className = "conversationLibraryEmpty";
     empty.textContent = currentLanguage === "en" ? "No matching conversations." : "没有匹配的会话。";
@@ -3068,7 +3359,7 @@ function renderConversationLibrary() {
     return;
   }
   const fragment = document.createDocumentFragment();
-  conversationLibraryItems.forEach((item) => {
+  visibleItems.forEach((item) => {
     const row = document.createElement("article");
     row.className = "conversationLibraryItem";
     row.dataset.current = item.conversation_id === currentConversationId ? "true" : "false";
@@ -3087,7 +3378,9 @@ function renderConversationLibrary() {
       || (currentLanguage === "en" ? "Start a new thought here." : "从这里开始一段新的想法。");
     const meta = document.createElement("span");
     meta.className = "conversationMeta";
-    meta.textContent = `${conversationUpdatedLabel(item.updated_at)} · ${Math.max(0, Number(item.message_count || 0))} ${currentLanguage === "en" ? "messages" : "条消息"}`;
+    const project = projectLibraryItems.find((candidate) => candidate.project_id === item.project_id);
+    const projectLabel = project ? ` · ${project.name}` : "";
+    meta.textContent = `${conversationUpdatedLabel(item.updated_at)} · ${Math.max(0, Number(item.message_count || 0))} ${currentLanguage === "en" ? "messages" : "条消息"}${projectLabel}`;
     select.append(title, preview, meta);
     select.addEventListener("click", () => {
       switchConversation(item.conversation_id).catch((error) => {
@@ -3165,7 +3458,12 @@ async function refreshConversationLibrary({ force = false } = {}) {
         : String(payload.default_conversation_id || "");
       if (currentConversationId) rememberSelectedConversation(currentConversationId);
     }
+    if (!projectFilterTouched) {
+      const current = conversationLibraryItems.find((item) => item.conversation_id === currentConversationId);
+      currentProjectFilterId = String(current && current.project_id || "");
+    }
     renderConversationLibrary();
+    renderProjectSpaceControl();
     conversationLibraryLoaded = true;
     setConversationFeedback("");
   } finally {
@@ -3211,10 +3509,10 @@ function resetConversationSurface() {
   ensureAssistantConversationAnchor();
 }
 
-async function switchConversation(conversationId) {
+async function switchConversation(conversationId, { keepDetails = false } = {}) {
   const nextId = String(conversationId || "").trim();
   if (!nextId || nextId === currentConversationId) {
-    closeDetails();
+    if (!keepDetails) closeDetails();
     return;
   }
   if (conversationSwitchBlocked()) {
@@ -3230,11 +3528,14 @@ async function switchConversation(conversationId) {
   else closeVoiceSocket("conversation_switch");
   stopPlayback("conversation_switch", { notifyInterrupt: false });
   currentConversationId = nextId;
+  const nextRecord = conversationLibraryItems.find((item) => item.conversation_id === nextId);
+  currentProjectFilterId = String(nextRecord && nextRecord.project_id || "");
+  projectFilterTouched = false;
   rememberSelectedConversation(nextId);
   resetConversationSurface();
   renderConversationLibrary();
   await loadConversationHistory({ force: true });
-  closeDetails();
+  if (!keepDetails) closeDetails();
   setSubtitle(currentLanguage === "en" ? "This conversation is ready." : "这段会话已经接上。", {
     speaker: "IRIS",
     resetFlow: true
@@ -3259,7 +3560,10 @@ async function createNewConversation() {
     const response = await fetch(backendUrl("/client/v1/conversations"), {
       method: "POST",
       headers: { ...authHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: currentSubjectId() })
+      body: JSON.stringify({
+        user_id: currentSubjectId(),
+        ...(currentProjectFilterId ? { project_id: currentProjectFilterId } : {})
+      })
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -3278,6 +3582,7 @@ async function createNewConversation() {
 }
 
 async function initializeConversationSpace() {
+  await refreshProjectLibrary({ force: true });
   await refreshConversationLibrary({ force: true });
   await loadConversationHistory({ force: true });
 }
@@ -9920,6 +10225,37 @@ if (els.conversationNew) {
     });
   });
 }
+if (els.projectSelect) {
+  els.projectSelect.addEventListener("change", () => {
+    activateProjectSpace(els.projectSelect.value).catch((error) => {
+      setConversationFeedback(
+        `${currentLanguage === "en" ? "Could not switch project" : "切换项目失败"}：${error.message || ""}`,
+        "error"
+      );
+    });
+  });
+}
+if (els.projectNew) {
+  els.projectNew.addEventListener("click", () => {
+    createNewProject().catch((error) => {
+      setConversationFeedback(`${currentLanguage === "en" ? "Could not create project" : "新建项目失败"}：${error.message || ""}`, "error");
+    });
+  });
+}
+if (els.projectEditor) {
+  els.projectEditor.addEventListener("submit", (event) => {
+    saveCurrentProject(event).catch((error) => {
+      setConversationFeedback(`${currentLanguage === "en" ? "Save failed" : "保存失败"}：${error.message || ""}`, "error");
+    });
+  });
+}
+if (els.projectArchive) {
+  els.projectArchive.addEventListener("click", () => {
+    toggleCurrentProjectArchived().catch((error) => {
+      setConversationFeedback(`${currentLanguage === "en" ? "Project update failed" : "项目操作失败"}：${error.message || ""}`, "error");
+    });
+  });
+}
 if (els.conversationSearch) {
   els.conversationSearch.addEventListener("input", () => {
     if (conversationLibrarySearchTimer) window.clearTimeout(conversationLibrarySearchTimer);
@@ -9942,7 +10278,10 @@ if (els.conversationSearch) {
 }
 if (els.conversationIncludeArchived) {
   els.conversationIncludeArchived.addEventListener("change", () => {
-    refreshConversationLibrary({ force: true }).catch((error) => {
+    Promise.all([
+      refreshProjectLibrary({ force: true }),
+      refreshConversationLibrary({ force: true })
+    ]).catch((error) => {
       setConversationFeedback(`${currentLanguage === "en" ? "Refresh failed" : "刷新失败"}：${error.message || ""}`, "error");
     });
   });

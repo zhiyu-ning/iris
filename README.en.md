@@ -19,6 +19,7 @@ This repository contains only static frontend assets:
 - PWA manifest and service worker
 - Iris brand icons
 - Five public frontend themes: minimal white, soft gray, classic blue, pure black, and aurora glass
+- Project Spaces for organizing conversations, project instructions, and reusable project files
 - Reference-aligned composer layout: clean `+` file-upload button, input capsule, embedded microphone, and separate send button
 - Flat settings navigation rows: collapsed sections no longer render extra glass backplates, keeping only text, icons, arrows, and expanded content
 - Desktop adaptation: wider conversation reading area, aligned bottom composer, a left conversation workspace plus right Settings inspector when Settings is open, and an internally scrolling settings list

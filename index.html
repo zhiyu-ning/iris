@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=364" type="image/png" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=364" />
-    <link rel="manifest" href="/iris/manifest.json?v=364" />
-    <link rel="stylesheet" href="/iris/styles.css?v=364" />
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=365" type="image/png" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=365" />
+    <link rel="manifest" href="/iris/manifest.json?v=365" />
+    <link rel="stylesheet" href="/iris/styles.css?v=365" />
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -165,7 +165,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=364" alt="" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=365" alt="" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -232,7 +232,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=364" alt="" />
+              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=365" alt="" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
@@ -283,6 +283,30 @@
                 <p data-i18n="conversation.memoryHint">每个会话独立保留短期上下文，个人长期记忆仍会连续。</p>
               </div>
               <button id="conversationNewButton" type="button" data-action-role="primary" data-i18n="conversation.new">新对话</button>
+            </section>
+            <section class="projectSpaceControl" aria-labelledby="projectSpaceLabel">
+              <div class="projectSpacePicker">
+                <label id="projectSpaceLabel" for="projectSpaceSelect" data-i18n="project.label">当前空间</label>
+                <select id="projectSpaceSelect" aria-label="当前项目空间" data-i18n-aria-label="project.selectAria">
+                  <option value="" data-i18n="project.personal">个人空间</option>
+                </select>
+                <button id="projectNewButton" type="button" data-i18n="project.new">新项目</button>
+              </div>
+              <form id="projectEditor" class="projectEditor" hidden>
+                <div class="projectEditorHeader">
+                  <span data-i18n="project.kicker">PROJECT SPACE</span>
+                  <small id="projectMeta">0 个会话 · 0 份文件</small>
+                </div>
+                <label for="projectNameInput" data-i18n="project.name">项目名称</label>
+                <input id="projectNameInput" type="text" maxlength="64" autocomplete="off" />
+                <label for="projectInstructionsInput" data-i18n="project.instructions">项目说明</label>
+                <textarea id="projectInstructionsInput" maxlength="4000" rows="3" placeholder="告诉 Iris 这个项目的目标、背景和回答偏好" data-i18n-placeholder="project.instructionsPlaceholder"></textarea>
+                <p data-i18n="project.instructionsHint">说明只影响项目内回答，不会扩大工具权限。</p>
+                <div class="projectEditorActions">
+                  <button id="projectSaveButton" type="submit" data-action-role="primary" data-i18n="project.save">保存项目</button>
+                  <button id="projectArchiveButton" type="button" data-action-role="danger" data-i18n="project.archive">归档项目</button>
+                </div>
+              </form>
             </section>
             <div class="conversationSearchRow">
               <input id="conversationSearchInput" type="search" autocomplete="off" inputmode="search" placeholder="搜索标题或内容" aria-label="搜索会话" data-i18n-placeholder="conversation.search" data-i18n-aria-label="conversation.search" />
@@ -610,7 +634,7 @@
         </div>
       </aside>
     </main>
-    <script src="/iris/public-config.js?v=364"></script>
-    <script src="/iris/app.js?v=364"></script>
+    <script src="/iris/public-config.js?v=365"></script>
+    <script src="/iris/app.js?v=365"></script>
   </body>
 </html>

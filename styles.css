@@ -57,8 +57,8 @@
   --control-hover-filter: brightness(1.018) saturate(1.06);
   --control-active-filter: brightness(0.985) saturate(1.02);
   --control-press-shadow: inset 0 2px 5px rgba(24, 42, 67, 0.08);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=364");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=364");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=365");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=365");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -212,8 +212,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 22px 54px rgba(85, 91, 255, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=364");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=364");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=365");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=365");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -269,8 +269,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=364");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=364");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=365");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=365");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -2055,7 +2055,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=364");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=365");
 }
 
 .brandName {
@@ -6407,6 +6407,173 @@ button[aria-disabled="true"]:not([data-loading="true"]) {
   animation: accessSubmitSpin 700ms linear infinite;
 }
 
+.projectSpaceControl {
+  display: grid;
+  gap: 8px;
+}
+
+.projectSpacePicker {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px;
+  border: 1px solid color-mix(in srgb, var(--accent) 12%, var(--iris-hairline));
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--iris-pearl-strong) 89%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.projectSpacePicker label {
+  padding-left: 5px;
+  color: var(--ink-dim);
+  font-size: 8px;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.projectSpacePicker select {
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 30px 0 11px;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--iris-hairline));
+  border-radius: 11px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--iris-pearl) 86%, transparent);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 680;
+}
+
+.projectSpacePicker button {
+  min-width: 62px;
+  min-height: 36px;
+  padding: 0 11px;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--iris-hairline));
+  border-radius: 11px;
+  color: color-mix(in srgb, var(--accent) 76%, var(--ink));
+  background: color-mix(in srgb, var(--accent) 7%, var(--iris-pearl-strong));
+  font-size: 8.5px;
+  font-weight: 760;
+}
+
+.projectSpacePicker button[aria-busy="true"] {
+  opacity: 0.6;
+}
+
+.projectEditor {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  padding: 13px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--iris-hairline));
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--accent) 8%, transparent), transparent 50%),
+    color-mix(in srgb, var(--iris-pearl-strong) 91%, transparent);
+}
+
+.projectEditor[hidden] {
+  display: none;
+}
+
+.projectEditorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 1px;
+}
+
+.projectEditorHeader span {
+  color: color-mix(in srgb, var(--accent) 64%, var(--ink-dim));
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.projectEditorHeader small {
+  overflow: hidden;
+  color: var(--ink-dim);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectEditor > label {
+  margin: 3px 2px 0;
+  color: var(--ink-dim);
+  font-size: 8px;
+  font-weight: 720;
+}
+
+.projectEditor > input,
+.projectEditor > textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid var(--iris-hairline);
+  border-radius: 12px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--iris-pearl) 91%, transparent);
+  font: inherit;
+  font-size: 10px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.projectEditor > input {
+  min-height: 40px;
+}
+
+.projectEditor > textarea {
+  min-height: 76px;
+  max-height: 150px;
+}
+
+.projectEditor > input:focus,
+.projectEditor > textarea:focus,
+.projectSpacePicker select:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--iris-hairline));
+  outline: 3px solid color-mix(in srgb, var(--accent) 12%, transparent);
+  outline-offset: 1px;
+}
+
+.projectEditor > p {
+  margin: 0 2px 2px;
+  color: color-mix(in srgb, var(--ink-dim) 82%, transparent);
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.projectEditorActions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px;
+}
+
+.projectEditorActions button {
+  min-height: 39px;
+  padding: 0 12px;
+  border: 1px solid var(--iris-hairline);
+  border-radius: 12px;
+  color: var(--ink-dim);
+  background: color-mix(in srgb, var(--iris-pearl) 88%, transparent);
+  font-size: 8.5px;
+  font-weight: 760;
+}
+
+.projectEditorActions button[type="submit"] {
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+  color: #fff;
+  background: linear-gradient(135deg, #8e82f6, #7465e8);
+}
+
+.projectEditorActions button[data-archived="true"] {
+  color: color-mix(in srgb, var(--status-online) 72%, var(--ink));
+}
+
 .conversationSearchRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -6593,11 +6760,23 @@ button[aria-disabled="true"]:not([data-loading="true"]) {
 
 :root[data-theme="pure-black"] .conversationLibraryHero,
 :root[data-theme="pure-black"] .conversationLibraryItem,
+:root[data-theme="pure-black"] .projectSpacePicker,
+:root[data-theme="pure-black"] .projectEditor,
 :root[data-theme="pure-black"] .conversationSearchRow > input[type="search"],
 :root[data-theme="pure-black"] .conversationArchivedToggle,
 :root[data-theme="pure-black"] .conversationRenameEditor input {
   border-color: rgba(255, 255, 255, 0.09);
   background: #20212d;
+}
+
+:root[data-theme="pure-black"] .projectSpacePicker select,
+:root[data-theme="pure-black"] .projectSpacePicker button,
+:root[data-theme="pure-black"] .projectEditor > input,
+:root[data-theme="pure-black"] .projectEditor > textarea,
+:root[data-theme="pure-black"] .projectEditorActions button {
+  border-color: rgba(255, 255, 255, 0.09);
+  color: rgba(242, 240, 252, 0.78);
+  background: #292a37;
 }
 
 :root[data-theme="pure-black"] .conversationLibraryItem[data-current="true"] {
@@ -6619,6 +6798,14 @@ button[aria-disabled="true"]:not([data-loading="true"]) {
 
   .conversationLibraryHero > button {
     justify-self: start;
+  }
+
+  .projectSpacePicker {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .projectSpacePicker label {
+    grid-column: 1 / -1;
   }
 
   .conversationLibraryItem {
@@ -10175,7 +10362,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 /* v354 Iris companion interface: portrait-led entry, calm conversation, and card-based settings. */
 :root {
-  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=364");
+  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=365");
   --iris-violet: #7567f8;
   --iris-violet-deep: #5547e8;
   --iris-lilac: #b9b0ff;
@@ -11496,7 +11683,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 .accessConnectingGlyph,
 .capabilitySuggestionMark,
 .sheetGlyph {
-  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=364");
+  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=365");
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -12392,7 +12579,7 @@ body {
   height: 76px;
   display: block;
   border-radius: 22px;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=364") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=365") center / 58px 58px no-repeat;
   filter: drop-shadow(0 12px 24px rgba(104, 85, 224, 0.16));
 }
 
@@ -13580,7 +13767,7 @@ body > .dock.unifiedComposer {
   width: 76px !important;
   height: 76px !important;
   display: block !important;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=364") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=365") center / 58px 58px no-repeat;
 }
 
 #accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessFocusIntro > .accessFocusGlyph,
@@ -14015,6 +14202,10 @@ body > .dock.unifiedComposer {
 
 .conversationSearchRow > input[type="search"],
 .conversationArchivedToggle,
+.projectSpacePicker select,
+.projectSpacePicker button,
+.projectEditor > input,
+.projectEditor > textarea,
 .proactiveField select,
 .proactiveQuiet input,
 .proactiveTopics label {
@@ -14022,7 +14213,8 @@ body > .dock.unifiedComposer {
 }
 
 .conversationItemActions button,
-.conversationRenameEditor button {
+.conversationRenameEditor button,
+.projectEditorActions button {
   min-width: 45px;
 }
 
