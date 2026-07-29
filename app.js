@@ -116,7 +116,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "370";
+const VOICE_UI_VERSION = "371";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -552,6 +552,11 @@ const UI_TEXT = {
     "conversation.new": "新对话",
     "conversation.search": "搜索标题或内容",
     "conversation.archived": "归档",
+    "conversation.branch": "从这里分支",
+    "conversation.branched": "已创建独立分支",
+    "conversation.export": "导出",
+    "conversation.exportMarkdown": "Markdown",
+    "conversation.exportJson": "JSON",
     "project.label": "当前空间",
     "project.selectAria": "当前项目空间",
     "project.personal": "个人空间",
@@ -797,6 +802,11 @@ const UI_TEXT = {
     "conversation.new": "New chat",
     "conversation.search": "Search titles or content",
     "conversation.archived": "Archived",
+    "conversation.branch": "Branch from here",
+    "conversation.branched": "Independent branch created",
+    "conversation.export": "Export",
+    "conversation.exportMarkdown": "Markdown",
+    "conversation.exportJson": "JSON",
     "project.label": "Current space",
     "project.selectAria": "Current project space",
     "project.personal": "Personal space",
@@ -1172,7 +1182,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v370-research-report";
+const WEB_VERSION = "voice-ui-web-polish-v371-conversation-portability";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -3558,8 +3568,64 @@ function feedbackTargetPayload(target = {}) {
 function feedbackIcon(kind) {
   const path = kind === "like"
     ? '<path d="M7.8 10.2 11 3.8c.5-1 1.8-.9 2.1.1l.2.8c.2.7.1 1.5-.2 2.1l-.6 1.2h4.2c1.3 0 2.2 1.2 1.8 2.4l-1.6 5.2c-.3.9-1.1 1.5-2 1.5H7.8V10.2Z"/><path d="M4 9.5h3.8v8H4z"/>'
-    : '<path d="M7.8 9.8 11 16.2c.5 1 1.8.9 2.1-.1l.2-.8c.2-.7.1-1.5-.2-2.1l-.6-1.2h4.2c1.3 0 2.2-1.2 1.8-2.4l-1.6-5.2c-.3-.9-1.1-1.5-2-1.5H7.8v6.9Z"/><path d="M4 2.5h3.8v8H4z"/>';
+    : kind === "branch"
+      ? '<path d="M6 4v5.2c0 1.5 1.2 2.8 2.8 2.8H17"/><path d="m13.5 8.5 3.5 3.5-3.5 3.5"/><circle cx="6" cy="4" r="1.7"/>'
+      : '<path d="M7.8 9.8 11 16.2c.5 1 1.8.9 2.1-.1l.2-.8c.2-.7.1-1.5-.2-2.1l-.6-1.2h4.2c1.3 0 2.2-1.2 1.8-2.4l-1.6-5.2c-.3-.9-1.1-1.5-2-1.5H7.8v6.9Z"/><path d="M4 2.5h3.8v8H4z"/>';
   return `<svg viewBox="0 0 22 22" aria-hidden="true">${path}</svg>`;
+}
+
+async function branchConversationFromTurn(group, target, button) {
+  if (!group || group.dataset.busy === "true" || !currentConversationId) return;
+  if (conversationSwitchBlocked()) {
+    const status = group.querySelector(".messageFeedbackStatus");
+    if (status) {
+      status.textContent = currentLanguage === "en"
+        ? "Finish the file upload first"
+        : "请先完成文件上传";
+    }
+    return;
+  }
+  const sourceConversationId = currentConversationId;
+  const status = group.querySelector(".messageFeedbackStatus");
+  group.dataset.busy = "true";
+  button.disabled = true;
+  button.setAttribute("aria-busy", "true");
+  if (status) status.textContent = currentLanguage === "en" ? "Creating branch…" : "正在创建分支…";
+  try {
+    const response = await fetch(
+      backendUrl(`/client/v1/conversations/${encodeURIComponent(sourceConversationId)}/branch`),
+      {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: currentSubjectId(),
+          turn_id: target.turnId
+        })
+      }
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    conversationLibraryLoaded = false;
+    await refreshConversationLibrary({ force: true });
+    await switchConversation(payload.conversation_id);
+    setSubtitle(
+      currentLanguage === "en"
+        ? "A new branch is ready."
+        : "新的独立分支已经接上。",
+      { speaker: "IRIS", resetFlow: true }
+    );
+  } catch (error) {
+    if (status) {
+      status.textContent = `${currentLanguage === "en" ? "Branch failed" : "分支失败"}：${error.message || ""}`;
+    }
+    button.disabled = false;
+  } finally {
+    group.dataset.busy = "false";
+    button.removeAttribute("aria-busy");
+  }
 }
 
 async function submitMessageFeedback(group, target, feedbackType, button) {
@@ -3629,6 +3695,14 @@ function attachMessageFeedbackControls(item, rawTarget) {
     button.addEventListener("click", () => submitMessageFeedback(group, target, kind, button));
     group.appendChild(button);
   });
+  const branch = document.createElement("button");
+  branch.type = "button";
+  branch.className = "messageFeedbackIcon messageBranchIcon";
+  branch.innerHTML = feedbackIcon("branch");
+  branch.setAttribute("aria-label", textFor("conversation.branch", "从这里分支"));
+  branch.title = textFor("conversation.branch", "从这里分支");
+  branch.addEventListener("click", () => branchConversationFromTurn(group, target, branch));
+  group.appendChild(branch);
   const refinements = document.createElement("div");
   refinements.className = "messageFeedbackRefinements";
   refinements.hidden = true;
@@ -4423,6 +4497,83 @@ function conversationUpdatedLabel(value) {
   });
 }
 
+function conversationExportFilename(response, item, format) {
+  const disposition = String(response.headers.get("content-disposition") || "");
+  const match = disposition.match(/filename="([^"]+)"/i);
+  if (match && match[1]) return match[1];
+  const safeId = String(item.conversation_id || "conversation").replace(/[^A-Za-z0-9_-]/g, "-");
+  return `iris-${safeId}.${format === "json" ? "json" : "md"}`;
+}
+
+async function downloadConversationExport(item, format, button) {
+  if (!item || !item.conversation_id || !["markdown", "json"].includes(format)) return;
+  if (button) {
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+  }
+  try {
+    const response = await fetch(
+      backendUrl(`/client/v1/conversations/${encodeURIComponent(item.conversation_id)}/export?format=${format}`),
+      {
+        headers: authHeaders(),
+        cache: "no-store"
+      }
+    );
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = conversationExportFilename(response, item, format);
+    link.hidden = true;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1200);
+    setConversationFeedback(
+      currentLanguage === "en"
+        ? `${format === "json" ? "JSON" : "Markdown"} export downloaded.`
+        : `${format === "json" ? "JSON" : "Markdown"} 会话已导出。`,
+      "success"
+    );
+  } catch (error) {
+    setConversationFeedback(
+      `${currentLanguage === "en" ? "Export failed" : "导出失败"}：${error.message || ""}`,
+      "error"
+    );
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.removeAttribute("aria-busy");
+    }
+  }
+}
+
+function conversationExportControl(item) {
+  const control = document.createElement("details");
+  control.className = "conversationExportControl";
+  const summary = document.createElement("summary");
+  summary.textContent = textFor("conversation.export", "导出");
+  const choices = document.createElement("div");
+  choices.className = "conversationExportChoices";
+  [
+    ["markdown", textFor("conversation.exportMarkdown", "Markdown")],
+    ["json", textFor("conversation.exportJson", "JSON")]
+  ].forEach(([format, label]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = label;
+    button.addEventListener("click", () => downloadConversationExport(item, format, button));
+    choices.appendChild(button);
+  });
+  control.append(summary, choices);
+  return control;
+}
+
 function beginConversationRename(row, item) {
   if (!row || row.querySelector(".conversationRenameEditor")) return;
   const editor = document.createElement("form");
@@ -4540,7 +4691,16 @@ function renderConversationLibrary() {
     const project = projectLibraryItems.find((candidate) => candidate.project_id === item.project_id);
     const projectLabel = project ? ` · ${project.name}` : "";
     meta.textContent = `${conversationUpdatedLabel(item.updated_at)} · ${Math.max(0, Number(item.message_count || 0))} ${currentLanguage === "en" ? "messages" : "条消息"}${projectLabel}`;
-    select.append(title, preview, meta);
+    select.append(title, preview);
+    if (item.parent_conversation_id) {
+      const lineage = document.createElement("span");
+      lineage.className = "conversationLineage";
+      lineage.textContent = currentLanguage === "en"
+        ? `Branch · depth ${Math.max(1, Number(item.branch_depth || 1))}`
+        : `独立分支 · 第 ${Math.max(1, Number(item.branch_depth || 1))} 层`;
+      select.appendChild(lineage);
+    }
+    select.appendChild(meta);
     select.addEventListener("click", () => {
       switchConversation(item.conversation_id).catch((error) => {
         setConversationFeedback(`${currentLanguage === "en" ? "Switch failed" : "切换失败"}：${error.message || ""}`, "error");
@@ -4576,6 +4736,9 @@ function renderConversationLibrary() {
         });
         actions.append(archive);
       }
+    }
+    if (Number(item.message_count || 0) > 0) {
+      actions.appendChild(conversationExportControl(item));
     }
     row.append(select, actions);
     fragment.append(row);
@@ -4751,6 +4914,28 @@ function clearWelcomeMessageForHistory() {
   els.conversationStream.querySelectorAll('[data-kind="welcome"]').forEach((item) => item.remove());
 }
 
+function renderConversationBranchContext(record) {
+  if (!els.conversationStream) return;
+  els.conversationStream.querySelectorAll(".conversationBranchContext").forEach((item) => item.remove());
+  if (!record || !record.parent_conversation_id || !record.branched_from_turn_id) return;
+  const parent = conversationLibraryItems.find(
+    (item) => item.conversation_id === record.parent_conversation_id
+  );
+  const note = document.createElement("aside");
+  note.className = "conversationBranchContext";
+  note.setAttribute("role", "note");
+  const marker = document.createElement("span");
+  marker.setAttribute("aria-hidden", "true");
+  marker.innerHTML = feedbackIcon("branch");
+  const copy = document.createElement("span");
+  const parentTitle = String(parent && parent.title || "").trim();
+  copy.textContent = currentLanguage === "en"
+    ? `Independent branch${parentTitle ? ` from “${parentTitle}”` : ""} · continuing here will not change the original`
+    : `独立分支${parentTitle ? ` · 来自「${parentTitle}」` : ""} · 在这里继续不会改动原会话`;
+  note.append(marker, copy);
+  els.conversationStream.prepend(note);
+}
+
 function ensureAssistantConversationAnchor() {
   if (!els.conversationStream) return;
   const hasAssistantText = Array.from(els.conversationStream.querySelectorAll(".message.assistant .messageText"))
@@ -4820,6 +5005,7 @@ async function loadConversationHistory({ force = false } = {}) {
       const existingIndex = conversationLibraryItems.findIndex((item) => item.conversation_id === currentConversationId);
       if (existingIndex >= 0) conversationLibraryItems[existingIndex] = payload.conversation;
       updateConversationIdentity(payload.conversation);
+      renderConversationBranchContext(payload.conversation);
     }
     const items = Array.isArray(payload.items) ? payload.items : [];
     if (!items.length) return;
