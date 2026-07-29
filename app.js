@@ -116,7 +116,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "371";
+const VOICE_UI_VERSION = "372";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -551,6 +551,9 @@ const UI_TEXT = {
     "conversation.memoryHint": "每个会话独立保留短期上下文，个人长期记忆仍会连续。",
     "conversation.new": "新对话",
     "conversation.search": "搜索标题或内容",
+    "conversation.searchTitleMatch": "标题命中",
+    "conversation.searchMessageMatch": "消息内命中",
+    "conversation.searchLocated": "已定位到历史消息",
     "conversation.archived": "归档",
     "conversation.branch": "从这里分支",
     "conversation.branched": "已创建独立分支",
@@ -801,6 +804,9 @@ const UI_TEXT = {
     "conversation.memoryHint": "Short-term context stays separate while personal long-term memory continues.",
     "conversation.new": "New chat",
     "conversation.search": "Search titles or content",
+    "conversation.searchTitleMatch": "Title match",
+    "conversation.searchMessageMatch": "Message match",
+    "conversation.searchLocated": "Located historical message",
     "conversation.archived": "Archived",
     "conversation.branch": "Branch from here",
     "conversation.branched": "Independent branch created",
@@ -1182,7 +1188,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v371-conversation-portability";
+const WEB_VERSION = "voice-ui-web-polish-v372-durable-conversation-search";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -3503,6 +3509,10 @@ function appendConversationMessage(role, text, options = {}) {
   const item = document.createElement("article");
   item.className = `message ${role || "assistant"}`;
   item.dataset.messageId = id;
+  if (options.turnId) item.dataset.turnId = String(options.turnId);
+  if (Number.isInteger(options.historyIndex) && options.historyIndex >= 0) {
+    item.dataset.historyIndex = String(options.historyIndex);
+  }
   if (options.kind) item.dataset.kind = options.kind;
   const meta = document.createElement("p");
   meta.className = "messageMeta";
@@ -4652,6 +4662,56 @@ async function setConversationArchived(item, archived) {
   );
 }
 
+function conversationSearchMatch(item) {
+  const match = item && item.search_match && typeof item.search_match === "object"
+    ? item.search_match
+    : null;
+  if (!match || !["title", "message"].includes(String(match.kind || ""))) return null;
+  return match;
+}
+
+function appendSearchHighlightedText(parent, text, rawHighlights) {
+  if (!parent) return;
+  const value = String(text || "");
+  const highlights = (Array.isArray(rawHighlights) ? rawHighlights : [])
+    .map((item) => ({
+      start: Math.max(0, Math.min(value.length, Number(item && item.start) || 0)),
+      end: Math.max(0, Math.min(value.length, Number(item && item.end) || 0))
+    }))
+    .filter((item) => item.end > item.start)
+    .sort((left, right) => left.start - right.start)
+    .slice(0, 4);
+  if (!highlights.length) {
+    parent.textContent = value;
+    return;
+  }
+  let cursor = 0;
+  highlights.forEach((highlight) => {
+    if (highlight.start < cursor) return;
+    if (highlight.start > cursor) {
+      parent.appendChild(document.createTextNode(value.slice(cursor, highlight.start)));
+    }
+    const mark = document.createElement("mark");
+    mark.textContent = value.slice(highlight.start, highlight.end);
+    parent.appendChild(mark);
+    cursor = highlight.end;
+  });
+  if (cursor < value.length) {
+    parent.appendChild(document.createTextNode(value.slice(cursor)));
+  }
+}
+
+function conversationSearchMatchLabel(match) {
+  if (!match) return "";
+  if (match.kind === "title") {
+    return textFor("conversation.searchTitleMatch", "标题命中");
+  }
+  const role = match.role === "user" ? textFor("role.user", "你") : "Iris";
+  const timestamp = match.time ? conversationUpdatedLabel(match.time) : "";
+  const kind = textFor("conversation.searchMessageMatch", "消息内命中");
+  return [role, timestamp, kind].filter(Boolean).join(" · ");
+}
+
 function renderConversationLibrary() {
   if (!els.conversationList) return;
   els.conversationList.replaceChildren();
@@ -4670,10 +4730,12 @@ function renderConversationLibrary() {
   }
   const fragment = document.createDocumentFragment();
   visibleItems.forEach((item) => {
+    const searchMatch = conversationSearchMatch(item);
     const row = document.createElement("article");
     row.className = "conversationLibraryItem";
     row.dataset.current = item.conversation_id === currentConversationId ? "true" : "false";
     row.dataset.status = item.status || "active";
+    if (searchMatch) row.dataset.searchKind = searchMatch.kind;
 
     const select = document.createElement("button");
     select.type = "button";
@@ -4681,17 +4743,36 @@ function renderConversationLibrary() {
     select.disabled = item.status === "archived";
     select.setAttribute("aria-current", row.dataset.current === "true" ? "true" : "false");
     const title = document.createElement("strong");
-    title.textContent = item.title || textFor("conversation.defaultTitle", "日常对话");
+    const titleText = item.title || textFor("conversation.defaultTitle", "日常对话");
+    if (searchMatch && searchMatch.kind === "title") {
+      appendSearchHighlightedText(title, titleText, searchMatch.highlights);
+    } else {
+      title.textContent = titleText;
+    }
     const preview = document.createElement("span");
     preview.className = "conversationPreview";
-    preview.textContent = item.last_message_preview
-      || (currentLanguage === "en" ? "Start a new thought here." : "从这里开始一段新的想法。");
+    const previewText = searchMatch && searchMatch.kind === "message"
+      ? String(searchMatch.snippet || "")
+      : item.last_message_preview
+        || (currentLanguage === "en" ? "Start a new thought here." : "从这里开始一段新的想法。");
+    if (searchMatch && searchMatch.kind === "message") {
+      preview.classList.add("conversationSearchSnippet");
+      appendSearchHighlightedText(preview, previewText, searchMatch.highlights);
+    } else {
+      preview.textContent = previewText;
+    }
     const meta = document.createElement("span");
     meta.className = "conversationMeta";
     const project = projectLibraryItems.find((candidate) => candidate.project_id === item.project_id);
     const projectLabel = project ? ` · ${project.name}` : "";
     meta.textContent = `${conversationUpdatedLabel(item.updated_at)} · ${Math.max(0, Number(item.message_count || 0))} ${currentLanguage === "en" ? "messages" : "条消息"}${projectLabel}`;
     select.append(title, preview);
+    if (searchMatch) {
+      const matchMeta = document.createElement("span");
+      matchMeta.className = "conversationSearchMatchMeta";
+      matchMeta.textContent = conversationSearchMatchLabel(searchMatch);
+      select.appendChild(matchMeta);
+    }
     if (item.parent_conversation_id) {
       const lineage = document.createElement("span");
       lineage.className = "conversationLineage";
@@ -4702,7 +4783,14 @@ function renderConversationLibrary() {
     }
     select.appendChild(meta);
     select.addEventListener("click", () => {
-      switchConversation(item.conversation_id).catch((error) => {
+      switchConversation(item.conversation_id, {
+        anchorTurnId: searchMatch && searchMatch.kind === "message"
+          ? String(searchMatch.turn_id || "")
+          : "",
+        anchorMessageIndex: searchMatch && searchMatch.kind === "message"
+          ? Number(searchMatch.message_index)
+          : -1
+      }).catch((error) => {
         setConversationFeedback(`${currentLanguage === "en" ? "Switch failed" : "切换失败"}：${error.message || ""}`, "error");
       });
     });
@@ -4831,9 +4919,44 @@ function resetConversationSurface() {
   ensureAssistantConversationAnchor();
 }
 
-async function switchConversation(conversationId, { keepDetails = false } = {}) {
+function focusConversationSearchHit(turnId, historyIndex = -1) {
+  if (!els.conversationStream || !turnId) return false;
+  const safeTurnId = String(turnId);
+  const candidates = Array.from(
+    els.conversationStream.querySelectorAll("[data-turn-id]")
+  ).filter((item) => item.dataset.turnId === safeTurnId);
+  const target = candidates.find(
+    (item) => Number(item.dataset.historyIndex) === Number(historyIndex)
+  ) || candidates[0];
+  if (!target) return false;
+  target.classList.remove("conversationSearchAnchorHit");
+  void target.offsetWidth;
+  target.classList.add("conversationSearchAnchorHit");
+  target.setAttribute("tabindex", "-1");
+  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  target.focus({ preventScroll: true });
+  window.setTimeout(() => {
+    target.classList.remove("conversationSearchAnchorHit");
+    target.removeAttribute("tabindex");
+  }, 3200);
+  setSubtitle(textFor("conversation.searchLocated", "已定位到历史消息"), {
+    speaker: "IRIS",
+    resetFlow: true
+  });
+  return true;
+}
+
+async function switchConversation(
+  conversationId,
+  {
+    keepDetails = false,
+    anchorTurnId = "",
+    anchorMessageIndex = -1
+  } = {}
+) {
   const nextId = String(conversationId || "").trim();
-  if (!nextId || nextId === currentConversationId) {
+  const safeAnchorTurnId = String(anchorTurnId || "").trim();
+  if (!nextId || (nextId === currentConversationId && !safeAnchorTurnId)) {
     if (!keepDetails) closeDetails();
     return;
   }
@@ -4849,15 +4972,28 @@ async function switchConversation(conversationId, { keepDetails = false } = {}) 
   if (running) await stop().catch(() => {});
   else closeVoiceSocket("conversation_switch");
   stopPlayback("conversation_switch", { notifyInterrupt: false });
-  currentConversationId = nextId;
-  const nextRecord = conversationLibraryItems.find((item) => item.conversation_id === nextId);
-  currentProjectFilterId = String(nextRecord && nextRecord.project_id || "");
-  projectFilterTouched = false;
-  rememberSelectedConversation(nextId);
+  if (nextId !== currentConversationId) {
+    currentConversationId = nextId;
+    const nextRecord = conversationLibraryItems.find((item) => item.conversation_id === nextId);
+    currentProjectFilterId = String(nextRecord && nextRecord.project_id || "");
+    projectFilterTouched = false;
+    rememberSelectedConversation(nextId);
+  }
   resetConversationSurface();
   renderConversationLibrary();
-  await loadConversationHistory({ force: true });
+  const historyPayload = await loadConversationHistory({
+    force: true,
+    anchorTurnId: safeAnchorTurnId,
+    anchorMessageIndex
+  });
   if (!keepDetails) closeDetails();
+  if (safeAnchorTurnId && historyPayload && historyPayload.anchor_found) {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        focusConversationSearchHit(safeAnchorTurnId, anchorMessageIndex);
+      });
+    });
+  }
   setSubtitle(currentLanguage === "en" ? "This conversation is ready." : "这段会话已经接上。", {
     speaker: "IRIS",
     resetFlow: true
@@ -4968,7 +5104,11 @@ function historyMessageLabel(role, time) {
   })}`;
 }
 
-async function loadConversationHistory({ force = false } = {}) {
+async function loadConversationHistory({
+  force = false,
+  anchorTurnId = "",
+  anchorMessageIndex = -1
+} = {}) {
   if (force) conversationHistoryLoaded = false;
   if (conversationHistoryLoaded || conversationHistoryLoading || !window.fetch || !els.conversationStream) return;
   if (shouldSkipConversationHistory()) {
@@ -4984,6 +5124,15 @@ async function loadConversationHistory({ force = false } = {}) {
   try {
     const params = new URLSearchParams({ since_hours: "336", limit: "120" });
     if (currentConversationId) params.set("conversation_id", currentConversationId);
+    const safeAnchorTurnId = String(anchorTurnId || "").trim();
+    if (safeAnchorTurnId) {
+      params.set("anchor_turn_id", safeAnchorTurnId);
+      if (Number.isInteger(Number(anchorMessageIndex)) && Number(anchorMessageIndex) >= 0) {
+        params.set("anchor_message_index", String(Math.trunc(Number(anchorMessageIndex))));
+      }
+      params.set("window_before", "40");
+      params.set("window_after", "40");
+    }
     const response = await fetch(backendUrl(`/client/v1/conversation/history?${params}`), {
       headers: authHeaders()
     });
@@ -5010,6 +5159,7 @@ async function loadConversationHistory({ force = false } = {}) {
     const items = Array.isArray(payload.items) ? payload.items : [];
     if (!items.length) return;
     clearWelcomeMessageForHistory();
+    const windowStart = Math.max(0, Number(payload.window_start) || 0);
     items.forEach((item, index) => {
       const role = item && item.role === "user" ? "user" : "assistant";
       const documentComparison = role === "assistant"
@@ -5036,7 +5186,9 @@ async function loadConversationHistory({ force = false } = {}) {
               : multiIntent
                 ? "multi_intent"
                 : "history",
-        forceScroll: index === items.length - 1,
+        forceScroll: !safeAnchorTurnId && index === items.length - 1,
+        turnId: String(item.turn_id || ""),
+        historyIndex: windowStart + index,
         documentComparison,
         multiIntent,
         researchVerification,
@@ -5049,10 +5201,16 @@ async function loadConversationHistory({ force = false } = {}) {
       });
     });
     ensureAssistantConversationAnchor();
-    logLine(`loaded ${items.length} recent conversation messages`);
+    logLine(
+      safeAnchorTurnId
+        ? `loaded ${items.length} anchored conversation messages`
+        : `loaded ${items.length} recent conversation messages`
+    );
+    return payload;
   } catch (err) {
     if (requestId !== conversationHistoryRequestSeq) return;
     logLine(`conversation history skipped ${err.message || ""}`.trim());
+    return null;
   } finally {
     if (requestId === conversationHistoryRequestSeq) {
       conversationHistoryLoaded = true;
