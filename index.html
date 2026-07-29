@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=363" type="image/png" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=363" />
-    <link rel="manifest" href="/iris/manifest.json?v=363" />
-    <link rel="stylesheet" href="/iris/styles.css?v=363" />
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=364" type="image/png" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=364" />
+    <link rel="manifest" href="/iris/manifest.json?v=364" />
+    <link rel="stylesheet" href="/iris/styles.css?v=364" />
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -165,7 +165,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=363" alt="" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=364" alt="" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -232,7 +232,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=363" alt="" />
+              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=364" alt="" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
@@ -264,6 +264,35 @@
           <div class="groupBody maintenanceGrid">
             <button id="reconnectButton" type="button" data-action-role="primary" data-i18n="action.reconnect">重连</button>
             <button id="stopButton" type="button" data-action-role="danger" data-i18n="action.stop">停止</button>
+          </div>
+        </details>
+
+        <details class="settingsGroup navGroup conversationGroup">
+          <summary class="navSummary">
+            <span class="navIcon conversationIcon" aria-hidden="true"></span>
+            <span class="navCopy">
+              <span class="navTitle" data-i18n="settings.conversations">会话</span>
+              <span id="conversationStatus" class="navSub" role="status" aria-live="polite" data-i18n="settings.conversationsSub">短期上下文 · 历史</span>
+            </span>
+          </summary>
+          <div class="groupBody conversationLibrary">
+            <section class="conversationLibraryHero">
+              <div>
+                <span class="conversationLibraryKicker" data-i18n="conversation.kicker">CONVERSATION SPACES</span>
+                <strong id="conversationCurrentTitle" data-i18n="conversation.defaultTitle">日常对话</strong>
+                <p data-i18n="conversation.memoryHint">每个会话独立保留短期上下文，个人长期记忆仍会连续。</p>
+              </div>
+              <button id="conversationNewButton" type="button" data-action-role="primary" data-i18n="conversation.new">新对话</button>
+            </section>
+            <div class="conversationSearchRow">
+              <input id="conversationSearchInput" type="search" autocomplete="off" inputmode="search" placeholder="搜索标题或内容" aria-label="搜索会话" data-i18n-placeholder="conversation.search" data-i18n-aria-label="conversation.search" />
+              <label class="conversationArchivedToggle" for="conversationIncludeArchived">
+                <input id="conversationIncludeArchived" type="checkbox" />
+                <span data-i18n="conversation.archived">归档</span>
+              </label>
+            </div>
+            <p id="conversationFeedback" class="conversationFeedback" role="status" aria-live="polite" data-tone="info"></p>
+            <div id="conversationList" class="conversationList" aria-live="polite"></div>
           </div>
         </details>
 
@@ -387,7 +416,7 @@
             <div class="proactivePreferenceGrid">
               <label class="proactiveField" for="proactiveDailyLimit">
                 <span data-i18n="proactive.dailyLimit">每天最多</span>
-                <select id="proactiveDailyLimit">
+                <select id="proactiveDailyLimit" aria-label="每天最多" data-i18n-aria-label="proactive.dailyLimit">
                   <option value="1">1 次</option>
                   <option value="2">2 次</option>
                   <option value="4" selected>4 次</option>
@@ -397,7 +426,7 @@
               </label>
               <label class="proactiveField" for="proactiveInterval">
                 <span data-i18n="proactive.interval">最短间隔</span>
-                <select id="proactiveInterval">
+                <select id="proactiveInterval" aria-label="最短间隔" data-i18n-aria-label="proactive.interval">
                   <option value="30">30 分钟</option>
                   <option value="60" selected>1 小时</option>
                   <option value="120">2 小时</option>
@@ -410,27 +439,27 @@
               <legend data-i18n="proactive.quietHours">安静时段</legend>
               <label>
                 <span data-i18n="proactive.quietStart">开始</span>
-                <input id="proactiveQuietStart" type="time" value="23:30" />
+                <input id="proactiveQuietStart" type="time" value="23:30" aria-label="开始" data-i18n-aria-label="proactive.quietStart" />
               </label>
               <span class="proactiveQuietDivider" aria-hidden="true">—</span>
               <label>
                 <span data-i18n="proactive.quietEnd">结束</span>
-                <input id="proactiveQuietEnd" type="time" value="08:00" />
+                <input id="proactiveQuietEnd" type="time" value="08:00" aria-label="结束" data-i18n-aria-label="proactive.quietEnd" />
               </label>
             </fieldset>
 
             <fieldset class="proactiveTopics">
               <legend data-i18n="proactive.sources">可以主动提起</legend>
               <label>
-                <input id="proactiveEmotion" type="checkbox" checked />
+                <input id="proactiveEmotion" type="checkbox" checked aria-label="情绪回访" data-i18n-aria-label="proactive.emotion" />
                 <span data-i18n="proactive.emotion">情绪回访</span>
               </label>
               <label>
-                <input id="proactiveGoal" type="checkbox" checked />
+                <input id="proactiveGoal" type="checkbox" checked aria-label="目标进展" data-i18n-aria-label="proactive.goal" />
                 <span data-i18n="proactive.goal">目标进展</span>
               </label>
               <label>
-                <input id="proactiveCalendar" type="checkbox" checked />
+                <input id="proactiveCalendar" type="checkbox" checked aria-label="日程准备" data-i18n-aria-label="proactive.calendar" />
                 <span data-i18n="proactive.calendar">日程准备</span>
               </label>
             </fieldset>
@@ -581,7 +610,7 @@
         </div>
       </aside>
     </main>
-    <script src="/iris/public-config.js?v=363"></script>
-    <script src="/iris/app.js?v=363"></script>
+    <script src="/iris/public-config.js?v=364"></script>
+    <script src="/iris/app.js?v=364"></script>
   </body>
 </html>

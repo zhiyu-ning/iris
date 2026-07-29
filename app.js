@@ -32,6 +32,13 @@ const els = {
   languageStatus: document.getElementById("languageStatus"),
   modelSelect: document.getElementById("modelSelect"),
   modelStatus: document.getElementById("modelStatus"),
+  conversationStatus: document.getElementById("conversationStatus"),
+  conversationCurrentTitle: document.getElementById("conversationCurrentTitle"),
+  conversationNew: document.getElementById("conversationNewButton"),
+  conversationSearch: document.getElementById("conversationSearchInput"),
+  conversationIncludeArchived: document.getElementById("conversationIncludeArchived"),
+  conversationFeedback: document.getElementById("conversationFeedback"),
+  conversationList: document.getElementById("conversationList"),
   memoryRefresh: document.getElementById("memoryRefreshButton"),
   memorySearch: document.getElementById("memorySearchInput"),
   memorySearchClear: document.getElementById("memorySearchClearButton"),
@@ -99,7 +106,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "363";
+const VOICE_UI_VERSION = "364";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -527,6 +534,14 @@ const UI_TEXT = {
     "settings.title": "设置",
     "settings.connection": "连接",
     "settings.connectionSub": "重连 · 停止",
+    "settings.conversations": "会话",
+    "settings.conversationsSub": "短期上下文 · 历史",
+    "conversation.kicker": "CONVERSATION SPACES",
+    "conversation.defaultTitle": "日常对话",
+    "conversation.memoryHint": "每个会话独立保留短期上下文，个人长期记忆仍会连续。",
+    "conversation.new": "新对话",
+    "conversation.search": "搜索标题或内容",
+    "conversation.archived": "归档",
     "settings.appearance": "外观",
     "settings.appearanceSub": "主题 · 模式",
     "settings.themeAria": "界面主题",
@@ -742,6 +757,14 @@ const UI_TEXT = {
     "settings.title": "Settings",
     "settings.connection": "Connection",
     "settings.connectionSub": "Reconnect · Stop",
+    "settings.conversations": "Conversations",
+    "settings.conversationsSub": "Short-term context · History",
+    "conversation.kicker": "CONVERSATION SPACES",
+    "conversation.defaultTitle": "Everyday chat",
+    "conversation.memoryHint": "Short-term context stays separate while personal long-term memory continues.",
+    "conversation.new": "New chat",
+    "conversation.search": "Search titles or content",
+    "conversation.archived": "Archived",
     "settings.appearance": "Appearance",
     "settings.appearanceSub": "Theme · Mode",
     "settings.themeAria": "Interface theme",
@@ -954,6 +977,7 @@ let lastInterruptAt = 0;
 let currentTurnId = "";
 let currentResponseId = "";
 let currentConversationId = "";
+let currentConversationTitle = "";
 let lastReply = "";
 let pendingUserPartialText = "";
 let userPartialFrame = 0;
@@ -1025,6 +1049,11 @@ let documentBatchPollTimer = 0;
 let conversationMessageSeq = 0;
 let conversationHistoryLoaded = false;
 let conversationHistoryLoading = false;
+let conversationHistoryRequestSeq = 0;
+let conversationLibraryLoaded = false;
+let conversationLibraryLoading = false;
+let conversationLibraryItems = [];
+let conversationLibrarySearchTimer = 0;
 let activeAssistantMessageId = "";
 let connectionStatusMessageId = "";
 let lastUserConversationText = "";
@@ -1079,12 +1108,13 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v363-proactive-control-center";
+const WEB_VERSION = "voice-ui-web-polish-v364-conversation-spaces";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
 const ACCESS_TOKEN_EXPIRES_KEY = "iris_access_token_expires_at";
 const ACCESS_SUBJECT_ID_KEY = "iris_access_subject_id";
+const CONVERSATION_SELECTION_KEY = "iris_selected_conversation";
 const THEME_KEY = "iris_voice_theme";
 const LANGUAGE_KEY = "iris_voice_language";
 const VOICE_CLIENT_ID_KEY = "jarvis_voice_client_id";
@@ -2901,6 +2931,357 @@ function clearServerTtsFailure(profile = "") {
   serverTtsFailureCounts = new Map();
 }
 
+function conversationSelectionStorageKey() {
+  return `${CONVERSATION_SELECTION_KEY}:${currentSubjectId()}`;
+}
+
+function selectedConversationId() {
+  return String(safeSessionGet(conversationSelectionStorageKey(), "") || "").trim();
+}
+
+function rememberSelectedConversation(conversationId) {
+  const value = String(conversationId || "").trim();
+  if (value) safeSessionSet(conversationSelectionStorageKey(), value);
+}
+
+function setConversationFeedback(message = "", tone = "info") {
+  if (!els.conversationFeedback) return;
+  els.conversationFeedback.textContent = String(message || "");
+  els.conversationFeedback.dataset.tone = tone;
+}
+
+function currentConversationRecord() {
+  return conversationLibraryItems.find((item) => item.conversation_id === currentConversationId) || null;
+}
+
+function updateConversationIdentity(record = currentConversationRecord()) {
+  const fallback = textFor("conversation.defaultTitle", "日常对话");
+  if (record && record.title) currentConversationTitle = String(record.title).trim();
+  const title = currentConversationTitle || fallback;
+  if (els.conversationCurrentTitle) els.conversationCurrentTitle.textContent = title;
+  if (els.conversationStatus) {
+    els.conversationStatus.textContent = title;
+    els.conversationStatus.title = title;
+  }
+}
+
+function conversationUpdatedLabel(value) {
+  const parsed = new Date(String(value || ""));
+  if (Number.isNaN(parsed.getTime())) {
+    return currentLanguage === "en" ? "No messages yet" : "还没有消息";
+  }
+  return parsed.toLocaleString(currentLanguage === "en" ? "en-US" : "zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function beginConversationRename(row, item) {
+  if (!row || row.querySelector(".conversationRenameEditor")) return;
+  const editor = document.createElement("form");
+  editor.className = "conversationRenameEditor";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.maxLength = 64;
+  input.value = String(item.title || "");
+  input.setAttribute("aria-label", currentLanguage === "en" ? "Conversation title" : "会话标题");
+  const save = document.createElement("button");
+  save.type = "submit";
+  save.textContent = currentLanguage === "en" ? "Save" : "保存";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.textContent = currentLanguage === "en" ? "Cancel" : "取消";
+  cancel.addEventListener("click", () => editor.remove());
+  editor.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const title = input.value.trim();
+    if (!title) {
+      setConversationFeedback(currentLanguage === "en" ? "Enter a title first." : "请先输入会话标题。", "warning");
+      return;
+    }
+    save.disabled = true;
+    try {
+      const response = await fetch(backendUrl(`/client/v1/conversations/${encodeURIComponent(item.conversation_id)}`), {
+        method: "PATCH",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: currentSubjectId(), title })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        handleUnauthorizedResponse(response);
+        throw new Error(payload.detail || `HTTP ${response.status}`);
+      }
+      await refreshConversationLibrary({ force: true });
+      setConversationFeedback(currentLanguage === "en" ? "Conversation renamed." : "会话名称已更新。", "success");
+    } catch (error) {
+      setConversationFeedback(`${currentLanguage === "en" ? "Rename failed" : "改名失败"}：${error.message || ""}`, "error");
+      save.disabled = false;
+    }
+  });
+  editor.append(input, save, cancel);
+  row.append(editor);
+  window.setTimeout(() => {
+    input.focus({ preventScroll: true });
+    input.select();
+  }, 40);
+}
+
+async function setConversationArchived(item, archived) {
+  const response = await fetch(backendUrl(`/client/v1/conversations/${encodeURIComponent(item.conversation_id)}`), {
+    method: "PATCH",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id: currentSubjectId(),
+      status: archived ? "archived" : "active"
+    })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    handleUnauthorizedResponse(response);
+    throw new Error(payload.detail || `HTTP ${response.status}`);
+  }
+  if (archived && currentConversationId === item.conversation_id) {
+    const next = conversationLibraryItems.find((candidate) => candidate.is_default)
+      || conversationLibraryItems.find((candidate) => candidate.status !== "archived");
+    if (next) await switchConversation(next.conversation_id);
+  }
+  await refreshConversationLibrary({ force: true });
+  setConversationFeedback(
+    archived
+      ? (currentLanguage === "en" ? "Conversation archived." : "会话已归档。")
+      : (currentLanguage === "en" ? "Conversation restored." : "会话已恢复。"),
+    "success"
+  );
+}
+
+function renderConversationLibrary() {
+  if (!els.conversationList) return;
+  els.conversationList.replaceChildren();
+  updateConversationIdentity();
+  if (!conversationLibraryItems.length) {
+    const empty = document.createElement("p");
+    empty.className = "conversationLibraryEmpty";
+    empty.textContent = currentLanguage === "en" ? "No matching conversations." : "没有匹配的会话。";
+    els.conversationList.append(empty);
+    return;
+  }
+  const fragment = document.createDocumentFragment();
+  conversationLibraryItems.forEach((item) => {
+    const row = document.createElement("article");
+    row.className = "conversationLibraryItem";
+    row.dataset.current = item.conversation_id === currentConversationId ? "true" : "false";
+    row.dataset.status = item.status || "active";
+
+    const select = document.createElement("button");
+    select.type = "button";
+    select.className = "conversationSelect";
+    select.disabled = item.status === "archived";
+    select.setAttribute("aria-current", row.dataset.current === "true" ? "true" : "false");
+    const title = document.createElement("strong");
+    title.textContent = item.title || textFor("conversation.defaultTitle", "日常对话");
+    const preview = document.createElement("span");
+    preview.className = "conversationPreview";
+    preview.textContent = item.last_message_preview
+      || (currentLanguage === "en" ? "Start a new thought here." : "从这里开始一段新的想法。");
+    const meta = document.createElement("span");
+    meta.className = "conversationMeta";
+    meta.textContent = `${conversationUpdatedLabel(item.updated_at)} · ${Math.max(0, Number(item.message_count || 0))} ${currentLanguage === "en" ? "messages" : "条消息"}`;
+    select.append(title, preview, meta);
+    select.addEventListener("click", () => {
+      switchConversation(item.conversation_id).catch((error) => {
+        setConversationFeedback(`${currentLanguage === "en" ? "Switch failed" : "切换失败"}：${error.message || ""}`, "error");
+      });
+    });
+
+    const actions = document.createElement("div");
+    actions.className = "conversationItemActions";
+    if (item.status === "archived") {
+      const restore = document.createElement("button");
+      restore.type = "button";
+      restore.textContent = currentLanguage === "en" ? "Restore" : "恢复";
+      restore.addEventListener("click", () => {
+        setConversationArchived(item, false).catch((error) => {
+          setConversationFeedback(`${currentLanguage === "en" ? "Restore failed" : "恢复失败"}：${error.message || ""}`, "error");
+        });
+      });
+      actions.append(restore);
+    } else {
+      const rename = document.createElement("button");
+      rename.type = "button";
+      rename.textContent = currentLanguage === "en" ? "Rename" : "改名";
+      rename.addEventListener("click", () => beginConversationRename(row, item));
+      actions.append(rename);
+      if (!item.is_default) {
+        const archive = document.createElement("button");
+        archive.type = "button";
+        archive.textContent = currentLanguage === "en" ? "Archive" : "归档";
+        archive.addEventListener("click", () => {
+          setConversationArchived(item, true).catch((error) => {
+            setConversationFeedback(`${currentLanguage === "en" ? "Archive failed" : "归档失败"}：${error.message || ""}`, "error");
+          });
+        });
+        actions.append(archive);
+      }
+    }
+    row.append(select, actions);
+    fragment.append(row);
+  });
+  els.conversationList.append(fragment);
+}
+
+async function refreshConversationLibrary({ force = false } = {}) {
+  if (conversationLibraryLoading || (!force && conversationLibraryLoaded)) return;
+  if (!canUseBackendNow()) return;
+  conversationLibraryLoading = true;
+  if (els.conversationList) els.conversationList.setAttribute("aria-busy", "true");
+  const params = new URLSearchParams();
+  const query = String(els.conversationSearch && els.conversationSearch.value || "").trim();
+  if (query) params.set("q", query);
+  if (els.conversationIncludeArchived && els.conversationIncludeArchived.checked) {
+    params.set("include_archived", "true");
+  }
+  try {
+    const response = await fetch(backendUrl(`/client/v1/conversations${params.toString() ? `?${params}` : ""}`), {
+      headers: authHeaders(),
+      cache: "no-store"
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    conversationLibraryItems = Array.isArray(payload.items) ? payload.items : [];
+    const activeIds = new Set(
+      conversationLibraryItems
+        .filter((item) => item.status !== "archived")
+        .map((item) => item.conversation_id)
+    );
+    if (!currentConversationId || (!query && !activeIds.has(currentConversationId))) {
+      const remembered = selectedConversationId();
+      currentConversationId = activeIds.has(remembered)
+        ? remembered
+        : String(payload.default_conversation_id || "");
+      if (currentConversationId) rememberSelectedConversation(currentConversationId);
+    }
+    renderConversationLibrary();
+    conversationLibraryLoaded = true;
+    setConversationFeedback("");
+  } finally {
+    conversationLibraryLoading = false;
+    if (els.conversationList) els.conversationList.setAttribute("aria-busy", "false");
+  }
+}
+
+function conversationSwitchBlocked() {
+  const batchActive = Boolean(
+    activeDocumentBatch
+    && Array.isArray(activeDocumentBatch.items)
+    && activeDocumentBatch.items.some((item) => !documentBatchItemTerminal(item))
+  );
+  return documentUploadInFlight || documentJobActive || batchActive;
+}
+
+function resetConversationDocumentContext() {
+  currentDocumentId = "";
+  currentDocumentName = "";
+  currentDocumentSummary = "";
+  currentDocumentSummaryData = null;
+  currentDocumentWarnings = [];
+  currentDocumentAnswerMode = "";
+  currentDocumentReadyFileMessageId = "";
+  currentDocumentReadyAssistantMessageId = "";
+  setDocumentAnswer(" ");
+  setDocumentContextVisible(false);
+  setDocumentStatus("", "info");
+  setDocumentUploadStatus("", "info", false);
+}
+
+function resetConversationSurface() {
+  conversationHistoryRequestSeq += 1;
+  textPromptSeq += 1;
+  if (els.conversationStream) els.conversationStream.replaceChildren();
+  conversationMessageSeq = 0;
+  activeAssistantMessageId = "";
+  connectionStatusMessageId = "";
+  conversationHistoryLoaded = false;
+  conversationHistoryLoading = false;
+  resetConversationDocumentContext();
+  ensureAssistantConversationAnchor();
+}
+
+async function switchConversation(conversationId) {
+  const nextId = String(conversationId || "").trim();
+  if (!nextId || nextId === currentConversationId) {
+    closeDetails();
+    return;
+  }
+  if (conversationSwitchBlocked()) {
+    setConversationFeedback(
+      currentLanguage === "en"
+        ? "Finish or cancel the current file upload before switching conversations."
+        : "请先完成或取消当前文件上传，再切换会话。",
+      "warning"
+    );
+    return;
+  }
+  if (running) await stop().catch(() => {});
+  else closeVoiceSocket("conversation_switch");
+  stopPlayback("conversation_switch", { notifyInterrupt: false });
+  currentConversationId = nextId;
+  rememberSelectedConversation(nextId);
+  resetConversationSurface();
+  renderConversationLibrary();
+  await loadConversationHistory({ force: true });
+  closeDetails();
+  setSubtitle(currentLanguage === "en" ? "This conversation is ready." : "这段会话已经接上。", {
+    speaker: "IRIS",
+    resetFlow: true
+  });
+}
+
+async function createNewConversation() {
+  if (conversationSwitchBlocked()) {
+    setConversationFeedback(
+      currentLanguage === "en"
+        ? "Finish or cancel the current file upload before starting a new chat."
+        : "请先完成或取消当前文件上传，再新建会话。",
+      "warning"
+    );
+    return;
+  }
+  if (els.conversationNew) {
+    els.conversationNew.disabled = true;
+    els.conversationNew.setAttribute("aria-busy", "true");
+  }
+  try {
+    const response = await fetch(backendUrl("/client/v1/conversations"), {
+      method: "POST",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: currentSubjectId() })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    conversationLibraryLoaded = false;
+    await refreshConversationLibrary({ force: true });
+    await switchConversation(payload.conversation_id);
+  } finally {
+    if (els.conversationNew) {
+      els.conversationNew.disabled = false;
+      els.conversationNew.removeAttribute("aria-busy");
+    }
+  }
+}
+
+async function initializeConversationSpace() {
+  await refreshConversationLibrary({ force: true });
+  await loadConversationHistory({ force: true });
+}
+
 function clearWelcomeMessageForHistory() {
   if (!els.conversationStream) return;
   els.conversationStream.querySelectorAll('[data-kind="welcome"]').forEach((item) => item.remove());
@@ -2938,7 +3319,8 @@ function historyMessageLabel(role, time) {
   })}`;
 }
 
-async function loadConversationHistory() {
+async function loadConversationHistory({ force = false } = {}) {
+  if (force) conversationHistoryLoaded = false;
   if (conversationHistoryLoaded || conversationHistoryLoading || !window.fetch || !els.conversationStream) return;
   if (shouldSkipConversationHistory()) {
     conversationHistoryLoaded = true;
@@ -2946,15 +3328,34 @@ async function loadConversationHistory() {
     logLine("conversation history skipped for screenshot QA");
     return;
   }
+  const requestId = conversationHistoryRequestSeq + 1;
+  const requestedConversationId = String(currentConversationId || "");
+  conversationHistoryRequestSeq = requestId;
   conversationHistoryLoading = true;
   try {
-    const response = await fetch(backendUrl("/client/v1/conversation/history?since_hours=24&limit=60"), {
+    const params = new URLSearchParams({ since_hours: "336", limit: "120" });
+    if (currentConversationId) params.set("conversation_id", currentConversationId);
+    const response = await fetch(backendUrl(`/client/v1/conversation/history?${params}`), {
       headers: authHeaders()
     });
     const payload = await response.json().catch(() => ({}));
+    if (
+      requestId !== conversationHistoryRequestSeq
+      || (requestedConversationId && requestedConversationId !== currentConversationId)
+    ) {
+      logLine("stale conversation history skipped");
+      return;
+    }
     if (!response.ok) {
       handleUnauthorizedResponse(response);
       throw new Error(payload.detail || `history_${response.status}`);
+    }
+    currentConversationId = String(payload.conversation_id || currentConversationId || "");
+    if (currentConversationId) rememberSelectedConversation(currentConversationId);
+    if (payload.conversation) {
+      const existingIndex = conversationLibraryItems.findIndex((item) => item.conversation_id === currentConversationId);
+      if (existingIndex >= 0) conversationLibraryItems[existingIndex] = payload.conversation;
+      updateConversationIdentity(payload.conversation);
     }
     const items = Array.isArray(payload.items) ? payload.items : [];
     if (!items.length) return;
@@ -2980,10 +3381,13 @@ async function loadConversationHistory() {
     ensureAssistantConversationAnchor();
     logLine(`loaded ${items.length} recent conversation messages`);
   } catch (err) {
+    if (requestId !== conversationHistoryRequestSeq) return;
     logLine(`conversation history skipped ${err.message || ""}`.trim());
   } finally {
-    conversationHistoryLoaded = true;
-    conversationHistoryLoading = false;
+    if (requestId === conversationHistoryRequestSeq) {
+      conversationHistoryLoaded = true;
+      conversationHistoryLoading = false;
+    }
   }
 }
 
@@ -3209,6 +3613,9 @@ function applyLanguage(language, { persist = true, refreshState = true } = {}) {
   }
   if (proactivePreferencesSnapshot && typeof renderProactivePreferences === "function") {
     renderProactivePreferences(proactivePreferencesSnapshot);
+  }
+  if (conversationLibraryItems.length && typeof renderConversationLibrary === "function") {
+    renderConversationLibrary();
   }
   if (currentDocumentId && typeof setDocumentStatus === "function") {
     setDocumentStatus(currentDocumentStatusLine() || (currentLanguage === "en" ? "File" : "文件"), "ready");
@@ -3998,6 +4405,9 @@ function openDetails() {
   if (els.proactiveRefresh && !proactivePreferencesLoaded && !proactivePreferencesLoading) {
     loadProactiveControlCenter().catch((err) => logLine(err.message || "proactive preferences failed"));
   }
+  if (els.conversationList && !conversationLibraryLoaded && !conversationLibraryLoading) {
+    refreshConversationLibrary().catch((err) => logLine(err.message || "conversation library failed"));
+  }
 }
 
 function closeDetails({ restoreFocus = true } = {}) {
@@ -4118,6 +4528,11 @@ function initSettingsGroupAutoScroll() {
         if (group.classList.contains("proactiveGroup") && !proactivePreferencesLoading) {
           loadProactiveControlCenter({ force: true }).catch((err) => {
             logLine(err.message || "proactive preferences failed");
+          });
+        }
+        if (group.classList.contains("conversationGroup") && !conversationLibraryLoading) {
+          refreshConversationLibrary({ force: true }).catch((err) => {
+            logLine(err.message || "conversation library failed");
           });
         }
       }
@@ -4343,6 +4758,7 @@ function authEvent() {
     client_type: "web",
     client_id: clientId,
     user_id: currentSubjectId(),
+    conversation_id: currentConversationId || "",
     voice_profile: selectedVoiceProfile(),
     proactive_notification_id: activeProactiveNotificationId
   };
@@ -5014,7 +5430,7 @@ function completeSessionLogin(token, expiresAt, subjectId = "default") {
   rememberSessionToken(token, expiresAt || "", subjectId);
   setAccessStatus(" ", "success");
   hideAccessGate();
-  loadConversationHistory().catch((err) => logLine(err.message || "conversation history failed"));
+  initializeConversationSpace().catch((err) => logLine(err.message || "conversation initialization failed"));
   schedulePendingDocumentUploadReconciliation(600);
   scheduleProactiveScan(2600);
   setState("idle");
@@ -7181,6 +7597,7 @@ async function uploadDocumentBatchItem(item) {
     async: "true",
     filename: item.file.name,
     client_id: voiceClientId(),
+    conversation_id: currentConversationId || "",
     upload_id: item.upload_id
   });
   try {
@@ -7342,6 +7759,7 @@ async function uploadCurrentDocument() {
     async: "true",
     filename: file.name,
     client_id: voiceClientId(),
+    conversation_id: currentConversationId || "",
     upload_id: uploadId
   });
   try {
@@ -7839,6 +8257,9 @@ async function sendTextPrompt(text) {
       throw new Error(payload.detail || `HTTP ${response.status}`);
     }
     currentConversationId = payload.conversation_id || currentConversationId;
+    refreshConversationLibrary({ force: true }).catch((error) => {
+      logLine(error.message || "conversation library refresh failed");
+    });
     const actionButtons = clientMessageActionButtons(payload.action_payloads);
     const documentComparison = clientDocumentComparisonPayload(payload.action_payloads);
     const reply = clientReplyForDisplay(String(payload.reply || "").trim(), actionButtons) || "我没有拿到可显示的回复。";
@@ -7860,6 +8281,10 @@ async function sendTextPrompt(text) {
     clearActiveProactiveConversation();
     logLine(`text reply · ${payload.route || "client"}${payload.skill ? `/${payload.skill}` : ""}`);
   } catch (err) {
+    if (requestId !== textPromptSeq) {
+      logLine("stale text prompt failure skipped");
+      return;
+    }
     const message = `文字发送失败：${err.message || "网络不可用"}`;
     appendAssistantConversation(message, { kind: "error" });
     logLine(message);
@@ -9488,6 +9913,40 @@ if (els.memoryRefresh) {
     refreshMemoryControlCenter().catch((err) => logLine(err.message || "memory refresh failed"));
   });
 }
+if (els.conversationNew) {
+  els.conversationNew.addEventListener("click", () => {
+    createNewConversation().catch((error) => {
+      setConversationFeedback(`${currentLanguage === "en" ? "Could not create conversation" : "新建会话失败"}：${error.message || ""}`, "error");
+    });
+  });
+}
+if (els.conversationSearch) {
+  els.conversationSearch.addEventListener("input", () => {
+    if (conversationLibrarySearchTimer) window.clearTimeout(conversationLibrarySearchTimer);
+    conversationLibrarySearchTimer = window.setTimeout(() => {
+      conversationLibrarySearchTimer = 0;
+      refreshConversationLibrary({ force: true }).catch((error) => {
+        setConversationFeedback(`${currentLanguage === "en" ? "Search failed" : "搜索失败"}：${error.message || ""}`, "error");
+      });
+    }, 220);
+  });
+  els.conversationSearch.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    if (conversationLibrarySearchTimer) window.clearTimeout(conversationLibrarySearchTimer);
+    conversationLibrarySearchTimer = 0;
+    refreshConversationLibrary({ force: true }).catch((error) => {
+      setConversationFeedback(`${currentLanguage === "en" ? "Search failed" : "搜索失败"}：${error.message || ""}`, "error");
+    });
+  });
+}
+if (els.conversationIncludeArchived) {
+  els.conversationIncludeArchived.addEventListener("change", () => {
+    refreshConversationLibrary({ force: true }).catch((error) => {
+      setConversationFeedback(`${currentLanguage === "en" ? "Refresh failed" : "刷新失败"}：${error.message || ""}`, "error");
+    });
+  });
+}
 if (els.memorySearch) {
   els.memorySearch.addEventListener("input", scheduleMemorySearchRefresh);
   els.memorySearch.addEventListener("keydown", (event) => {
@@ -9782,7 +10241,7 @@ renderWebTtsRoute();
 syncComposerSendAvailability();
 syncViewportMetrics({ refreshSubtitle: false });
 if (canUseBackendNow()) {
-  loadConversationHistory().catch((err) => logLine(err.message || "conversation history failed"));
+  initializeConversationSpace().catch((err) => logLine(err.message || "conversation initialization failed"));
   schedulePendingDocumentUploadReconciliation(900);
   scheduleProactiveScan(3200);
 }
