@@ -57,8 +57,8 @@
   --control-hover-filter: brightness(1.018) saturate(1.06);
   --control-active-filter: brightness(0.985) saturate(1.02);
   --control-press-shadow: inset 0 2px 5px rgba(24, 42, 67, 0.08);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=380");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=380");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=381");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=381");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -212,8 +212,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 22px 54px rgba(85, 91, 255, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=380");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=380");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=381");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=381");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -269,8 +269,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=380");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=380");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=381");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=381");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -2072,7 +2072,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=380");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=381");
 }
 
 .brandName {
@@ -11421,7 +11421,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 /* v354 Iris companion interface: portrait-led entry, calm conversation, and card-based settings. */
 :root {
-  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=380");
+  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=381");
   --iris-violet: #7567f8;
   --iris-violet-deep: #5547e8;
   --iris-lilac: #b9b0ff;
@@ -12742,7 +12742,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 .accessConnectingGlyph,
 .capabilitySuggestionMark,
 .sheetGlyph {
-  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=380");
+  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=381");
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -13649,7 +13649,7 @@ body {
   height: 76px;
   display: block;
   border-radius: 22px;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=380") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=381") center / 58px 58px no-repeat;
   filter: drop-shadow(0 12px 24px rgba(104, 85, 224, 0.16));
 }
 
@@ -15922,7 +15922,7 @@ body > .dock.unifiedComposer {
   width: 76px !important;
   height: 76px !important;
   display: block !important;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=380") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=381") center / 58px 58px no-repeat;
 }
 
 #accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessFocusIntro > .accessFocusGlyph,
@@ -16088,6 +16088,177 @@ body > .dock.unifiedComposer {
 .proactiveSwitch input:focus-visible + span {
   outline: 2px solid var(--control-focus-ring);
   outline-offset: 3px;
+}
+
+.proactivePush {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--iris-hairline));
+  border-radius: 17px;
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, #9f8cff 15%, transparent), transparent 45%),
+    linear-gradient(145deg, color-mix(in srgb, var(--iris-pearl-strong) 94%, transparent), color-mix(in srgb, var(--iris-pearl) 78%, transparent));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 12px 28px color-mix(in srgb, var(--shadow) 16%, transparent);
+}
+
+.proactivePush::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, #8e7dff, #58c9bd);
+  opacity: 0.22;
+}
+
+.proactivePush[data-state="enabled"]::before {
+  opacity: 0.94;
+}
+
+.proactivePush[data-state="unsupported"],
+.proactivePush[data-state="unavailable"],
+.proactivePush[data-state="blocked"] {
+  filter: saturate(0.7);
+}
+
+.proactivePush[data-busy="true"] {
+  cursor: progress;
+}
+
+.proactivePush > header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.proactivePush > header > div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.proactivePushKicker {
+  color: color-mix(in srgb, var(--accent) 62%, var(--ink-dim));
+  font-size: 8px;
+  font-weight: 780;
+  letter-spacing: 0.16em;
+}
+
+.proactivePush strong {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.proactivePush > p {
+  margin: 0;
+  color: var(--ink-dim);
+  font-size: 9.5px;
+  line-height: 1.5;
+}
+
+.proactivePushBadge {
+  flex: 0 0 auto;
+  min-height: 22px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--iris-hairline) 88%, transparent);
+  border-radius: 999px;
+  color: var(--ink-dim);
+  background: color-mix(in srgb, var(--iris-pearl-strong) 82%, transparent);
+  font-size: 8px;
+  font-weight: 720;
+}
+
+.proactivePushBadge[data-tone="success"] {
+  color: color-mix(in srgb, var(--status-online) 72%, var(--ink));
+  border-color: color-mix(in srgb, var(--status-online) 22%, var(--iris-hairline));
+  background: color-mix(in srgb, var(--status-online) 7%, var(--iris-pearl-strong));
+}
+
+.proactivePushBadge[data-tone="warning"] {
+  color: color-mix(in srgb, #ad7135 82%, var(--ink));
+}
+
+.proactivePushBadge[data-tone="loading"]::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: proactivePushSpin 800ms linear infinite;
+}
+
+@keyframes proactivePushSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.proactivePushActions {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.proactivePushActions button {
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--iris-hairline));
+  border-radius: 999px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--iris-pearl-strong) 90%, transparent);
+  font-size: 9px;
+  font-weight: 720;
+}
+
+.proactivePushActions button:first-child:not(:disabled) {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #7566f4, #9182fb 58%, #66bbb3);
+  box-shadow: 0 8px 19px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.proactivePushActions button:disabled {
+  opacity: 0.48;
+}
+
+.proactivePushPreview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 9px;
+  border-top: 1px solid color-mix(in srgb, var(--iris-hairline) 72%, transparent);
+  cursor: pointer;
+}
+
+.proactivePushPreview[hidden] {
+  display: none;
+}
+
+.proactivePushPreview > span:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.proactivePushPreview strong {
+  font-size: 10px;
+}
+
+.proactivePushPreview small {
+  color: var(--ink-dim);
+  font-size: 8.5px;
+  line-height: 1.35;
 }
 
 .proactivePreferenceGrid {
@@ -16391,6 +16562,7 @@ body > .dock.unifiedComposer {
 }
 
 :root[data-theme="pure-black"] .proactiveOverview,
+:root[data-theme="pure-black"] .proactivePush,
 :root[data-theme="pure-black"] .proactiveRhythm,
 :root[data-theme="pure-black"] .proactiveQuiet,
 :root[data-theme="pure-black"] .proactiveTopics,

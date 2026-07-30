@@ -1,23 +1,23 @@
-const VERSION = "380";
-const CACHE = "iris-pages-v380-project-goals";
+const VERSION = "381";
+const CACHE = "iris-pages-v381-background-push";
 const ASSETS = [
-  "/iris/styles.css?v=380",
-  "/iris/public-config.js?v=380",
-  "/iris/app.js?v=380",
-  "/iris/manifest.json?v=380",
-  "/iris/assets/brand/iris-companion-avatar.jpg?v=380",
-  "/iris/assets/brand/iris-app-icon-dark-192.png?v=380",
-  "/iris/assets/brand/iris-app-icon-dark-512.png?v=380",
-  "/iris/assets/brand/iris-app-icon-dark-192.webp?v=380",
-  "/iris/assets/brand/iris-app-icon-dark-512.webp?v=380",
-  "/iris/assets/brand/iris-app-icon-light-192.png?v=380",
-  "/iris/assets/brand/iris-app-icon-light-512.png?v=380",
-  "/iris/assets/brand/iris-app-icon-light-192.webp?v=380",
-  "/iris/assets/brand/iris-app-icon-light-512.webp?v=380",
-  "/iris/assets/brand/iris-symbol-light-192.webp?v=380",
-  "/iris/assets/brand/iris-symbol-light-512.webp?v=380",
-  "/iris/assets/brand/iris-symbol-light-192.png?v=380",
-  "/iris/assets/brand/iris-symbol-light-512.png?v=380"
+  "/iris/styles.css?v=381",
+  "/iris/public-config.js?v=381",
+  "/iris/app.js?v=381",
+  "/iris/manifest.json?v=381",
+  "/iris/assets/brand/iris-companion-avatar.jpg?v=381",
+  "/iris/assets/brand/iris-app-icon-dark-192.png?v=381",
+  "/iris/assets/brand/iris-app-icon-dark-512.png?v=381",
+  "/iris/assets/brand/iris-app-icon-dark-192.webp?v=381",
+  "/iris/assets/brand/iris-app-icon-dark-512.webp?v=381",
+  "/iris/assets/brand/iris-app-icon-light-192.png?v=381",
+  "/iris/assets/brand/iris-app-icon-light-512.png?v=381",
+  "/iris/assets/brand/iris-app-icon-light-192.webp?v=381",
+  "/iris/assets/brand/iris-app-icon-light-512.webp?v=381",
+  "/iris/assets/brand/iris-symbol-light-192.webp?v=381",
+  "/iris/assets/brand/iris-symbol-light-512.webp?v=381",
+  "/iris/assets/brand/iris-symbol-light-192.png?v=381",
+  "/iris/assets/brand/iris-symbol-light-512.png?v=381"
 ];
 
 function isCurrentVersionedStatic(url) {
@@ -56,6 +56,75 @@ self.addEventListener("activate", (event) => {
         Promise.all(keys.filter((key) => (key.startsWith("iris-pages-") || key.startsWith("jarvis-voice-")) && key !== CACHE).map((key) => caches.delete(key)))
       )
       .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener("push", (event) => {
+  let payload = {};
+  if (event.data) {
+    try {
+      payload = event.data.json();
+    } catch (error) {
+      payload = { body: event.data.text() };
+    }
+  }
+  const title = String(payload.title || "Iris");
+  const body = String(payload.body || "有一条新的主动消息").slice(0, 220);
+  const notificationId = String(payload.notification_id || "");
+  const target = new URL(String(payload.url || "./"), self.registration.scope);
+  if (notificationId && !target.searchParams.has("proactive_notification_id")) {
+    target.searchParams.set("proactive_notification_id", notificationId);
+  }
+  const icon = new URL(
+    "/iris/assets/brand/iris-app-icon-dark-192.png?v=381",
+    self.location.origin
+  ).href;
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon,
+      badge: icon,
+      tag: String(payload.tag || `iris-proactive-${notificationId || "message"}`),
+      renotify: false,
+      silent: false,
+      data: {
+        url: target.href,
+        notification_id: notificationId,
+        kind: String(payload.kind || "proactive")
+      }
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const data = event.notification.data || {};
+  const notificationId = String(data.notification_id || "");
+  const target = new URL(String(data.url || "./"), self.registration.scope);
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (windows) => {
+      const scopeUrl = new URL(self.registration.scope);
+      const existing = windows.find((client) => {
+        try {
+          const clientUrl = new URL(client.url);
+          return clientUrl.origin === scopeUrl.origin
+            && clientUrl.pathname.startsWith(scopeUrl.pathname);
+        } catch (error) {
+          return false;
+        }
+      });
+      if (existing) {
+        existing.postMessage({
+          type: "IRIS_PROACTIVE_NOTIFICATION_CLICK",
+          notification_id: notificationId
+        });
+        await existing.focus();
+        return;
+      }
+      if (self.clients.openWindow) {
+        await self.clients.openWindow(target.href);
+      }
+    })
   );
 });
 

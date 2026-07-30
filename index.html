@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=380" type="image/png" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=380" />
-    <link rel="manifest" href="/iris/manifest.json?v=380" />
-    <link rel="stylesheet" href="/iris/styles.css?v=380" />
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=381" type="image/png" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=381" />
+    <link rel="manifest" href="/iris/manifest.json?v=381" />
+    <link rel="stylesheet" href="/iris/styles.css?v=381" />
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -180,7 +180,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=380" alt="" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=381" alt="" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -247,7 +247,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=380" alt="" />
+              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=381" alt="" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
@@ -486,6 +486,31 @@
               </label>
             </section>
 
+            <section id="proactivePush" class="proactivePush" data-state="loading" aria-live="polite">
+              <header>
+                <div>
+                  <span class="proactivePushKicker" data-i18n="proactive.pushKicker">BACKGROUND DELIVERY</span>
+                  <strong id="proactivePushTitle" data-i18n="proactive.pushLoading">正在检查后台通知</strong>
+                </div>
+                <span id="proactivePushBadge" class="proactivePushBadge" data-tone="loading" data-i18n="proactive.pushChecking">检查中</span>
+              </header>
+              <p id="proactivePushHint" data-i18n="proactive.pushLoadingHint">开启后，即使没有打开网页，Iris 也能在合适的时候找到你。</p>
+              <div class="proactivePushActions">
+                <button id="proactivePushAction" type="button" data-i18n="proactive.pushEnable">开启后台通知</button>
+                <button id="proactivePushTest" type="button" hidden data-i18n="proactive.pushTest">发送测试通知</button>
+              </div>
+              <label id="proactivePushPreviewRow" class="proactivePushPreview" for="proactivePushPreview" hidden>
+                <span>
+                  <strong data-i18n="proactive.pushPreview">锁屏显示消息内容</strong>
+                  <small data-i18n="proactive.pushPreviewHint">默认隐藏正文，只提示有新消息。</small>
+                </span>
+                <span class="proactiveSwitch">
+                  <input id="proactivePushPreview" type="checkbox" />
+                  <span aria-hidden="true"></span>
+                </span>
+              </label>
+            </section>
+
             <div class="proactivePreferenceGrid">
               <label class="proactiveField" for="proactiveDailyLimit">
                 <span data-i18n="proactive.dailyLimit">每天最多</span>
@@ -713,7 +738,7 @@
         </div>
       </aside>
     </main>
-    <script src="/iris/public-config.js?v=380"></script>
-    <script src="/iris/app.js?v=380"></script>
+    <script src="/iris/public-config.js?v=381"></script>
+    <script src="/iris/app.js?v=381"></script>
   </body>
 </html>

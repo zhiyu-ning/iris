@@ -73,6 +73,14 @@ const els = {
   proactiveOverviewTitle: document.getElementById("proactiveOverviewTitle"),
   proactiveOverviewHint: document.getElementById("proactiveOverviewHint"),
   proactiveEnabled: document.getElementById("proactiveEnabled"),
+  proactivePush: document.getElementById("proactivePush"),
+  proactivePushTitle: document.getElementById("proactivePushTitle"),
+  proactivePushHint: document.getElementById("proactivePushHint"),
+  proactivePushBadge: document.getElementById("proactivePushBadge"),
+  proactivePushAction: document.getElementById("proactivePushAction"),
+  proactivePushTest: document.getElementById("proactivePushTest"),
+  proactivePushPreviewRow: document.getElementById("proactivePushPreviewRow"),
+  proactivePushPreview: document.getElementById("proactivePushPreview"),
   proactiveDailyLimit: document.getElementById("proactiveDailyLimit"),
   proactiveInterval: document.getElementById("proactiveInterval"),
   proactiveAdaptive: document.getElementById("proactiveAdaptive"),
@@ -136,7 +144,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "380";
+const VOICE_UI_VERSION = "381";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -719,6 +727,35 @@ const UI_TEXT = {
     "proactive.dismissed": "已收起，不会再沿着这条继续问。",
     "proactive.saved": "主动陪伴偏好已保存。",
     "proactive.saveFailed": "暂时没能保存，请稍后重试。",
+    "proactive.pushKicker": "BACKGROUND DELIVERY",
+    "proactive.pushLoading": "正在检查后台通知",
+    "proactive.pushLoadingHint": "开启后，即使没有打开网页，Iris 也能在合适的时候找到你。",
+    "proactive.pushChecking": "检查中",
+    "proactive.pushEnable": "开启后台通知",
+    "proactive.pushDisable": "关闭后台通知",
+    "proactive.pushTest": "发送测试通知",
+    "proactive.pushPreview": "锁屏显示消息内容",
+    "proactive.pushPreviewHint": "默认隐藏正文，只提示有新消息。",
+    "proactive.pushOn": "后台通知已开启",
+    "proactive.pushOnHint": "网页关闭后也能送达；安静时段与频率限制仍然有效。",
+    "proactive.pushOff": "只在打开 Iris 时主动找你",
+    "proactive.pushOffHint": "开启后台通知后，关闭网页也不会错过合适的提醒。",
+    "proactive.pushUnavailable": "当前服务暂未配置后台通知",
+    "proactive.pushUnavailableHint": "站内主动陪伴不受影响，稍后可以再检查。",
+    "proactive.pushUnsupported": "这个浏览器不支持后台通知",
+    "proactive.pushUnsupportedHint": "仍可在打开 Iris 时接收主动消息。",
+    "proactive.pushInstall": "先把 Iris 添加到主屏幕",
+    "proactive.pushInstallHint": "在 Safari 分享菜单选择“添加到主屏幕”，再从主屏幕打开 Iris。",
+    "proactive.pushBlocked": "通知权限已被系统关闭",
+    "proactive.pushBlockedHint": "请在系统设置中允许 Iris 通知，然后回来刷新。",
+    "proactive.pushReady": "可开启",
+    "proactive.pushEnabled": "已开启",
+    "proactive.pushNeedsHome": "需添加",
+    "proactive.pushDenied": "已关闭",
+    "proactive.pushError": "连接后台通知失败，请稍后重试。",
+    "proactive.pushSaved": "后台通知设置已保存。",
+    "proactive.pushTestSent": "测试通知已经发出。",
+    "proactive.pushTestFailed": "测试通知没有送达，请稍后再试。",
     "settings.review": "审阅",
     "settings.reviewSub": "动作 · 学习 · 待处理",
     "review.tabsAria": "审阅范围",
@@ -1044,6 +1081,35 @@ const UI_TEXT = {
     "proactive.dismissed": "Dismissed. Iris will not continue this thread.",
     "proactive.saved": "Proactive care preferences saved.",
     "proactive.saveFailed": "Could not save this preference. Try again.",
+    "proactive.pushKicker": "BACKGROUND DELIVERY",
+    "proactive.pushLoading": "Checking background notifications",
+    "proactive.pushLoadingHint": "When enabled, Iris can reach you at the right moment even when the page is closed.",
+    "proactive.pushChecking": "Checking",
+    "proactive.pushEnable": "Enable notifications",
+    "proactive.pushDisable": "Turn off notifications",
+    "proactive.pushTest": "Send test notification",
+    "proactive.pushPreview": "Show message content on Lock Screen",
+    "proactive.pushPreviewHint": "Message text stays hidden by default.",
+    "proactive.pushOn": "Background notifications are on",
+    "proactive.pushOnHint": "Delivery works while the page is closed; quiet hours and frequency limits still apply.",
+    "proactive.pushOff": "Iris can only reach you while open",
+    "proactive.pushOffHint": "Enable notifications to keep timely check-ins available in the background.",
+    "proactive.pushUnavailable": "Background delivery is not configured",
+    "proactive.pushUnavailableHint": "In-app proactive care still works. Check again later.",
+    "proactive.pushUnsupported": "This browser does not support background notifications",
+    "proactive.pushUnsupportedHint": "You can still receive proactive messages while Iris is open.",
+    "proactive.pushInstall": "Add Iris to your Home Screen first",
+    "proactive.pushInstallHint": "Use Safari Share, choose Add to Home Screen, then open Iris from its icon.",
+    "proactive.pushBlocked": "Notification permission is turned off",
+    "proactive.pushBlockedHint": "Allow Iris notifications in system settings, then refresh.",
+    "proactive.pushReady": "Available",
+    "proactive.pushEnabled": "On",
+    "proactive.pushNeedsHome": "Add first",
+    "proactive.pushDenied": "Off",
+    "proactive.pushError": "Could not connect background notifications. Try again.",
+    "proactive.pushSaved": "Background notification settings saved.",
+    "proactive.pushTestSent": "Test notification sent.",
+    "proactive.pushTestFailed": "The test notification did not arrive. Try again.",
     "settings.review": "Review",
     "settings.reviewSub": "Actions · Learning · Pending",
     "review.tabsAria": "Review scope",
@@ -1341,6 +1407,12 @@ let proactivePreferencesLoading = false;
 let proactivePreferencesSaving = false;
 let proactivePreferencesSnapshot = null;
 let proactiveInboxItems = [];
+let proactivePushStatus = null;
+let proactivePushLoading = false;
+let proactivePushRegistration = null;
+let proactivePushSubscription = null;
+let proactivePushSubscriptionServerId = "";
+let pendingProactiveNotificationId = "";
 const renderedProactiveKeys = new Set();
 
 const VAD = {
@@ -1368,7 +1440,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v380-project-goals";
+const WEB_VERSION = "voice-ui-web-polish-v381-background-push";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -8359,6 +8431,363 @@ function renderProactiveInbox(items) {
     card.append(copy, dismiss);
     els.proactiveInbox.appendChild(card);
   });
+  if (pendingProactiveNotificationId) {
+    window.setTimeout(() => focusProactiveNotification(pendingProactiveNotificationId), 0);
+  }
+}
+
+function isStandaloneWebApp() {
+  return Boolean(
+    window.matchMedia && window.matchMedia("(display-mode: standalone)").matches
+  ) || window.navigator.standalone === true;
+}
+
+function isAppleMobileBrowser() {
+  const ua = String(window.navigator.userAgent || "");
+  return /iPhone|iPad|iPod/i.test(ua)
+    || (window.navigator.platform === "MacIntel" && Number(window.navigator.maxTouchPoints) > 1);
+}
+
+function proactivePushCapability() {
+  if (!window.isSecureContext) return "unsupported";
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    return "unsupported";
+  }
+  if (isAppleMobileBrowser() && !isStandaloneWebApp()) return "install";
+  if (Notification.permission === "denied") return "blocked";
+  return "ready";
+}
+
+function setProactivePushBusy(busy) {
+  proactivePushLoading = Boolean(busy);
+  [els.proactivePushAction, els.proactivePushTest, els.proactivePushPreview].forEach((control) => {
+    if (control) control.disabled = proactivePushLoading;
+  });
+  if (els.proactivePush) els.proactivePush.dataset.busy = proactivePushLoading ? "true" : "false";
+}
+
+function renderProactivePushStatus() {
+  if (!els.proactivePush) return;
+  const server = proactivePushStatus && typeof proactivePushStatus === "object"
+    ? proactivePushStatus
+    : {};
+  const capability = proactivePushCapability();
+  const active = Boolean(proactivePushSubscription);
+  let state = "off";
+  let title = textFor("proactive.pushOff", "只在打开 Iris 时主动找你");
+  let hint = textFor("proactive.pushOffHint", "开启后台通知后，关闭网页也不会错过合适的提醒。");
+  let badge = textFor("proactive.pushReady", "可开启");
+  let badgeTone = "info";
+  let action = textFor("proactive.pushEnable", "开启后台通知");
+  let disabled = false;
+
+  if (proactivePushLoading && !proactivePushStatus) {
+    state = "loading";
+    title = textFor("proactive.pushLoading", "正在检查后台通知");
+    hint = textFor("proactive.pushLoadingHint", "开启后，即使没有打开网页，Iris 也能在合适的时候找到你。");
+    badge = textFor("proactive.pushChecking", "检查中");
+    badgeTone = "loading";
+    disabled = true;
+  } else if (!server.configured) {
+    state = "unavailable";
+    title = textFor("proactive.pushUnavailable", "当前服务暂未配置后台通知");
+    hint = textFor("proactive.pushUnavailableHint", "站内主动陪伴不受影响，稍后可以再检查。");
+    badge = textFor("proactive.pushDenied", "已关闭");
+    badgeTone = "muted";
+    disabled = true;
+  } else if (capability === "unsupported") {
+    state = "unsupported";
+    title = textFor("proactive.pushUnsupported", "这个浏览器不支持后台通知");
+    hint = textFor("proactive.pushUnsupportedHint", "仍可在打开 Iris 时接收主动消息。");
+    badge = textFor("proactive.pushDenied", "已关闭");
+    badgeTone = "muted";
+    disabled = true;
+  } else if (capability === "install") {
+    state = "install";
+    title = textFor("proactive.pushInstall", "先把 Iris 添加到主屏幕");
+    hint = textFor("proactive.pushInstallHint", "在 Safari 分享菜单选择“添加到主屏幕”，再从主屏幕打开 Iris。");
+    badge = textFor("proactive.pushNeedsHome", "需添加");
+    badgeTone = "warning";
+    disabled = true;
+  } else if (capability === "blocked") {
+    state = "blocked";
+    title = textFor("proactive.pushBlocked", "通知权限已被系统关闭");
+    hint = textFor("proactive.pushBlockedHint", "请在系统设置中允许 Iris 通知，然后回来刷新。");
+    badge = textFor("proactive.pushDenied", "已关闭");
+    badgeTone = "warning";
+    disabled = true;
+  } else if (active) {
+    state = "enabled";
+    title = textFor("proactive.pushOn", "后台通知已开启");
+    hint = textFor("proactive.pushOnHint", "网页关闭后也能送达；安静时段与频率限制仍然有效。");
+    badge = textFor("proactive.pushEnabled", "已开启");
+    badgeTone = "success";
+    action = textFor("proactive.pushDisable", "关闭后台通知");
+  }
+
+  els.proactivePush.dataset.state = state;
+  if (els.proactivePushTitle) els.proactivePushTitle.textContent = title;
+  if (els.proactivePushHint) els.proactivePushHint.textContent = hint;
+  if (els.proactivePushBadge) {
+    els.proactivePushBadge.textContent = badge;
+    els.proactivePushBadge.dataset.tone = badgeTone;
+  }
+  if (els.proactivePushAction) {
+    els.proactivePushAction.textContent = action;
+    els.proactivePushAction.disabled = disabled || proactivePushLoading;
+  }
+  if (els.proactivePushTest) {
+    els.proactivePushTest.hidden = !active;
+    els.proactivePushTest.disabled = proactivePushLoading;
+  }
+  if (els.proactivePushPreviewRow) els.proactivePushPreviewRow.hidden = !active;
+  if (els.proactivePushPreview) {
+    const localRecord = Array.isArray(server.subscriptions)
+      ? server.subscriptions.find(
+        (item) => item
+          && item.active !== false
+          && (!proactivePushSubscriptionServerId || item.subscription_id === proactivePushSubscriptionServerId)
+      )
+      : null;
+    els.proactivePushPreview.checked = Boolean(localRecord && localRecord.preview_content);
+    els.proactivePushPreview.disabled = proactivePushLoading;
+  }
+}
+
+async function ensureProactiveServiceWorker() {
+  if (!("serviceWorker" in navigator)) return null;
+  if (proactivePushRegistration) return proactivePushRegistration;
+  const serviceWorkerUrl = String(
+    IRIS_PUBLIC_CONFIG.serviceWorkerUrl || `/voice/service-worker.js?v=${VOICE_UI_VERSION}`
+  );
+  proactivePushRegistration = await navigator.serviceWorker.register(serviceWorkerUrl, {
+    scope: String(IRIS_PUBLIC_CONFIG.serviceWorkerScope || "/voice"),
+    updateViaCache: "none"
+  });
+  return proactivePushRegistration;
+}
+
+async function loadProactivePushStatus() {
+  if (proactivePushLoading || !canUseBackendNow()) return;
+  setProactivePushBusy(true);
+  renderProactivePushStatus();
+  try {
+    const params = new URLSearchParams({ user_id: currentSubjectId() });
+    const response = await fetch(backendUrl(`/client/v1/proactive/push?${params}`), {
+      headers: authHeaders(),
+      cache: "no-store"
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `proactive_push_${response.status}`);
+    }
+    proactivePushStatus = payload;
+    if (proactivePushCapability() === "ready") {
+      const registration = await ensureProactiveServiceWorker();
+      proactivePushSubscription = registration && registration.pushManager
+        ? await registration.pushManager.getSubscription()
+        : null;
+      proactivePushSubscriptionServerId = proactivePushSubscription
+        ? await proactivePushSubscriptionId(proactivePushSubscription.endpoint)
+        : "";
+    } else {
+      proactivePushSubscription = null;
+      proactivePushSubscriptionServerId = "";
+    }
+  } catch (error) {
+    proactivePushStatus = { configured: false, subscriptions: [] };
+    logLine(`proactive push status failed ${error && error.message || "unknown"}`);
+  } finally {
+    setProactivePushBusy(false);
+    renderProactivePushStatus();
+  }
+}
+
+function base64UrlToUint8Array(value) {
+  const normalized = String(value || "").replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
+  const raw = window.atob(padded);
+  return Uint8Array.from(raw, (character) => character.charCodeAt(0));
+}
+
+async function proactivePushSubscriptionId(endpoint) {
+  const bytes = new TextEncoder().encode(String(endpoint || ""));
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return `wps_${Array.from(new Uint8Array(digest))
+    .map((value) => value.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 20)}`;
+}
+
+async function saveProactivePushSubscription(subscription, { previewContent = false } = {}) {
+  const response = await fetch(backendUrl("/client/v1/proactive/push/subscriptions"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Jarvis-Client-Id": voiceClientId(),
+      ...authHeaders()
+    },
+    cache: "no-store",
+    body: JSON.stringify({
+      user_id: currentSubjectId(),
+      client_id: voiceClientId(),
+      label: `${isAppleMobileBrowser() ? "Apple" : "Web"} · ${navigator.language || "unknown"}`,
+      preview_content: Boolean(previewContent),
+      subscription: subscription.toJSON()
+    })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    handleUnauthorizedResponse(response);
+    throw new Error(payload.detail || `proactive_push_subscribe_${response.status}`);
+  }
+  proactivePushStatus = payload.status || proactivePushStatus;
+  proactivePushSubscription = subscription;
+  proactivePushSubscriptionServerId = String(
+    payload.subscription && payload.subscription.subscription_id || ""
+  );
+  return payload;
+}
+
+async function enableProactivePush() {
+  if (proactivePushLoading || proactivePushCapability() !== "ready") return;
+  setProactivePushBusy(true);
+  try {
+    const permission = Notification.permission === "granted"
+      ? "granted"
+      : await Notification.requestPermission();
+    if (permission !== "granted") {
+      proactivePushSubscription = null;
+      renderProactivePushStatus();
+      return;
+    }
+    const registration = await ensureProactiveServiceWorker();
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: base64UrlToUint8Array(proactivePushStatus.public_key)
+      });
+    }
+    await saveProactivePushSubscription(subscription, { previewContent: false });
+    setProactiveControlFeedback(textFor("proactive.pushSaved", "后台通知设置已保存。"), "success");
+  } catch (error) {
+    setProactiveControlFeedback(textFor("proactive.pushError", "连接后台通知失败，请稍后重试。"), "error");
+    logLine(`proactive push enable failed ${error && error.message || "unknown"}`);
+  } finally {
+    setProactivePushBusy(false);
+    renderProactivePushStatus();
+  }
+}
+
+async function disableProactivePush() {
+  if (proactivePushLoading || !proactivePushSubscription) return;
+  setProactivePushBusy(true);
+  try {
+    const subscription = proactivePushSubscription;
+    const subscriptionId = proactivePushSubscriptionServerId
+      || await proactivePushSubscriptionId(subscription.endpoint);
+    const response = await fetch(
+      backendUrl(`/client/v1/proactive/push/subscriptions/${encodeURIComponent(subscriptionId)}?user_id=${encodeURIComponent(currentSubjectId())}`),
+      {
+        method: "DELETE",
+        headers: {
+          "X-Jarvis-Client-Id": voiceClientId(),
+          ...authHeaders()
+        },
+        cache: "no-store"
+      }
+    );
+    if (!response.ok && response.status !== 404) {
+      const payload = await response.json().catch(() => ({}));
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `proactive_push_unsubscribe_${response.status}`);
+    }
+    await subscription.unsubscribe();
+    proactivePushSubscription = null;
+    proactivePushSubscriptionServerId = "";
+    proactivePushStatus = response.ok
+      ? (await response.json().catch(() => ({}))).status || proactivePushStatus
+      : proactivePushStatus;
+    setProactiveControlFeedback(textFor("proactive.pushSaved", "后台通知设置已保存。"), "success");
+  } catch (error) {
+    setProactiveControlFeedback(textFor("proactive.pushError", "连接后台通知失败，请稍后重试。"), "error");
+    logLine(`proactive push disable failed ${error && error.message || "unknown"}`);
+  } finally {
+    setProactivePushBusy(false);
+    renderProactivePushStatus();
+  }
+}
+
+async function updateProactivePushPreview() {
+  if (!proactivePushSubscription || !els.proactivePushPreview || proactivePushLoading) return;
+  setProactivePushBusy(true);
+  try {
+    await saveProactivePushSubscription(proactivePushSubscription, {
+      previewContent: els.proactivePushPreview.checked
+    });
+    setProactiveControlFeedback(textFor("proactive.pushSaved", "后台通知设置已保存。"), "success");
+  } catch (error) {
+    setProactiveControlFeedback(textFor("proactive.pushError", "连接后台通知失败，请稍后重试。"), "error");
+  } finally {
+    setProactivePushBusy(false);
+    renderProactivePushStatus();
+  }
+}
+
+async function sendProactivePushTest() {
+  if (proactivePushLoading || !proactivePushSubscription) return;
+  setProactivePushBusy(true);
+  try {
+    const response = await fetch(backendUrl("/client/v1/proactive/push/test"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Jarvis-Client-Id": voiceClientId(),
+        ...authHeaders()
+      },
+      cache: "no-store",
+      body: JSON.stringify({ user_id: currentSubjectId(), client_id: voiceClientId() })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.sent_count) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || "proactive_push_test_failed");
+    }
+    setProactiveControlFeedback(textFor("proactive.pushTestSent", "测试通知已经发出。"), "success");
+  } catch (error) {
+    setProactiveControlFeedback(textFor("proactive.pushTestFailed", "测试通知没有送达，请稍后再试。"), "error");
+  } finally {
+    setProactivePushBusy(false);
+    renderProactivePushStatus();
+  }
+}
+
+function captureProactiveLaunchIntent() {
+  const params = new URLSearchParams(window.location.search);
+  const notificationId = String(params.get("proactive_notification_id") || "").trim();
+  if (!notificationId) return;
+  pendingProactiveNotificationId = notificationId;
+  params.delete("proactive_notification_id");
+  const query = params.toString();
+  history.replaceState(history.state, "", `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
+}
+
+function focusProactiveNotification(notificationId) {
+  const normalized = String(notificationId || "").trim();
+  if (!normalized) return false;
+  const item = proactiveInboxItems.find(
+    (candidate) => String(candidate && candidate.notification_id || "") === normalized
+  );
+  if (!item) return false;
+  pendingProactiveNotificationId = "";
+  if (document.body.classList.contains("detailsOpen") && typeof closeDetails === "function") {
+    closeDetails();
+  }
+  renderProactiveItems([item]);
+  window.setTimeout(() => scheduleConversationScroll({ force: true }), 60);
+  return true;
 }
 
 function renderProactivePreferences(payload) {
@@ -8398,6 +8827,7 @@ function renderProactivePreferences(payload) {
     els.proactiveStatus.dataset.tone = enabled ? "success" : "muted";
   }
   renderProactiveInbox(payload && payload.inbox && payload.inbox.items);
+  renderProactivePushStatus();
   if (!enabled) {
     clearProactiveScanSchedule();
     clearActiveProactiveConversation();
@@ -8428,6 +8858,7 @@ async function loadProactiveControlCenter({ force = false } = {}) {
     }
     proactivePreferencesLoaded = true;
     renderProactivePreferences(payload);
+    await loadProactivePushStatus();
     setProactiveControlFeedback("");
   } catch (error) {
     if (els.proactiveStatus) {
@@ -13398,16 +13829,19 @@ async function handleAccessSubmit(event) {
 
 function registerVoiceServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
-  navigator.serviceWorker
+  const registrationPromise = navigator.serviceWorker
     .register(String(IRIS_PUBLIC_CONFIG.serviceWorkerUrl || `/voice/service-worker.js?v=${VOICE_UI_VERSION}`), {
       scope: String(IRIS_PUBLIC_CONFIG.serviceWorkerScope || "/voice"),
       updateViaCache: "none"
     })
     .then((registration) => {
+      proactivePushRegistration = registration;
       scheduleIdleWork(() => registration.update().catch(() => {}), { timeout: 2200 });
       if (registration.waiting) registration.waiting.postMessage({ type: "SKIP_WAITING" });
+      return registration;
     })
     .catch(() => {});
+  return registrationPromise;
 }
 
 els.main.addEventListener("click", () => handleMainButton().catch((err) => logLine(err.message || "main action failed")));
@@ -13620,6 +14054,22 @@ if (els.proactiveRefresh) {
     loadProactiveControlCenter({ force: true }).catch((err) => {
       logLine(err.message || "proactive preferences refresh failed");
     });
+  });
+}
+if (els.proactivePushAction) {
+  els.proactivePushAction.addEventListener("click", () => {
+    const action = proactivePushSubscription ? disableProactivePush : enableProactivePush;
+    action().catch((err) => logLine(err.message || "proactive push action failed"));
+  });
+}
+if (els.proactivePushTest) {
+  els.proactivePushTest.addEventListener("click", () => {
+    sendProactivePushTest().catch((err) => logLine(err.message || "proactive push test failed"));
+  });
+}
+if (els.proactivePushPreview) {
+  els.proactivePushPreview.addEventListener("change", () => {
+    updateProactivePushPreview().catch((err) => logLine(err.message || "proactive push privacy failed"));
   });
 }
 if (els.proactiveEnabled) {
@@ -13928,10 +14378,26 @@ setState("idle");
 setSubtitle(textFor("voice.idleText", "我在。你可以直接说。"), { speaker: "IRIS" });
 logLine(WEB_VERSION);
 logLine(`browser target ${BROWSER_TARGET}`);
+captureProactiveLaunchIntent();
 serviceWorkerRegistrationIdleHandle = scheduleIdleWork(() => {
   serviceWorkerRegistrationIdleHandle = null;
   registerVoiceServiceWorker();
 }, { timeout: 1600 });
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", (event) => {
+    const data = event.data && typeof event.data === "object" ? event.data : {};
+    if (data.type !== "IRIS_PROACTIVE_NOTIFICATION_CLICK") return;
+    pendingProactiveNotificationId = String(data.notification_id || "").trim();
+    if (!pendingProactiveNotificationId) return;
+    if (!focusProactiveNotification(pendingProactiveNotificationId)) {
+      proactivePreferencesLoaded = false;
+      loadProactiveControlCenter({ force: true }).catch((err) => {
+        logLine(err.message || "proactive notification open failed");
+      });
+    }
+  });
+}
 
 document.addEventListener("visibilitychange", () => {
   document.body.classList.toggle("pageHidden", document.visibilityState !== "visible");
