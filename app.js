@@ -129,7 +129,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "374";
+const VOICE_UI_VERSION = "375";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -1243,7 +1243,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v374-adaptive-proactive-rhythm";
+const WEB_VERSION = "voice-ui-web-polish-v375-adaptive-proactive-rhythm";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -3806,7 +3806,13 @@ function messageActionKey(button, index = 0) {
   const text = String(existing || (button && button.textContent) || "").trim().toLowerCase();
   if (text.includes("采纳") || text.includes("accept") || text.includes("确认")) return "accept";
   if (text.includes("稍后") || text.includes("later") || text.includes("delay")) return "later";
-  if (text.includes("删除") || text.includes("拒绝") || text.includes("remove") || text.includes("delete")) return "dismiss";
+  if (
+    text.includes("删除")
+    || text.includes("拒绝")
+    || text.includes("remove")
+    || text.includes("delete")
+    || text.includes("dismiss")
+  ) return "dismiss";
   return `action-${index + 1}`;
 }
 
