@@ -40,7 +40,11 @@ const els = {
   modelStatus: document.getElementById("modelStatus"),
   conversationStatus: document.getElementById("conversationStatus"),
   conversationCurrentTitle: document.getElementById("conversationCurrentTitle"),
+  conversationMemoryHint: document.getElementById("conversationMemoryHint"),
+  conversationModeBadge: document.getElementById("conversationModeBadge"),
+  emptyMemoryChip: document.getElementById("emptyMemoryChip"),
   conversationNew: document.getElementById("conversationNewButton"),
+  conversationTemporary: document.getElementById("conversationTemporaryButton"),
   conversationSearch: document.getElementById("conversationSearchInput"),
   conversationIncludeArchived: document.getElementById("conversationIncludeArchived"),
   conversationFeedback: document.getElementById("conversationFeedback"),
@@ -144,7 +148,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "382";
+const VOICE_UI_VERSION = "383";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -578,6 +582,11 @@ const UI_TEXT = {
     "conversation.defaultTitle": "日常对话",
     "conversation.memoryHint": "每个会话独立保留短期上下文，个人长期记忆仍会连续。",
     "conversation.new": "新对话",
+    "conversation.temporary": "临时对话",
+    "conversation.temporaryBadge": "临时",
+    "conversation.temporaryHint": "不读取或写入长期记忆；本对话将在 {time} 自动清除。工具操作和安全审计仍会保留。",
+    "conversation.temporaryExpires": "{time} 自动清除",
+    "conversation.temporaryMemoryOff": "不留长期记忆",
     "conversation.search": "搜索标题或内容",
     "conversation.searchTitleMatch": "标题命中",
     "conversation.searchMessageMatch": "消息内命中",
@@ -932,6 +941,11 @@ const UI_TEXT = {
     "conversation.defaultTitle": "Everyday chat",
     "conversation.memoryHint": "Short-term context stays separate while personal long-term memory continues.",
     "conversation.new": "New chat",
+    "conversation.temporary": "Temporary",
+    "conversation.temporaryBadge": "Temporary",
+    "conversation.temporaryHint": "No long-term memory is read or written. This chat clears automatically at {time}. Tool actions and safety audit records remain.",
+    "conversation.temporaryExpires": "Clears at {time}",
+    "conversation.temporaryMemoryOff": "Long-term memory off",
     "conversation.search": "Search titles or content",
     "conversation.searchTitleMatch": "Title match",
     "conversation.searchMessageMatch": "Message match",
@@ -1442,7 +1456,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v382-safe-message-streaming";
+const WEB_VERSION = "voice-ui-web-polish-v383-temporary-conversations";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -5272,14 +5286,79 @@ function currentConversationRecord() {
   return conversationLibraryItems.find((item) => item.conversation_id === currentConversationId) || null;
 }
 
+function conversationTemporaryExpiryLabel(record, { compact = false } = {}) {
+  if (!record || record.memory_mode !== "temporary") return "";
+  const parsed = new Date(String(record.expires_at || ""));
+  if (Number.isNaN(parsed.getTime())) {
+    return currentLanguage === "en" ? "soon" : "稍后";
+  }
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(now.getDate() + 1);
+  const sameDay = parsed.toDateString() === now.toDateString();
+  const isTomorrow = parsed.toDateString() === tomorrow.toDateString();
+  const clock = parsed.toLocaleTimeString(currentLanguage === "en" ? "en-US" : "zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+  if (compact) return clock;
+  if (currentLanguage === "en") {
+    if (sameDay) return `today ${clock}`;
+    if (isTomorrow) return `tomorrow ${clock}`;
+    return parsed.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+  if (sameDay) return `今天 ${clock}`;
+  if (isTomorrow) return `明天 ${clock}`;
+  return parsed.toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
 function updateConversationIdentity(record = currentConversationRecord()) {
   const fallback = textFor("conversation.defaultTitle", "日常对话");
   if (record && record.title) currentConversationTitle = String(record.title).trim();
   const title = currentConversationTitle || fallback;
+  const temporary = Boolean(record && record.memory_mode === "temporary");
   if (els.conversationCurrentTitle) els.conversationCurrentTitle.textContent = title;
+  if (els.conversationMemoryHint) {
+    els.conversationMemoryHint.textContent = temporary
+      ? textFor(
+        "conversation.temporaryHint",
+        "不读取或写入长期记忆；本对话将在 {time} 自动清除。工具操作和安全审计仍会保留。"
+      ).replace("{time}", conversationTemporaryExpiryLabel(record))
+      : textFor(
+        "conversation.memoryHint",
+        "每个会话独立保留短期上下文，个人长期记忆仍会连续。"
+      );
+  }
+  if (els.conversationModeBadge) {
+    els.conversationModeBadge.hidden = !temporary;
+    els.conversationModeBadge.textContent = textFor("conversation.temporaryBadge", "临时");
+    els.conversationModeBadge.title = temporary
+      ? textFor("conversation.temporaryExpires", "{time} 自动清除")
+        .replace("{time}", conversationTemporaryExpiryLabel(record))
+      : "";
+  }
+  if (els.emptyMemoryChip) {
+    els.emptyMemoryChip.textContent = temporary
+      ? textFor("conversation.temporaryMemoryOff", "不留长期记忆")
+      : textFor("empty.memory", "记忆连续");
+  }
+  document.documentElement.dataset.conversationMode = temporary ? "temporary" : "personal";
   if (els.conversationStatus) {
-    els.conversationStatus.textContent = title;
-    els.conversationStatus.title = title;
+    const statusText = temporary
+      ? `${title} · ${textFor("conversation.temporaryBadge", "临时")}`
+      : title;
+    els.conversationStatus.textContent = statusText;
+    els.conversationStatus.title = statusText;
   }
   renderProjectSpaceControl();
 }
@@ -5876,6 +5955,7 @@ function renderConversationLibrary() {
     row.className = "conversationLibraryItem";
     row.dataset.current = item.conversation_id === currentConversationId ? "true" : "false";
     row.dataset.status = item.status || "active";
+    row.dataset.memoryMode = item.memory_mode || "personal";
     if (searchMatch) row.dataset.searchKind = searchMatch.kind;
 
     const select = document.createElement("button");
@@ -5906,8 +5986,21 @@ function renderConversationLibrary() {
     meta.className = "conversationMeta";
     const project = projectLibraryItems.find((candidate) => candidate.project_id === item.project_id);
     const projectLabel = project ? ` · ${project.name}` : "";
-    meta.textContent = `${conversationUpdatedLabel(item.updated_at)} · ${Math.max(0, Number(item.message_count || 0))} ${currentLanguage === "en" ? "messages" : "条消息"}${projectLabel}`;
-    select.append(title, preview);
+    const expiryLabel = item.memory_mode === "temporary"
+      ? ` · ${textFor("conversation.temporaryExpires", "{time} 自动清除").replace(
+        "{time}",
+        conversationTemporaryExpiryLabel(item, { compact: true })
+      )}`
+      : "";
+    meta.textContent = `${conversationUpdatedLabel(item.updated_at)} · ${Math.max(0, Number(item.message_count || 0))} ${currentLanguage === "en" ? "messages" : "条消息"}${projectLabel}${expiryLabel}`;
+    select.append(title);
+    if (item.memory_mode === "temporary") {
+      const privacyBadge = document.createElement("span");
+      privacyBadge.className = "conversationPrivacyBadge";
+      privacyBadge.textContent = textFor("conversation.temporaryBadge", "临时");
+      select.appendChild(privacyBadge);
+    }
+    select.append(preview);
     if (searchMatch) {
       const matchMeta = document.createElement("span");
       matchMeta.className = "conversationSearchMatchMeta";
@@ -6169,14 +6262,25 @@ async function switchConversation(
       });
     });
   }
-  setSubtitle(currentLanguage === "en" ? "This conversation is ready." : "这段会话已经接上。", {
-    speaker: "IRIS",
-    resetFlow: true
-  });
+  const activeRecord = currentConversationRecord();
+  setSubtitle(
+    activeRecord && activeRecord.memory_mode === "temporary"
+      ? (
+        currentLanguage === "en"
+          ? "Temporary chat. Long-term memory is off."
+          : "临时对话已接上，不会使用长期记忆。"
+      )
+      : (currentLanguage === "en" ? "This conversation is ready." : "这段会话已经接上。"),
+    {
+      speaker: "IRIS",
+      resetFlow: true
+    }
+  );
   return historyPayload;
 }
 
-async function createNewConversation() {
+async function createNewConversation({ memoryMode = "personal" } = {}) {
+  const temporary = memoryMode === "temporary";
   if (conversationSwitchBlocked()) {
     setConversationFeedback(
       currentLanguage === "en"
@@ -6186,9 +6290,10 @@ async function createNewConversation() {
     );
     return;
   }
-  if (els.conversationNew) {
-    els.conversationNew.disabled = true;
-    els.conversationNew.setAttribute("aria-busy", "true");
+  const trigger = temporary ? els.conversationTemporary : els.conversationNew;
+  if (trigger) {
+    trigger.disabled = true;
+    trigger.setAttribute("aria-busy", "true");
   }
   try {
     const response = await fetch(backendUrl("/client/v1/conversations"), {
@@ -6196,7 +6301,8 @@ async function createNewConversation() {
       headers: { ...authHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify({
         user_id: currentSubjectId(),
-        ...(currentProjectFilterId ? { project_id: currentProjectFilterId } : {})
+        memory_mode: temporary ? "temporary" : "personal",
+        ...(!temporary && currentProjectFilterId ? { project_id: currentProjectFilterId } : {})
       })
     });
     const payload = await response.json().catch(() => ({}));
@@ -6208,9 +6314,9 @@ async function createNewConversation() {
     await refreshConversationLibrary({ force: true });
     await switchConversation(payload.conversation_id);
   } finally {
-    if (els.conversationNew) {
-      els.conversationNew.disabled = false;
-      els.conversationNew.removeAttribute("aria-busy");
+    if (trigger) {
+      trigger.disabled = false;
+      trigger.removeAttribute("aria-busy");
     }
   }
 }
@@ -14143,6 +14249,16 @@ if (els.conversationNew) {
   els.conversationNew.addEventListener("click", () => {
     createNewConversation().catch((error) => {
       setConversationFeedback(`${currentLanguage === "en" ? "Could not create conversation" : "新建会话失败"}：${error.message || ""}`, "error");
+    });
+  });
+}
+if (els.conversationTemporary) {
+  els.conversationTemporary.addEventListener("click", () => {
+    createNewConversation({ memoryMode: "temporary" }).catch((error) => {
+      setConversationFeedback(
+        `${currentLanguage === "en" ? "Could not create temporary chat" : "新建临时对话失败"}：${error.message || ""}`,
+        "error"
+      );
     });
   });
 }

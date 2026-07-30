@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=382" type="image/png" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=382" />
-    <link rel="manifest" href="/iris/manifest.json?v=382" />
-    <link rel="stylesheet" href="/iris/styles.css?v=382" />
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=383" type="image/png" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=383" />
+    <link rel="manifest" href="/iris/manifest.json?v=383" />
+    <link rel="stylesheet" href="/iris/styles.css?v=383" />
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -24,6 +24,7 @@
               <p class="statusLineCompact">
                 <span id="statusIndicator" class="statusIndicator" aria-label="状态：在线"></span>
                 <span id="stateLabel" class="topStatus" data-i18n="status.online">在线</span>
+                <span id="conversationModeBadge" class="conversationModeBadge" hidden>临时</span>
               </p>
             </div>
           </div>
@@ -49,7 +50,7 @@
             <div class="emptyStageChips" aria-hidden="true">
               <span data-i18n="empty.voice">语音优先</span>
               <span data-i18n="empty.pdf">文件阅读</span>
-              <span data-i18n="empty.memory">记忆连续</span>
+              <span id="emptyMemoryChip" data-i18n="empty.memory">记忆连续</span>
             </div>
           </div>
           <nav id="conversationSearchNavigator" class="conversationSearchNavigator" aria-label="会话搜索命中导航" hidden>
@@ -180,7 +181,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=382" alt="" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=383" alt="" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -247,7 +248,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=382" alt="" />
+              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=383" alt="" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
@@ -295,9 +296,12 @@
               <div>
                 <span class="conversationLibraryKicker" data-i18n="conversation.kicker">CONVERSATION SPACES</span>
                 <strong id="conversationCurrentTitle" data-i18n="conversation.defaultTitle">日常对话</strong>
-                <p data-i18n="conversation.memoryHint">每个会话独立保留短期上下文，个人长期记忆仍会连续。</p>
+                <p id="conversationMemoryHint" data-i18n="conversation.memoryHint">每个会话独立保留短期上下文，个人长期记忆仍会连续。</p>
               </div>
-              <button id="conversationNewButton" type="button" data-action-role="primary" data-i18n="conversation.new">新对话</button>
+              <div class="conversationHeroActions">
+                <button id="conversationNewButton" type="button" data-action-role="primary" data-i18n="conversation.new">新对话</button>
+                <button id="conversationTemporaryButton" type="button" data-action-role="secondary" data-i18n="conversation.temporary">临时对话</button>
+              </div>
             </section>
             <section class="projectSpaceControl" aria-labelledby="projectSpaceLabel">
               <div class="projectSpacePicker">
@@ -738,7 +742,7 @@
         </div>
       </aside>
     </main>
-    <script src="/iris/public-config.js?v=382"></script>
-    <script src="/iris/app.js?v=382"></script>
+    <script src="/iris/public-config.js?v=383"></script>
+    <script src="/iris/app.js?v=383"></script>
   </body>
 </html>
