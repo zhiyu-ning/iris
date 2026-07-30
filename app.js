@@ -129,7 +129,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "378";
+const VOICE_UI_VERSION = "379";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -588,6 +588,13 @@ const UI_TEXT = {
     "conversation.regenerate": "重新生成回答",
     "conversation.regenerating": "正在新分支重新生成…",
     "conversation.regenerateFailed": "重新生成失败",
+    "conversation.versionPrevious": "上一版本",
+    "conversation.versionNext": "下一版本",
+    "conversation.versionOriginal": "原版",
+    "conversation.versionEdit": "编辑版",
+    "conversation.versionRegenerate": "重试版",
+    "conversation.versionPosition": "{current} / {total}",
+    "conversation.versionSwitchFailed": "版本切换失败",
     "conversation.export": "导出",
     "conversation.exportMarkdown": "Markdown",
     "conversation.exportJson": "JSON",
@@ -877,6 +884,13 @@ const UI_TEXT = {
     "conversation.regenerate": "Regenerate response",
     "conversation.regenerating": "Regenerating in a new branch…",
     "conversation.regenerateFailed": "Regeneration failed",
+    "conversation.versionPrevious": "Previous version",
+    "conversation.versionNext": "Next version",
+    "conversation.versionOriginal": "Original",
+    "conversation.versionEdit": "Edited",
+    "conversation.versionRegenerate": "Regenerated",
+    "conversation.versionPosition": "{current} / {total}",
+    "conversation.versionSwitchFailed": "Version switch failed",
     "conversation.export": "Export",
     "conversation.exportMarkdown": "Markdown",
     "conversation.exportJson": "JSON",
@@ -1133,6 +1147,9 @@ let currentTurnId = "";
 let currentResponseId = "";
 let currentConversationId = "";
 let currentConversationTitle = "";
+let conversationVersionGroup = null;
+let conversationVersionRequestSeq = 0;
+let conversationVersionSourceTurnId = "";
 let lastReply = "";
 let pendingUserPartialText = "";
 let userPartialFrame = 0;
@@ -1283,7 +1300,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v378-message-edit-regenerate";
+const WEB_VERSION = "voice-ui-web-polish-v379-version-navigator";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -5579,7 +5596,9 @@ function resetConversationDocumentContext() {
 
 function resetConversationSurface({ preserveSearchNavigation = false } = {}) {
   conversationHistoryRequestSeq += 1;
+  conversationVersionRequestSeq += 1;
   textPromptSeq += 1;
+  conversationVersionGroup = null;
   if (els.conversationStream) els.conversationStream.replaceChildren();
   conversationMessageSeq = 0;
   activeAssistantMessageId = "";
@@ -5640,16 +5659,18 @@ async function switchConversation(
     keepDetails = false,
     anchorTurnId = "",
     anchorMessageIndex = -1,
-    preserveSearchNavigation = false
+    preserveSearchNavigation = false,
+    versionSourceTurnId = ""
   } = {}
 ) {
   const nextId = String(conversationId || "").trim();
   const safeAnchorTurnId = String(anchorTurnId || "").trim();
+  const safeVersionSourceTurnId = String(versionSourceTurnId || "").trim();
   if (!nextId) {
     if (!keepDetails) closeDetails();
     return;
   }
-  if (nextId === currentConversationId && !safeAnchorTurnId) {
+  if (nextId === currentConversationId && !safeAnchorTurnId && !safeVersionSourceTurnId) {
     if (!preserveSearchNavigation) clearConversationSearchSession();
     if (!keepDetails) closeDetails();
     return;
@@ -5674,6 +5695,7 @@ async function switchConversation(
     rememberSelectedConversation(nextId);
   }
   resetConversationSurface({ preserveSearchNavigation });
+  conversationVersionSourceTurnId = safeVersionSourceTurnId;
   renderConversationLibrary();
   renderConversationSearchNavigator();
   const historyPayload = await loadConversationHistory({
@@ -5693,6 +5715,7 @@ async function switchConversation(
     speaker: "IRIS",
     resetFlow: true
   });
+  return historyPayload;
 }
 
 async function createNewConversation() {
@@ -5743,6 +5766,208 @@ async function initializeConversationSpace() {
 function clearWelcomeMessageForHistory() {
   if (!els.conversationStream) return;
   els.conversationStream.querySelectorAll('[data-kind="welcome"]').forEach((item) => item.remove());
+}
+
+function conversationVersionModeLabel(mode) {
+  if (mode === "edit") return textFor("conversation.versionEdit", "编辑版");
+  if (mode === "regenerate") return textFor("conversation.versionRegenerate", "重试版");
+  return textFor("conversation.versionOriginal", "原版");
+}
+
+function conversationVersionTarget(group = conversationVersionGroup) {
+  if (!els.conversationStream || !group || !Array.isArray(group.items)) return null;
+  const current = group.items.find(
+    (item) => item.conversation_id === currentConversationId
+  );
+  if (!current) return null;
+  if (current.conversation_id === group.source_conversation_id) {
+    return Array.from(
+      els.conversationStream.querySelectorAll(".message.assistant[data-turn-id]")
+    ).find((item) => item.dataset.turnId === String(group.source_turn_id || "")) || null;
+  }
+  const prefixCount = Math.max(0, Number(current.fork_prefix_message_count || 0));
+  const expectedHistoryIndex = prefixCount + 1;
+  const persisted = els.conversationStream.querySelector(
+    `.message.assistant[data-history-index="${expectedHistoryIndex}"]`
+  );
+  if (persisted) return persisted;
+  const live = Array.from(
+    els.conversationStream.querySelectorAll(
+      ".message.assistant[data-turn-id]:not([data-history-index])"
+    )
+  ).filter((item) => item.dataset.kind !== "welcome");
+  return live.at(-1) || null;
+}
+
+function conversationVersionChevron(direction) {
+  const path = direction === "previous"
+    ? '<path d="m12.5 4.5-5 5 5 5"/>'
+    : '<path d="m7.5 4.5 5 5-5 5"/>';
+  return `<svg viewBox="0 0 20 20" aria-hidden="true">${path}</svg>`;
+}
+
+async function switchConversationVersion(nextIndex) {
+  const group = conversationVersionGroup;
+  if (
+    !group
+    || group.busy
+    || !Array.isArray(group.items)
+    || nextIndex < 0
+    || nextIndex >= group.items.length
+  ) return;
+  const target = group.items[nextIndex];
+  if (!target || target.conversation_id === currentConversationId) return;
+  if (conversationSwitchBlocked()) {
+    setSubtitle(
+      currentLanguage === "en"
+        ? "Finish or cancel the current file upload before switching versions."
+        : "请先完成或取消当前文件上传，再切换版本。",
+      { speaker: "IRIS", resetFlow: true }
+    );
+    return;
+  }
+  group.busy = true;
+  document.querySelectorAll(".conversationVersionNavigator").forEach((item) => {
+    item.dataset.busy = "true";
+    item.querySelectorAll("button").forEach((button) => {
+      button.disabled = true;
+    });
+  });
+  try {
+    const payload = await switchConversation(target.conversation_id, {
+      versionSourceTurnId: group.source_turn_id
+    });
+    if (!payload) throw new Error("conversation_version_history_unavailable");
+  } catch (error) {
+    group.busy = false;
+    renderConversationVersionNavigator();
+    setSubtitle(
+      `${textFor("conversation.versionSwitchFailed", "版本切换失败")}：${error.message || ""}`,
+      { speaker: "IRIS", resetFlow: true }
+    );
+  }
+}
+
+function renderConversationVersionNavigator() {
+  if (!els.conversationStream) return;
+  els.conversationStream.querySelectorAll(".conversationVersionNavigator")
+    .forEach((item) => item.remove());
+  els.conversationStream.querySelectorAll(".conversationBranchContext.hasVersionNavigator")
+    .forEach((item) => item.classList.remove("hasVersionNavigator"));
+  const group = conversationVersionGroup;
+  if (!group || !Array.isArray(group.items) || group.items.length <= 1) return;
+  const currentIndex = group.items.findIndex(
+    (item) => item.conversation_id === currentConversationId
+  );
+  if (currentIndex < 0) return;
+  const current = group.items[currentIndex];
+  const navigator = document.createElement("div");
+  navigator.className = "conversationVersionNavigator";
+  navigator.setAttribute("role", "group");
+  navigator.setAttribute(
+    "aria-label",
+    `${conversationVersionModeLabel(current.version_mode)} · ${currentIndex + 1} / ${group.items.length}`
+  );
+  const previous = document.createElement("button");
+  previous.type = "button";
+  previous.className = "conversationVersionPrevious";
+  previous.innerHTML = conversationVersionChevron("previous");
+  previous.setAttribute(
+    "aria-label",
+    textFor("conversation.versionPrevious", "上一版本")
+  );
+  previous.title = previous.getAttribute("aria-label");
+  previous.disabled = currentIndex === 0;
+  previous.addEventListener("click", () => switchConversationVersion(currentIndex - 1));
+  const position = document.createElement("span");
+  position.className = "conversationVersionPosition";
+  position.setAttribute("role", "status");
+  position.setAttribute("aria-live", "polite");
+  const mode = document.createElement("span");
+  mode.className = "conversationVersionMode";
+  mode.textContent = conversationVersionModeLabel(current.version_mode);
+  const count = document.createElement("span");
+  count.className = "conversationVersionCount";
+  count.textContent = formatTextFor(
+    "conversation.versionPosition",
+    "{current} / {total}",
+    { current: currentIndex + 1, total: group.items.length }
+  );
+  position.append(mode, count);
+  const next = document.createElement("button");
+  next.type = "button";
+  next.className = "conversationVersionNext";
+  next.innerHTML = conversationVersionChevron("next");
+  next.setAttribute("aria-label", textFor("conversation.versionNext", "下一版本"));
+  next.title = next.getAttribute("aria-label");
+  next.disabled = currentIndex === group.items.length - 1;
+  next.addEventListener("click", () => switchConversationVersion(currentIndex + 1));
+  navigator.append(previous, position, next);
+
+  const target = conversationVersionTarget(group);
+  if (target) {
+    target.appendChild(navigator);
+    return;
+  }
+  const branchContext = els.conversationStream.querySelector(".conversationBranchContext");
+  if (branchContext) {
+    branchContext.classList.add("hasVersionNavigator");
+    branchContext.appendChild(navigator);
+    return;
+  }
+  navigator.classList.add("isFallback");
+  els.conversationStream.prepend(navigator);
+}
+
+async function loadConversationVersionGroup(record, { sourceTurnId = "" } = {}) {
+  const conversationId = String(
+    record && record.conversation_id || currentConversationId || ""
+  ).trim();
+  if (!conversationId) {
+    conversationVersionGroup = null;
+    renderConversationVersionNavigator();
+    return null;
+  }
+  const requestId = conversationVersionRequestSeq + 1;
+  conversationVersionRequestSeq = requestId;
+  const params = new URLSearchParams();
+  const requestedSourceTurnId = String(
+    sourceTurnId || conversationVersionSourceTurnId || ""
+  ).trim();
+  if (requestedSourceTurnId) params.set("source_turn_id", requestedSourceTurnId);
+  try {
+    const response = await fetch(
+      backendUrl(
+        `/client/v1/conversations/${encodeURIComponent(conversationId)}/versions`
+        + `${params.toString() ? `?${params}` : ""}`
+      ),
+      { headers: authHeaders(), cache: "no-store" }
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (
+      requestId !== conversationVersionRequestSeq
+      || conversationId !== currentConversationId
+    ) return null;
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `versions_${response.status}`);
+    }
+    conversationVersionGroup = (
+      Array.isArray(payload.items)
+      && payload.items.length > 1
+      && payload.items.some((item) => item.conversation_id === currentConversationId)
+    ) ? { ...payload, busy: false } : null;
+    conversationVersionSourceTurnId = String(payload.source_turn_id || "");
+    renderConversationVersionNavigator();
+    return conversationVersionGroup;
+  } catch (error) {
+    if (requestId === conversationVersionRequestSeq) {
+      conversationVersionGroup = null;
+      renderConversationVersionNavigator();
+      logLine(`conversation versions skipped ${error.message || ""}`.trim());
+    }
+    return null;
+  }
 }
 
 function renderConversationBranchContext(record) {
@@ -5973,6 +6198,7 @@ async function loadConversationHistoryPage(direction) {
     });
     updateConversationHistoryWindow(payload, { merge: true });
     renderConversationHistoryPagers();
+    renderConversationVersionNavigator();
     if (direction === "before") {
       const addedHeight = els.conversationStream.scrollHeight - previousHeight;
       els.conversationStream.scrollTo({
@@ -6048,6 +6274,9 @@ async function loadConversationHistory({
     updateConversationHistoryWindow(payload);
     if (!items.length) {
       renderConversationHistoryPagers();
+      await loadConversationVersionGroup(payload.conversation || null, {
+        sourceTurnId: conversationVersionSourceTurnId
+      });
       return payload;
     }
     clearWelcomeMessageForHistory();
@@ -6059,6 +6288,9 @@ async function loadConversationHistory({
     });
     renderConversationHistoryPagers();
     ensureAssistantConversationAnchor();
+    await loadConversationVersionGroup(payload.conversation || null, {
+      sourceTurnId: conversationVersionSourceTurnId
+    });
     logLine(
       safeAnchorTurnId
         ? `loaded ${items.length} anchored conversation messages`
@@ -11232,12 +11464,14 @@ async function sendTextPrompt(text, options = {}) {
       researchVerification,
       deepResearch,
       revealFromStart: Boolean(deepResearch),
+      turnId: String(payload.turn_id || ""),
       feedbackTarget: payload.feedback || (payload.turn_id ? {
         turn_id: payload.turn_id,
         response_id: payload.response_id || "",
         channel: "web"
       } : null)
     });
+    renderConversationVersionNavigator();
     setSubtitle(reply, { speaker: "IRIS", resetFlow: true });
     setState("idle", { preserveSubtitle: true });
     clearActiveProactiveConversation();
