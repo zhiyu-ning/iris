@@ -129,7 +129,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "376";
+const VOICE_UI_VERSION = "377";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -580,6 +580,15 @@ const UI_TEXT = {
     "conversation.export": "导出",
     "conversation.exportMarkdown": "Markdown",
     "conversation.exportJson": "JSON",
+    "conversation.delete": "删除",
+    "conversation.deleteKicker": "永久删除",
+    "conversation.deleteTitle": "删除「{title}」？",
+    "conversation.deleteScope": "将删除 {messages} 条消息和 {turns} 个回合。已上传的 {documents} 份文件与长期记忆会保留。",
+    "conversation.deleteWarning": "这项操作无法撤销。",
+    "conversation.deleteCancel": "取消",
+    "conversation.deleteConfirm": "永久删除",
+    "conversation.deleteLoading": "正在核对删除范围…",
+    "conversation.deleteSuccess": "会话已永久删除；文件与长期记忆仍保留。",
     "project.label": "当前空间",
     "project.selectAria": "当前项目空间",
     "project.personal": "个人空间",
@@ -849,6 +858,15 @@ const UI_TEXT = {
     "conversation.export": "Export",
     "conversation.exportMarkdown": "Markdown",
     "conversation.exportJson": "JSON",
+    "conversation.delete": "Delete",
+    "conversation.deleteKicker": "PERMANENT DELETE",
+    "conversation.deleteTitle": "Delete “{title}”?",
+    "conversation.deleteScope": "This removes {messages} messages and {turns} turns. {documents} uploaded files and long-term memory stay intact.",
+    "conversation.deleteWarning": "This action cannot be undone.",
+    "conversation.deleteCancel": "Cancel",
+    "conversation.deleteConfirm": "Delete permanently",
+    "conversation.deleteLoading": "Checking the deletion scope…",
+    "conversation.deleteSuccess": "Conversation permanently deleted. Files and long-term memory were preserved.",
     "project.label": "Current space",
     "project.selectAria": "Current project space",
     "project.personal": "Personal space",
@@ -1243,7 +1261,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v376-document-attachment-disclosure";
+const WEB_VERSION = "voice-ui-web-polish-v377-conversation-permanent-delete";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -4729,6 +4747,205 @@ async function setConversationArchived(item, archived) {
   );
 }
 
+function conversationDeleteScopeText(preview) {
+  return formatTextFor(
+    "conversation.deleteScope",
+    currentLanguage === "en"
+      ? "This removes {messages} messages and {turns} turns. {documents} uploaded files and long-term memory stay intact."
+      : "将删除 {messages} 条消息和 {turns} 个回合。已上传的 {documents} 份文件与长期记忆会保留。",
+    {
+      messages: Math.max(0, Number(preview && preview.message_count) || 0),
+      turns: Math.max(0, Number(preview && preview.turn_count) || 0),
+      documents: Math.max(0, Number(preview && preview.document_count) || 0)
+    }
+  );
+}
+
+function conversationDeleteErrorMessage(detail, fallback) {
+  const code = String(detail || "").trim();
+  const messages = currentLanguage === "en"
+    ? {
+        conversation_delete_preview_stale: "This conversation changed. Open delete again to review the latest scope.",
+        conversation_delete_token_invalid: "This delete confirmation is no longer valid. Open delete again.",
+        conversation_delete_token_invalid_or_expired: "This delete confirmation expired. Open delete again.",
+        conversation_delete_token_scope_mismatch: "This delete confirmation belongs to another conversation.",
+        default_conversation_cannot_be_deleted: "The everyday conversation cannot be deleted.",
+        conversation_not_found_or_scope_mismatch: "This conversation is no longer available."
+      }
+    : {
+        conversation_delete_preview_stale: "这段会话刚刚有更新，请重新打开删除并核对最新范围。",
+        conversation_delete_token_invalid: "这次删除确认已失效，请重新打开删除。",
+        conversation_delete_token_invalid_or_expired: "这次删除确认已过期，请重新打开删除。",
+        conversation_delete_token_scope_mismatch: "这次删除确认不属于当前会话。",
+        default_conversation_cannot_be_deleted: "日常对话不能删除。",
+        conversation_not_found_or_scope_mismatch: "这段会话已经不可用。"
+      };
+  return messages[code] || code || fallback;
+}
+
+async function confirmConversationDelete(row, item, preview, confirmButton) {
+  if (!preview || !preview.confirmation_token) return;
+  if (currentConversationId === item.conversation_id && conversationSwitchBlocked()) {
+    setConversationFeedback(
+      currentLanguage === "en"
+        ? "Finish or cancel the current file upload before deleting this conversation."
+        : "请先完成或取消当前文件上传，再删除这段会话。",
+      "warning"
+    );
+    return;
+  }
+  confirmButton.disabled = true;
+  confirmButton.setAttribute("aria-busy", "true");
+  try {
+    const response = await fetch(
+      backendUrl(`/client/v1/conversations/${encodeURIComponent(item.conversation_id)}`),
+      {
+        method: "DELETE",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: currentSubjectId(),
+          confirmation_token: preview.confirmation_token
+        })
+      }
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      const detail = String(payload.detail || "");
+      if (detail === "conversation_delete_preview_stale"
+          || detail.includes("token_invalid")
+          || detail.includes("token_scope_mismatch")) {
+        row?.querySelector(".conversationDeletePanel")?.remove();
+      }
+      throw new Error(
+        conversationDeleteErrorMessage(
+          detail,
+          currentLanguage === "en" ? "The conversation could not be deleted." : "暂时无法删除这段会话。"
+        )
+      );
+    }
+    const deletedCurrent = currentConversationId === item.conversation_id;
+    if (deletedCurrent) {
+      if (running) await stop().catch(() => {});
+      else closeVoiceSocket("conversation_deleted");
+      stopPlayback("conversation_deleted", { notifyInterrupt: false });
+      currentConversationId = String(payload.next_conversation_id || "");
+      currentProjectFilterId = "";
+      projectFilterTouched = false;
+      if (currentConversationId) rememberSelectedConversation(currentConversationId);
+      resetConversationSurface();
+    }
+    conversationLibraryLoaded = false;
+    projectLibraryLoaded = false;
+    await refreshProjectLibrary({ force: true });
+    await refreshConversationLibrary({ force: true });
+    if (deletedCurrent) await loadConversationHistory({ force: true });
+    setConversationFeedback(
+      textFor(
+        "conversation.deleteSuccess",
+        currentLanguage === "en"
+          ? "Conversation permanently deleted. Files and long-term memory were preserved."
+          : "会话已永久删除；文件与长期记忆仍保留。"
+      ),
+      "success"
+    );
+  } catch (error) {
+    setConversationFeedback(
+      `${currentLanguage === "en" ? "Delete failed" : "删除失败"}：${error.message || ""}`,
+      "error"
+    );
+    confirmButton.disabled = false;
+    confirmButton.removeAttribute("aria-busy");
+  }
+}
+
+async function beginConversationDelete(row, item) {
+  if (!row || item.is_default || row.querySelector(".conversationDeletePanel")) return;
+  if (currentConversationId === item.conversation_id && conversationSwitchBlocked()) {
+    setConversationFeedback(
+      currentLanguage === "en"
+        ? "Finish or cancel the current file upload before deleting this conversation."
+        : "请先完成或取消当前文件上传，再删除这段会话。",
+      "warning"
+    );
+    return;
+  }
+  document.querySelectorAll(".conversationDeletePanel, .conversationRenameEditor").forEach(
+    (element) => element.remove()
+  );
+  const panel = document.createElement("section");
+  panel.className = "conversationDeletePanel";
+  panel.setAttribute("role", "alertdialog");
+  panel.setAttribute("aria-modal", "false");
+  panel.setAttribute("aria-label", textFor("conversation.deleteKicker", "永久删除"));
+  panel.dataset.loading = "true";
+
+  const kicker = document.createElement("span");
+  kicker.className = "conversationDeleteKicker";
+  kicker.textContent = textFor("conversation.deleteKicker", "永久删除");
+  const title = document.createElement("strong");
+  title.textContent = formatTextFor(
+    "conversation.deleteTitle",
+    currentLanguage === "en" ? "Delete “{title}”?" : "删除「{title}」？",
+    { title: String(item.title || textFor("conversation.defaultTitle", "日常对话")) }
+  );
+  const scope = document.createElement("p");
+  scope.textContent = textFor("conversation.deleteLoading", "正在核对删除范围…");
+  const warning = document.createElement("p");
+  warning.className = "conversationDeleteWarning";
+  warning.textContent = textFor("conversation.deleteWarning", "这项操作无法撤销。");
+  const actions = document.createElement("div");
+  actions.className = "conversationDeleteActions";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.textContent = textFor("conversation.deleteCancel", "取消");
+  cancel.addEventListener("click", () => panel.remove());
+  const confirm = document.createElement("button");
+  confirm.type = "button";
+  confirm.dataset.variant = "danger";
+  confirm.disabled = true;
+  confirm.textContent = textFor("conversation.deleteConfirm", "永久删除");
+  actions.append(cancel, confirm);
+  panel.append(kicker, title, scope, warning, actions);
+  row.append(panel);
+
+  try {
+    const response = await fetch(
+      backendUrl(`/client/v1/conversations/${encodeURIComponent(item.conversation_id)}/deletion-preview`),
+      {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: currentSubjectId() }),
+        cache: "no-store"
+      }
+    );
+    const preview = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(
+        conversationDeleteErrorMessage(
+          preview.detail,
+          currentLanguage === "en" ? "The deletion scope could not be loaded." : "暂时无法读取删除范围。"
+        )
+      );
+    }
+    if (!panel.isConnected) return;
+    panel.dataset.loading = "false";
+    scope.textContent = conversationDeleteScopeText(preview);
+    confirm.disabled = false;
+    confirm.addEventListener("click", () => {
+      confirmConversationDelete(row, item, preview, confirm);
+    });
+    confirm.focus({ preventScroll: true });
+  } catch (error) {
+    panel.remove();
+    setConversationFeedback(
+      `${currentLanguage === "en" ? "Delete preview failed" : "删除预览失败"}：${error.message || ""}`,
+      "error"
+    );
+  }
+}
+
 function conversationSearchMatch(item) {
   const match = item && item.search_match && typeof item.search_match === "object"
     ? item.search_match
@@ -4988,12 +5205,14 @@ function renderConversationLibrary() {
       matchMeta.textContent = conversationSearchMatchLabel(searchMatch, item);
       select.appendChild(matchMeta);
     }
-    if (item.parent_conversation_id) {
+    if (item.parent_conversation_id || item.branch_source_deleted) {
       const lineage = document.createElement("span");
       lineage.className = "conversationLineage";
-      lineage.textContent = currentLanguage === "en"
-        ? `Branch · depth ${Math.max(1, Number(item.branch_depth || 1))}`
-        : `独立分支 · 第 ${Math.max(1, Number(item.branch_depth || 1))} 层`;
+      lineage.textContent = item.branch_source_deleted
+        ? (currentLanguage === "en" ? "Independent branch · source deleted" : "独立分支 · 来源已删除")
+        : currentLanguage === "en"
+          ? `Branch · depth ${Math.max(1, Number(item.branch_depth || 1))}`
+          : `独立分支 · 第 ${Math.max(1, Number(item.branch_depth || 1))} 层`;
       select.appendChild(lineage);
     }
     select.appendChild(meta);
@@ -5035,6 +5254,16 @@ function renderConversationLibrary() {
     }
     if (Number(item.message_count || 0) > 0) {
       actions.appendChild(conversationExportControl(item));
+    }
+    if (!item.is_default) {
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.dataset.variant = "danger";
+      remove.textContent = textFor("conversation.delete", "删除");
+      remove.addEventListener("click", () => {
+        beginConversationDelete(row, item);
+      });
+      actions.append(remove);
     }
     row.append(select, actions);
     fragment.append(row);
