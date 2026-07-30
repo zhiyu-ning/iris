@@ -144,7 +144,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "381";
+const VOICE_UI_VERSION = "382";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -1251,6 +1251,8 @@ let pcmScratchBytes = null;
 let pcmScratchBytesView = null;
 let websocketSendFailures = 0;
 let textPromptSeq = 0;
+let activeTextPromptAbortController = null;
+let activeTextPromptMessageId = "";
 let serverTtsAvailable = false;
 let serverTtsProfiles = new Set();
 let serverTtsFailureCounts = new Map();
@@ -1440,7 +1442,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v381-background-push";
+const WEB_VERSION = "voice-ui-web-polish-v382-safe-message-streaming";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -3748,7 +3750,9 @@ function setMessageBodyText(body, text, options = {}) {
   }
   delete body.dataset.documentRender;
   delete body.dataset.documentKind;
-  body.textContent = (text || "").trim() || " ";
+  body.textContent = options.preserveText
+    ? (String(text || "") || " ")
+    : ((text || "").trim() || " ");
 }
 
 function appendConversationMessage(role, text, options = {}) {
@@ -3761,6 +3765,7 @@ function appendConversationMessage(role, text, options = {}) {
   const item = document.createElement("article");
   item.className = `message ${role || "assistant"}`;
   item.dataset.messageId = id;
+  if (options.streamState) item.dataset.streamState = String(options.streamState);
   if (options.turnId) item.dataset.turnId = String(options.turnId);
   if (Number.isInteger(options.historyIndex) && options.historyIndex >= 0) {
     item.dataset.historyIndex = String(options.historyIndex);
@@ -4281,6 +4286,7 @@ function updateConversationMessage(id, text, options = {}) {
   if (!item) return false;
   if (options.role) item.className = `message ${options.role}`;
   if (options.kind) item.dataset.kind = options.kind;
+  if (options.streamState) item.dataset.streamState = String(options.streamState);
   const body = item.querySelector(".messageText");
   if (body) {
     const role = options.role || (item.classList.contains("file") ? "file" : item.classList.contains("user") ? "user" : item.classList.contains("system") ? "system" : "assistant");
@@ -12191,6 +12197,7 @@ function shutdownVoiceSessionForPageHide() {
 async function sendTextPrompt(text, options = {}) {
   const final = (text || "").trim();
   if (!final) return false;
+  if (activeTextPromptAbortController) return false;
   if (!canUseBackendNow()) {
     showAccessGate(textFor("access.required", "请先输入访问口令。"), "warning", "access.required");
     return false;
@@ -12205,105 +12212,303 @@ async function sendTextPrompt(text, options = {}) {
   const userMessageId = appendUserConversation(final, {
     force: Boolean(options.forceUserMessage)
   });
+  const streamingMessageId = appendAssistantConversation("", {
+    id: `assistant_stream_${requestId}`,
+    allowEmpty: true,
+    kind: "streaming",
+    streamState: "thinking",
+    label: currentLanguage === "en" ? "Iris · thinking" : "Iris · 正在整理",
+    forceScroll: true
+  });
+  activeTextPromptMessageId = streamingMessageId;
+  const controller = new AbortController();
+  const composerWasBusy = Boolean(els.manualSend && els.manualSend.dataset.loading === "true");
+  activeTextPromptAbortController = controller;
+  setComposerSendLoading(true);
   setState("thinking");
+  let assembledReply = "";
+  let streamStarted = false;
+  let donePayload = null;
   try {
-    const response = await fetch(backendUrl("/client/v1/message"), {
+    const requestBody = clientTextMessageRequestBody(final);
+    let response = await fetch(backendUrl("/client/v1/message/stream"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         ...authHeaders()
       },
-      body: JSON.stringify({
-        client_type: "web",
-        client_id: voiceClientId(),
-        session_id: currentConversationId || "web",
-        user_id: currentSubjectId(),
-        input: { type: "text", text: final },
-        client_context: {
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Shanghai",
-          locale: navigator.language || "zh-CN",
-          foreground: document.visibilityState !== "hidden",
-          voice_profile: selectedVoiceProfile(),
-          voice_output: false,
-          proactive_notification_id: activeProactiveNotificationId || null
-        },
-        capabilities: WEB_TEXT_CAPABILITIES,
-        auth: { token: persistedVoiceToken || "" }
-      })
+      body: JSON.stringify(requestBody),
+      signal: controller.signal
     });
     if (requestId !== textPromptSeq) {
       logLine("stale text prompt skipped");
       flushLogRenderNow();
       return false;
     }
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      handleUnauthorizedResponse(response);
-      throw new Error(payload.detail || `HTTP ${response.status}`);
-    }
-    currentConversationId = payload.conversation_id || currentConversationId;
-    const userMessage = findConversationMessage(userMessageId);
-    if (userMessage && payload.turn_id) {
-      userMessage.dataset.turnId = String(payload.turn_id);
-      attachUserMessageEditControls(userMessage, {
-        turn_id: payload.turn_id,
-        source_text: final
+    if ([404, 405].includes(response.status)) {
+      response = await fetch(backendUrl("/client/v1/message"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders()
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
       });
+      const legacyPayload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        handleUnauthorizedResponse(response);
+        throw new Error(legacyPayload.detail || `HTTP ${response.status}`);
+      }
+      donePayload = legacyPayload;
+    } else if (!response.ok) {
+      const failurePayload = await response.json().catch(() => ({}));
+      handleUnauthorizedResponse(response);
+      throw new Error(failurePayload.detail || `HTTP ${response.status}`);
+    } else {
+      const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+      if (!contentType.includes("text/event-stream") || !response.body) {
+        throw new Error("服务器没有返回可读取的消息流");
+      }
+      await consumeClientMessageEventStream(response, (event, payload) => {
+        if (requestId !== textPromptSeq) return;
+        if (event === "stream_start") {
+          streamStarted = true;
+          updateConversationMessage(streamingMessageId, "", {
+            kind: "streaming",
+            streamState: "thinking",
+            label: currentLanguage === "en" ? "Iris · thinking" : "Iris · 正在整理",
+            preserveText: true,
+            forceScroll: true
+          });
+          return;
+        }
+        if (event === "progress") {
+          updateConversationMessage(streamingMessageId, "", {
+            kind: "streaming",
+            streamState: "thinking",
+            label: currentLanguage === "en" ? "Iris · preparing a reply" : "Iris · 正在组织回答",
+            preserveText: true,
+            forceScroll: true
+          });
+          return;
+        }
+        if (event === "metadata") {
+          applyClientTextResponseIdentity(payload, userMessageId, final);
+          return;
+        }
+        if (event === "delta") {
+          assembledReply += String(payload.delta || "");
+          updateConversationMessage(streamingMessageId, assembledReply, {
+            kind: "streaming",
+            streamState: "streaming",
+            label: "Iris",
+            preserveText: true,
+            forceScroll: true
+          });
+          setSubtitle(assembledReply, { speaker: "IRIS", resetFlow: true });
+          return;
+        }
+        if (event === "done") {
+          donePayload = payload;
+          return;
+        }
+        if (event === "error") {
+          const error = new Error(currentLanguage === "en" ? "Iris could not finish this reply." : "Iris 没能完成这次回答。");
+          error.code = String(payload.code || "message_stream_failed");
+          throw error;
+        }
+      });
+      if (!donePayload) {
+        throw new Error(streamStarted ? "消息流提前结束" : "消息流没有开始");
+      }
     }
-    refreshConversationLibrary({ force: true }).catch((error) => {
-      logLine(error.message || "conversation library refresh failed");
+    if (requestId !== textPromptSeq) {
+      logLine("stale text prompt skipped");
+      flushLogRenderNow();
+      return false;
+    }
+    finalizeClientTextResponse(donePayload, {
+      userMessageId,
+      userText: final,
+      streamingMessageId
     });
-    const actionButtons = clientMessageActionButtons(payload.action_payloads);
-    const documentComparison = clientDocumentComparisonPayload(payload.action_payloads);
-    const multiIntent = clientMultiIntentPayload(payload.action_payloads);
-    const researchVerification = clientResearchVerificationPayload(payload.action_payloads);
-    const deepResearch = clientDeepResearchPayload(payload.action_payloads);
-    const reply = clientReplyForDisplay(String(payload.reply || "").trim(), actionButtons) || "我没有拿到可显示的回复。";
-    els.reply.textContent = reply;
-    appendAssistantConversation(reply, {
-      id: payload.response_id ? `assistant_${payload.response_id}` : "",
-      kind: documentComparison
-        ? "document_comparison"
-        : deepResearch
-          ? "deep_research"
-          : researchVerification
-            ? "research_verification"
-            : multiIntent
-              ? "multi_intent"
-              : payload.skill || payload.route || "text_reply",
-      forceScroll: true,
-      actions: actionButtons,
-      documentComparison,
-      multiIntent,
-      researchVerification,
-      deepResearch,
-      revealFromStart: Boolean(deepResearch),
-      turnId: String(payload.turn_id || ""),
-      feedbackTarget: payload.feedback || (payload.turn_id ? {
-        turn_id: payload.turn_id,
-        response_id: payload.response_id || "",
-        channel: "web"
-      } : null)
-    });
-    renderConversationVersionNavigator();
-    setSubtitle(reply, { speaker: "IRIS", resetFlow: true });
-    setState("idle", { preserveSubtitle: true });
-    clearActiveProactiveConversation();
-    logLine(`text reply · ${payload.route || "client"}${payload.skill ? `/${payload.skill}` : ""}`);
     return true;
   } catch (err) {
     if (requestId !== textPromptSeq) {
       logLine("stale text prompt failure skipped");
       return false;
     }
+    if (controller.signal.aborted || (err && err.name === "AbortError")) {
+      const stoppedLabel = currentLanguage === "en" ? "Generation stopped." : "已停止生成。";
+      const visibleReply = assembledReply.trimEnd();
+      const stoppedReply = visibleReply ? `${visibleReply}\n\n${stoppedLabel}` : stoppedLabel;
+      updateConversationMessage(streamingMessageId, stoppedReply, {
+        kind: "stream_stopped",
+        streamState: "stopped",
+        label: currentLanguage === "en" ? "Iris · stopped" : "Iris · 已停止",
+        preserveText: true,
+        forceScroll: true
+      });
+      els.reply.textContent = stoppedReply;
+      setSubtitle(stoppedReply, { speaker: "IRIS", resetFlow: true });
+      setState("idle", { preserveSubtitle: true });
+      window.setTimeout(() => {
+        refreshConversationLibrary({ force: true }).catch((error) => {
+          logLine(error.message || "conversation library refresh failed");
+        });
+      }, 700);
+      logLine(`text stream stopped · ${assembledReply.length} chars visible`);
+      return true;
+    }
     const message = `文字发送失败：${err.message || "网络不可用"}`;
-    appendAssistantConversation(message, { kind: "error" });
+    if (streamingMessageId) {
+      updateConversationMessage(streamingMessageId, message, {
+        kind: "error",
+        streamState: "error",
+        label: "Iris",
+        forceScroll: true
+      });
+    } else {
+      appendAssistantConversation(message, { kind: "error" });
+    }
     logLine(message);
     flushLogRenderNow();
     setState("error");
     setSttHint("文字发送失败。网络恢复后再试一次。");
     return false;
+  } finally {
+    if (activeTextPromptAbortController === controller) {
+      activeTextPromptAbortController = null;
+      activeTextPromptMessageId = "";
+      if (composerWasBusy) setComposerSendLoading(true);
+      else setComposerSendLoading(false);
+    }
   }
+}
+
+function clientTextMessageRequestBody(text) {
+  return {
+    client_type: "web",
+    client_id: voiceClientId(),
+    session_id: currentConversationId || "web",
+    user_id: currentSubjectId(),
+    input: { type: "text", text: String(text || "").trim() },
+    client_context: {
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Shanghai",
+      locale: navigator.language || "zh-CN",
+      foreground: document.visibilityState !== "hidden",
+      voice_profile: selectedVoiceProfile(),
+      voice_output: false,
+      proactive_notification_id: activeProactiveNotificationId || null
+    },
+    capabilities: WEB_TEXT_CAPABILITIES,
+    auth: { token: persistedVoiceToken || "" }
+  };
+}
+
+function parseClientMessageSseBlock(block) {
+  let event = "message";
+  const data = [];
+  String(block || "").split(/\r?\n/).forEach((line) => {
+    if (line.startsWith("event:")) event = line.slice(6).trim();
+    else if (line.startsWith("data:")) data.push(line.slice(5).trimStart());
+  });
+  if (!data.length) return null;
+  const raw = data.join("\n");
+  if (raw.length > 2_000_000) throw new Error("消息流事件过大");
+  return { event, payload: JSON.parse(raw) };
+}
+
+async function consumeClientMessageEventStream(response, onEvent) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let buffer = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    if (buffer.length > 4_000_000) throw new Error("消息流缓冲区过大");
+    let boundary = buffer.match(/\r?\n\r?\n/);
+    while (boundary && Number.isInteger(boundary.index)) {
+      const block = buffer.slice(0, boundary.index);
+      buffer = buffer.slice(boundary.index + boundary[0].length);
+      const parsed = parseClientMessageSseBlock(block);
+      if (parsed) onEvent(parsed.event, parsed.payload);
+      boundary = buffer.match(/\r?\n\r?\n/);
+    }
+    if (done) break;
+  }
+  const trailing = parseClientMessageSseBlock(buffer.trim());
+  if (trailing) onEvent(trailing.event, trailing.payload);
+}
+
+function applyClientTextResponseIdentity(payload, userMessageId, userText) {
+  if (!payload || typeof payload !== "object") return;
+  currentConversationId = payload.conversation_id || currentConversationId;
+  const userMessage = findConversationMessage(userMessageId);
+  if (userMessage && payload.turn_id) {
+    userMessage.dataset.turnId = String(payload.turn_id);
+    attachUserMessageEditControls(userMessage, {
+      turn_id: payload.turn_id,
+      source_text: userText
+    });
+  }
+}
+
+function finalizeClientTextResponse(payload, { userMessageId, userText, streamingMessageId } = {}) {
+  applyClientTextResponseIdentity(payload, userMessageId, userText);
+  refreshConversationLibrary({ force: true }).catch((error) => {
+    logLine(error.message || "conversation library refresh failed");
+  });
+  const actionButtons = clientMessageActionButtons(payload.action_payloads);
+  const documentComparison = clientDocumentComparisonPayload(payload.action_payloads);
+  const multiIntent = clientMultiIntentPayload(payload.action_payloads);
+  const researchVerification = clientResearchVerificationPayload(payload.action_payloads);
+  const deepResearch = clientDeepResearchPayload(payload.action_payloads);
+  const reply = clientReplyForDisplay(String(payload.reply || "").trim(), actionButtons) || "我没有拿到可显示的回复。";
+  els.reply.textContent = reply;
+  const streamingMessage = findConversationMessage(streamingMessageId);
+  if (streamingMessage) streamingMessage.remove();
+  appendAssistantConversation(reply, {
+    id: payload.response_id ? `assistant_${payload.response_id}` : "",
+    kind: documentComparison
+      ? "document_comparison"
+      : deepResearch
+        ? "deep_research"
+        : researchVerification
+          ? "research_verification"
+          : multiIntent
+            ? "multi_intent"
+            : payload.skill || payload.route || "text_reply",
+    forceScroll: true,
+    actions: actionButtons,
+    documentComparison,
+    multiIntent,
+    researchVerification,
+    deepResearch,
+    revealFromStart: Boolean(deepResearch),
+    turnId: String(payload.turn_id || ""),
+    feedbackTarget: payload.feedback || (payload.turn_id ? {
+      turn_id: payload.turn_id,
+      response_id: payload.response_id || "",
+      channel: "web"
+    } : null)
+  });
+  renderConversationVersionNavigator();
+  setSubtitle(reply, { speaker: "IRIS", resetFlow: true });
+  setState("idle", { preserveSubtitle: true });
+  clearActiveProactiveConversation();
+  logLine(`text reply · ${payload.route || "client"}${payload.skill ? `/${payload.skill}` : ""}`);
+  return reply;
+}
+
+function stopActiveTextPrompt() {
+  if (!activeTextPromptAbortController) return false;
+  activeTextPromptAbortController.abort("user_stop");
+  const message = findConversationMessage(activeTextPromptMessageId);
+  if (message) message.dataset.streamState = "stopping";
+  setComposerSendLoading(true);
+  return true;
 }
 
 function prepareTextInputTurn() {
@@ -12418,13 +12623,19 @@ function setComposerSendLoading(isLoading) {
   if (!els.manualSend) return;
   const composer = els.manualSend.closest(".unifiedComposer");
   if (composer) composer.dataset.sending = isLoading ? "true" : "false";
-  els.manualSend.disabled = Boolean(isLoading);
+  const canStop = Boolean(isLoading && activeTextPromptAbortController);
+  els.manualSend.disabled = Boolean(isLoading && !canStop);
   els.manualSend.setAttribute("aria-busy", isLoading ? "true" : "false");
   if (isLoading) {
     els.manualSend.dataset.loading = "true";
-    els.manualSend.dataset.mode = "sending";
-    els.manualSend.dataset.stateLabel = "sending";
-    els.manualSend.textContent = "•";
+    els.manualSend.dataset.mode = canStop ? "stop" : "sending";
+    els.manualSend.dataset.stateLabel = canStop ? "stop-generation" : "sending";
+    els.manualSend.textContent = canStop ? "■" : "•";
+    const label = canStop
+      ? (currentLanguage === "en" ? "Stop generating" : "停止生成")
+      : (currentLanguage === "en" ? "Sending" : "正在发送");
+    els.manualSend.setAttribute("aria-label", label);
+    els.manualSend.setAttribute("title", label);
   } else {
     els.manualSend.removeAttribute("data-loading");
     els.manualSend.textContent = "↑";
@@ -12439,6 +12650,7 @@ async function keepComposerFeedbackVisible(startedAt) {
 }
 
 async function handleComposerSubmit() {
+  if (stopActiveTextPrompt()) return true;
   const text = (els.manual && els.manual.value ? els.manual.value : "").trim();
   if (!text) {
     return handleDockVoiceCommand();
@@ -14311,6 +14523,7 @@ if (els.documentQuestion) {
 }
 els.manualSend.addEventListener("click", () => {
   setCapabilityPanelOpen(false);
+  if (stopActiveTextPrompt()) return;
   handleComposerSubmit().catch((err) => {
     setComposerSendLoading(false);
     logLine(err.message || "composer submit failed");
@@ -14325,6 +14538,7 @@ if (els.manual) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       setCapabilityPanelOpen(false);
+      if (stopActiveTextPrompt()) return;
       handleComposerSubmit().catch((err) => {
         setComposerSendLoading(false);
         logLine(err.message || "composer submit failed");
