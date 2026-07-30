@@ -18,6 +18,12 @@ const els = {
   capabilityToggle: document.getElementById("capabilityToggle"),
   capabilityPanel: document.getElementById("capabilityPanel"),
   capabilityCustom: document.getElementById("capabilityCustomButton"),
+  thinkingCapability: document.getElementById("thinkingCapabilityButton"),
+  thinkingCapabilityLabel: document.getElementById("thinkingCapabilityLabel"),
+  thinkingModePicker: document.getElementById("thinkingModePicker"),
+  thinkingModePickerTitle: document.getElementById("thinkingModePickerTitle"),
+  thinkingModePickerHint: document.getElementById("thinkingModePickerHint"),
+  thinkingModeStatus: document.getElementById("thinkingModeStatus"),
   detailSheet: document.getElementById("detailSheet"),
   closeDetails: document.getElementById("closeDetails"),
   state: document.getElementById("stateLabel"),
@@ -189,7 +195,7 @@ const els = {
   canvasDeleteConfirm: document.getElementById("canvasDeleteConfirmButton")
 };
 
-const VOICE_UI_VERSION = "385";
+const VOICE_UI_VERSION = "386";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -1699,7 +1705,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v385-canvas";
+const WEB_VERSION = "voice-ui-web-polish-v386-thinking-modes";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -1712,7 +1718,9 @@ const VOICE_CLIENT_ID_KEY = "jarvis_voice_client_id";
 const TTS_AUDIBILITY_KEY = "jarvis_voice_tts_audibility";
 const TTS_ROUTE_KEY = "jarvis_voice_tts_route";
 const VOLUME_KEY = "jarvis_voice_volume";
+const THINKING_MODE_KEY = "iris_thinking_mode";
 let currentLanguage = normalizedLanguage(safeStorageGet(LANGUAGE_KEY, "zh"));
+let selectedThinkingMode = normalizedThinkingMode(safeStorageGet(THINKING_MODE_KEY, "auto"));
 const WEB_TEXT_CAPABILITIES = {
   calendar: true,
   calendar_read: true,
@@ -4032,6 +4040,21 @@ function appendConversationMessage(role, text, options = {}) {
   const meta = document.createElement("p");
   meta.className = "messageMeta";
   meta.textContent = options.label || conversationRoleLabel(role);
+  const thinking = role === "assistant" ? clientThinkingPayload(options.thinking) : null;
+  if (thinking && thinking.applied && thinking.requested_mode !== "auto") {
+    item.dataset.thinkingMode = thinking.resolved_mode;
+    const badge = document.createElement("span");
+    badge.className = "messageThinkingBadge";
+    badge.dataset.mode = thinking.resolved_mode;
+    badge.textContent = thinkingModeCopy(thinking.resolved_mode).native;
+    badge.setAttribute(
+      "title",
+      currentLanguage === "en"
+        ? `${thinkingModeCopy(thinking.resolved_mode).name} applied`
+        : `已使用${thinkingModeCopy(thinking.resolved_mode).name}`
+    );
+    meta.appendChild(badge);
+  }
   const body = document.createElement("p");
   body.className = "messageText";
   setMessageBodyText(body, value || " ", { ...options, role });
@@ -7541,6 +7564,9 @@ function appendConversationHistoryItem(
   const deepResearch = role === "assistant"
     ? clientDeepResearchPayload(item.ui_payload)
     : null;
+  const thinking = role === "assistant"
+    ? clientThinkingPayload(item.ui_payload)
+    : null;
   return appendConversationMessage(role, item.content || "", {
     id: `history_${historyIndex}_${Math.abs(String(item.time || historyIndex).split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`,
     label: historyMessageLabel(role, item.time),
@@ -7562,6 +7588,7 @@ function appendConversationHistoryItem(
     multiIntent,
     researchVerification,
     deepResearch,
+    thinking,
     feedbackTarget: role === "assistant" && item.turn_id ? {
       turn_id: item.turn_id,
       response_id: item.response_id || "",
@@ -8014,6 +8041,7 @@ function applyLanguage(language, { persist = true, refreshState = true } = {}) {
   refreshVoiceProfileLabels();
   syncAudioSettingButtons();
   syncComposerSendAvailability();
+  renderThinkingMode();
   renderWebTtsRoute();
   renderWebTtsAudibility();
   if (lastMemoryControlPayload && els.memoryList && typeof renderMemoryControlCenter === "function") {
@@ -8840,6 +8868,185 @@ function closeDetails({ restoreFocus = true } = {}) {
   detailsReturnFocus = null;
 }
 
+const THINKING_MODE_COPY = {
+  zh: {
+    auto: {
+      name: "自动思考",
+      short: "Auto",
+      native: "自动",
+      hint: "自动判断问题需要的深度",
+      status: "按问题调整",
+      placeholder: "输入内容..."
+    },
+    fast: {
+      name: "快速回应",
+      short: "Fast",
+      native: "快速",
+      hint: "优先速度，直接给出关键答案",
+      status: "直接回答",
+      placeholder: "快速问 Iris..."
+    },
+    normal: {
+      name: "标准思考",
+      short: "Normal",
+      native: "标准",
+      hint: "在速度、解释与可靠性之间平衡",
+      status: "均衡分析",
+      placeholder: "问 Iris..."
+    },
+    deep: {
+      name: "深度思考",
+      short: "Deep",
+      native: "深度",
+      hint: "检查假设与遗漏，再校验最终答案",
+      status: "双重校验",
+      placeholder: "让 Iris 深入想想..."
+    }
+  },
+  en: {
+    auto: {
+      name: "Auto thinking",
+      short: "Auto",
+      native: "Auto",
+      hint: "Iris chooses the depth for each question",
+      status: "Adapts to the question",
+      placeholder: "Type a message..."
+    },
+    fast: {
+      name: "Fast response",
+      short: "Fast",
+      native: "Fast",
+      hint: "Prioritizes speed and the essential answer",
+      status: "Direct answer",
+      placeholder: "Ask Iris quickly..."
+    },
+    normal: {
+      name: "Normal thinking",
+      short: "Normal",
+      native: "Normal",
+      hint: "Balances speed, explanation, and reliability",
+      status: "Balanced analysis",
+      placeholder: "Ask Iris..."
+    },
+    deep: {
+      name: "Deep thinking",
+      short: "Deep",
+      native: "Deep",
+      hint: "Checks assumptions and verifies the final answer",
+      status: "Double checked",
+      placeholder: "Let Iris think deeply..."
+    }
+  }
+};
+
+function normalizedThinkingMode(value) {
+  const normalized = String(value || "auto").trim().toLowerCase();
+  return ["auto", "fast", "normal", "deep"].includes(normalized) ? normalized : "auto";
+}
+
+function thinkingModeCopy(mode = selectedThinkingMode) {
+  const language = currentLanguage === "en" ? "en" : "zh";
+  return THINKING_MODE_COPY[language][normalizedThinkingMode(mode)];
+}
+
+function setThinkingModePickerOpen(open, { focusActive = false } = {}) {
+  if (!els.thinkingModePicker) return;
+  const shouldOpen = Boolean(open);
+  els.thinkingModePicker.hidden = !shouldOpen;
+  if (els.thinkingCapability) {
+    els.thinkingCapability.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+  }
+  if (shouldOpen && focusActive) {
+    window.setTimeout(() => {
+      const selected = els.thinkingModePicker.querySelector(
+        `[data-thinking-mode="${selectedThinkingMode}"]`
+      );
+      if (selected instanceof HTMLElement) selected.focus({ preventScroll: true });
+    }, 0);
+  }
+}
+
+function renderThinkingMode() {
+  const mode = normalizedThinkingMode(selectedThinkingMode);
+  const copy = thinkingModeCopy(mode);
+  document.documentElement.dataset.thinkingMode = mode;
+  if (els.thinkingCapability) {
+    els.thinkingCapability.dataset.active = mode === "auto" ? "false" : "true";
+    els.thinkingCapability.setAttribute(
+      "aria-label",
+      currentLanguage === "en"
+        ? `Thinking mode: ${copy.native}`
+        : `思考模式：${copy.native}`
+    );
+  }
+  if (els.thinkingCapabilityLabel) {
+    els.thinkingCapabilityLabel.textContent = mode === "auto"
+      ? (currentLanguage === "en" ? "Thinking" : "思考模式")
+      : copy.native;
+  }
+  if (els.thinkingModePickerTitle) {
+    els.thinkingModePickerTitle.textContent = currentLanguage === "en"
+      ? "Choose how Iris thinks"
+      : "选择思考方式";
+  }
+  if (els.thinkingModePickerHint) els.thinkingModePickerHint.textContent = copy.hint;
+  if (els.thinkingModePicker) {
+    els.thinkingModePicker.setAttribute(
+      "aria-label",
+      currentLanguage === "en" ? "Thinking mode" : "思考模式"
+    );
+    els.thinkingModePicker.querySelectorAll("[data-thinking-mode]").forEach((button) => {
+      const buttonMode = normalizedThinkingMode(button.dataset.thinkingMode);
+      const buttonCopy = thinkingModeCopy(buttonMode);
+      button.setAttribute("aria-checked", buttonMode === mode ? "true" : "false");
+      button.dataset.selected = buttonMode === mode ? "true" : "false";
+      const strong = button.querySelector("strong");
+      const native = button.querySelector("span");
+      if (strong) strong.textContent = buttonCopy.short;
+      if (native) native.textContent = buttonCopy.native;
+    });
+  }
+  if (els.thinkingModeStatus) {
+    const visible = mode !== "auto";
+    els.thinkingModeStatus.hidden = !visible;
+    els.thinkingModeStatus.dataset.mode = mode;
+    els.thinkingModeStatus.setAttribute(
+      "aria-label",
+      currentLanguage === "en"
+        ? `${copy.name}. Open thinking mode settings.`
+        : `${copy.name}。打开思考模式设置。`
+    );
+    const title = els.thinkingModeStatus.querySelector("strong");
+    const detail = els.thinkingModeStatus.querySelector("span:last-child");
+    if (title) title.textContent = copy.name;
+    if (detail) detail.textContent = copy.status;
+  }
+  if (els.dock) els.dock.dataset.thinkingVisible = mode === "auto" ? "false" : "true";
+  if (els.manual) els.manual.setAttribute("placeholder", copy.placeholder);
+  scheduleViewportMetrics({ refreshSubtitle: false });
+}
+
+function setThinkingMode(mode, { persist = true, closePicker = true } = {}) {
+  selectedThinkingMode = normalizedThinkingMode(mode);
+  if (persist) safeStorageSet(THINKING_MODE_KEY, selectedThinkingMode);
+  renderThinkingMode();
+  if (closePicker) setThinkingModePickerOpen(false);
+}
+
+function thinkingStreamLabel(mode, stage = "start") {
+  const normalized = normalizedThinkingMode(mode);
+  if (currentLanguage === "en") {
+    if (normalized === "fast") return "Iris · responding fast";
+    if (normalized === "normal") return stage === "progress" ? "Iris · shaping the answer" : "Iris · thinking";
+    if (normalized === "deep") return stage === "progress" ? "Iris · verifying the answer" : "Iris · thinking deeply";
+    return stage === "progress" ? "Iris · preparing a reply" : "Iris · thinking";
+  }
+  if (normalized === "fast") return "Iris · 快速回应";
+  if (normalized === "normal") return stage === "progress" ? "Iris · 正在组织回答" : "Iris · 正在思考";
+  if (normalized === "deep") return stage === "progress" ? "Iris · 正在校验答案" : "Iris · 深入思考";
+  return stage === "progress" ? "Iris · 正在组织回答" : "Iris · 正在整理";
+}
+
 function setCapabilityPanelOpen(open, { restoreFocus = false } = {}) {
   if (!els.capabilityPanel) return;
   const shouldOpen = Boolean(open);
@@ -8849,6 +9056,7 @@ function setCapabilityPanelOpen(open, { restoreFocus = false } = {}) {
     els.capabilityToggle.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
   }
   document.body.classList.toggle("capabilitiesOpen", shouldOpen);
+  if (!shouldOpen) setThinkingModePickerOpen(false);
   if (!shouldOpen && restoreFocus && els.capabilityToggle) {
     els.capabilityToggle.focus({ preventScroll: true });
   }
@@ -13243,6 +13451,7 @@ async function sendTextPrompt(text, options = {}) {
     return false;
   }
   const requestId = textPromptSeq + 1;
+  const requestThinkingMode = normalizedThinkingMode(selectedThinkingMode);
   textPromptSeq = requestId;
   prepareTextInputTurn();
   els.final.textContent = final;
@@ -13257,7 +13466,7 @@ async function sendTextPrompt(text, options = {}) {
     allowEmpty: true,
     kind: "streaming",
     streamState: "thinking",
-    label: currentLanguage === "en" ? "Iris · thinking" : "Iris · 正在整理",
+    label: thinkingStreamLabel(requestThinkingMode),
     forceScroll: true
   });
   activeTextPromptMessageId = streamingMessageId;
@@ -13270,7 +13479,7 @@ async function sendTextPrompt(text, options = {}) {
   let streamStarted = false;
   let donePayload = null;
   try {
-    const requestBody = clientTextMessageRequestBody(final);
+    const requestBody = clientTextMessageRequestBody(final, requestThinkingMode);
     let response = await fetch(backendUrl("/client/v1/message/stream"), {
       method: "POST",
       headers: {
@@ -13317,7 +13526,7 @@ async function sendTextPrompt(text, options = {}) {
           updateConversationMessage(streamingMessageId, "", {
             kind: "streaming",
             streamState: "thinking",
-            label: currentLanguage === "en" ? "Iris · thinking" : "Iris · 正在整理",
+            label: thinkingStreamLabel(requestThinkingMode),
             preserveText: true,
             forceScroll: true
           });
@@ -13327,7 +13536,7 @@ async function sendTextPrompt(text, options = {}) {
           updateConversationMessage(streamingMessageId, "", {
             kind: "streaming",
             streamState: "thinking",
-            label: currentLanguage === "en" ? "Iris · preparing a reply" : "Iris · 正在组织回答",
+            label: thinkingStreamLabel(requestThinkingMode, "progress"),
             preserveText: true,
             forceScroll: true
           });
@@ -13427,7 +13636,7 @@ async function sendTextPrompt(text, options = {}) {
   }
 }
 
-function clientTextMessageRequestBody(text) {
+function clientTextMessageRequestBody(text, thinkingMode = selectedThinkingMode) {
   return {
     client_type: "web",
     client_id: voiceClientId(),
@@ -13440,7 +13649,8 @@ function clientTextMessageRequestBody(text) {
       foreground: document.visibilityState !== "hidden",
       voice_profile: selectedVoiceProfile(),
       voice_output: false,
-      proactive_notification_id: activeProactiveNotificationId || null
+      proactive_notification_id: activeProactiveNotificationId || null,
+      thinking_mode: normalizedThinkingMode(thinkingMode)
     },
     capabilities: WEB_TEXT_CAPABILITIES,
     auth: { token: persistedVoiceToken || "" }
@@ -13495,6 +13705,29 @@ function applyClientTextResponseIdentity(payload, userMessageId, userText) {
   }
 }
 
+function clientThinkingPayload(value) {
+  const source = value && typeof value === "object" && value.thinking && typeof value.thinking === "object"
+    ? value.thinking
+    : value;
+  if (!source || typeof source !== "object") return null;
+  const requestedMode = normalizedThinkingMode(source.requested_mode);
+  const resolvedMode = normalizedThinkingMode(source.resolved_mode);
+  const strategy = String(source.strategy || "").trim().toLowerCase();
+  if (
+    !["fast", "normal", "deep"].includes(resolvedMode)
+    || !["direct", "balanced", "deliberate_verify", "cognitive_composer", "capability_runtime"].includes(strategy)
+  ) {
+    return null;
+  }
+  return {
+    requested_mode: requestedMode,
+    resolved_mode: resolvedMode,
+    source: String(source.source || "user").trim().toLowerCase() === "automatic" ? "automatic" : "user",
+    applied: Boolean(source.applied),
+    strategy
+  };
+}
+
 function finalizeClientTextResponse(payload, { userMessageId, userText, streamingMessageId } = {}) {
   applyClientTextResponseIdentity(payload, userMessageId, userText);
   refreshConversationLibrary({ force: true }).catch((error) => {
@@ -13505,6 +13738,7 @@ function finalizeClientTextResponse(payload, { userMessageId, userText, streamin
   const multiIntent = clientMultiIntentPayload(payload.action_payloads);
   const researchVerification = clientResearchVerificationPayload(payload.action_payloads);
   const deepResearch = clientDeepResearchPayload(payload.action_payloads);
+  const thinking = clientThinkingPayload(payload.thinking);
   const reply = clientReplyForDisplay(String(payload.reply || "").trim(), actionButtons) || "我没有拿到可显示的回复。";
   els.reply.textContent = reply;
   const streamingMessage = findConversationMessage(streamingMessageId);
@@ -13526,6 +13760,7 @@ function finalizeClientTextResponse(payload, { userMessageId, userText, streamin
     multiIntent,
     researchVerification,
     deepResearch,
+    thinking,
     revealFromStart: Boolean(deepResearch),
     turnId: String(payload.turn_id || ""),
     feedbackTarget: payload.feedback || (payload.turn_id ? {
@@ -15882,6 +16117,12 @@ if (els.capabilityPanel) {
   els.capabilityPanel.addEventListener("click", (event) => {
     const button = event.target instanceof HTMLElement ? event.target.closest("button") : null;
     if (!button || !els.capabilityPanel.contains(button)) return;
+    const thinkingMode = button.dataset.thinkingMode || "";
+    if (thinkingMode) {
+      setThinkingMode(thinkingMode);
+      setCapabilityPanelOpen(false);
+      return;
+    }
     const prompt = button.dataset.capabilityPrompt || "";
     const action = button.dataset.capabilityAction || "";
     if (prompt) {
@@ -15913,7 +16154,18 @@ if (els.capabilityPanel) {
       });
       return;
     }
+    if (action === "thinking") {
+      const isOpen = Boolean(els.thinkingModePicker && !els.thinkingModePicker.hidden);
+      setThinkingModePickerOpen(!isOpen, { focusActive: !isOpen });
+      return;
+    }
     if (action === "memory") openMemorySettings();
+  });
+}
+if (els.thinkingModeStatus) {
+  els.thinkingModeStatus.addEventListener("click", () => {
+    setCapabilityPanelOpen(true);
+    setThinkingModePickerOpen(true, { focusActive: true });
   });
 }
 if (els.capabilityCustom) {
@@ -16338,6 +16590,16 @@ document.addEventListener("keydown", (event) => {
     }
     return;
   }
+  if (event.key === "Escape" && document.body.classList.contains("capabilitiesOpen")) {
+    event.preventDefault();
+    if (els.thinkingModePicker && !els.thinkingModePicker.hidden) {
+      setThinkingModePickerOpen(false);
+      if (els.thinkingCapability) els.thinkingCapability.focus({ preventScroll: true });
+    } else {
+      setCapabilityPanelOpen(false, { restoreFocus: true });
+    }
+    return;
+  }
   if (event.key !== "Escape" || !document.body.classList.contains("detailsOpen")) return;
   event.preventDefault();
   closeDetails();
@@ -16513,6 +16775,7 @@ loadToken();
 initVoiceClientId();
 initThemeSettings();
 initLanguageSettings();
+setThinkingMode(selectedThinkingMode, { persist: false, closePicker: true });
 refreshAccessRevealButton();
 if (PUBLIC_SHARE_MODE) {
   initializePublicConversationShare().catch((err) => {
