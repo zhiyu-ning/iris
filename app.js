@@ -129,7 +129,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "375";
+const VOICE_UI_VERSION = "376";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -1243,7 +1243,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v375-adaptive-proactive-rhythm";
+const WEB_VERSION = "voice-ui-web-polish-v376-document-attachment-disclosure";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -1748,7 +1748,7 @@ function documentLineClass(line, index) {
   if (/^-{3,}$/.test(normalized)) return "";
   if (/^[\-•]\s+/.test(normalized)) return "documentMessageBullet";
   if (/^\|.+\|$/.test(normalized)) return "documentMessageTableLine";
-  if ((/[：:]$/.test(normalized) && normalized.length <= 18) || /^(要点|结构|来源|Sources|Key points|Outline)[：:]?$/i.test(normalized)) {
+  if ((/[：:]$/.test(normalized) && normalized.length <= 18) || /^(要点|结构|来源|附件|Sources|Attachments|Key points|Outline)[：:]?$/i.test(normalized)) {
     return "documentMessageSectionTitle";
   }
   if (index === 0 || /^(我读完了|I’ve read|文件上传失败|File upload failed|PDF 上传失败|摘要失败|追问失败|正在)/.test(normalized)) {
@@ -9294,6 +9294,30 @@ function documentCharCountLabel(count) {
 
 function normalizeDocumentSummaryData(doc) {
   if (!doc) return null;
+  const attachments = Array.isArray(doc.attachments)
+    ? doc.attachments
+      .filter((item) => item && typeof item === "object")
+      .map((item) => ({
+        index: Number.isFinite(Number(item.index)) ? Number(item.index) : null,
+        filename: String(item.filename || "").trim(),
+        status: String(item.status || "").trim().toLowerCase(),
+        error_code: String(item.error_code || "").trim(),
+        document_type: String(item.document_type || "").trim().toLowerCase(),
+        page_count: Number.isFinite(Number(item.page_count)) ? Number(item.page_count) : null,
+        slide_numbers: Array.isArray(item.slide_numbers)
+          ? item.slide_numbers.map((value) => Number(value)).filter(Number.isFinite)
+          : []
+      }))
+    : [];
+  const attachmentCount = Number.isFinite(Number(doc.attachment_count))
+    ? Math.max(0, Number(doc.attachment_count))
+    : attachments.length;
+  const inferredReadyCount = attachments.filter((item) => (
+    !["failed", "rejected"].includes(item.status) && !item.error_code
+  )).length;
+  const attachmentReadyCount = Number.isFinite(Number(doc.attachment_ready_count))
+    ? Math.max(0, Math.min(attachmentCount, Number(doc.attachment_ready_count)))
+    : Math.min(attachmentCount, inferredReadyCount);
   return {
     id: doc.id || currentDocumentId || "",
     filename: doc.filename || currentDocumentName || "File",
@@ -9302,7 +9326,10 @@ function normalizeDocumentSummaryData(doc) {
     status: doc.status || "parsed",
     parser: doc.parser || "",
     page_count: Number.isFinite(Number(doc.page_count)) ? Number(doc.page_count) : null,
-    char_count: Number.isFinite(Number(doc.char_count)) ? Number(doc.char_count) : null
+    char_count: Number.isFinite(Number(doc.char_count)) ? Number(doc.char_count) : null,
+    attachment_count: attachmentCount,
+    attachment_ready_count: attachmentReadyCount,
+    attachments
   };
 }
 
@@ -9421,20 +9448,133 @@ const DOCUMENT_WARNING_TRANSLATIONS = new Map([
   [
     "At least one VBA project could not be fully inspected; its hash and safety status remain available.",
     "至少一个 VBA 工程未能完整检查；Iris 仍保留了文件指纹和安全状态。"
+  ],
+  [
+    "The local BM25 retrieval index is unavailable; document questions will use deterministic fallback retrieval.",
+    "本地检索索引暂不可用；文件问答会使用确定性备用检索。"
   ]
 ]);
+
+const DOCUMENT_ATTACHMENT_ERROR_LABELS = {
+  unsupported_embedded_document_type: {
+    zh: "不支持这种嵌入文件类型",
+    en: "unsupported embedded file type"
+  },
+  unsupported_document_type: {
+    zh: "暂不支持这种文件类型",
+    en: "unsupported file type"
+  },
+  attachment_depth_limit: {
+    zh: "超过安全嵌套层级",
+    en: "safe nesting depth exceeded"
+  },
+  attachment_count_limit: {
+    zh: "超过附件数量上限",
+    en: "attachment count limit exceeded"
+  },
+  attachment_total_bytes_limit: {
+    zh: "附件总大小超过上限",
+    en: "combined attachment size limit exceeded"
+  },
+  file_too_large: {
+    zh: "附件过大",
+    en: "attachment too large"
+  },
+  file_type_mismatch: {
+    zh: "文件内容与扩展名不一致",
+    en: "file content does not match its extension"
+  },
+  empty_attachment: {
+    zh: "附件为空",
+    en: "empty attachment"
+  }
+};
+
+function documentAttachmentErrorLabel(code) {
+  const normalized = String(code || "").trim();
+  const known = DOCUMENT_ATTACHMENT_ERROR_LABELS[normalized];
+  if (known) return currentLanguage === "en" ? known.en : known.zh;
+  return currentLanguage === "en" ? "could not be read safely" : "未能安全读取";
+}
+
+function documentHasAttachmentCoverageGap(doc) {
+  const total = Math.max(0, Number(doc && doc.attachment_count || 0));
+  const ready = Math.max(0, Number(doc && doc.attachment_ready_count || 0));
+  return total > 0 && ready < total;
+}
+
+function documentAttachmentLocationLabel(item) {
+  const slides = Array.isArray(item && item.slide_numbers) ? item.slide_numbers : [];
+  if (!slides.length) return "";
+  const values = slides.slice(0, 3).join("、");
+  if (currentLanguage === "en") return `${slides.length === 1 ? "slide" : "slides"} ${values}`;
+  return `第 ${values} 张幻灯片`;
+}
+
+function documentAttachmentSummaryLines(doc) {
+  const total = Math.max(0, Number(doc && doc.attachment_count || 0));
+  if (!total) return [];
+  const ready = Math.max(0, Math.min(total, Number(doc && doc.attachment_ready_count || 0)));
+  const attachments = Array.isArray(doc && doc.attachments) ? doc.attachments : [];
+  const partial = ready < total;
+  const lines = [
+    currentLanguage === "en" ? "Attachments" : "附件",
+    partial
+      ? (
+        currentLanguage === "en"
+          ? `The main file is available. ${ready}/${total} attachments were read; ${total - ready} will not be used in answers.`
+          : `主体内容可以使用。${total} 个附件中已读取 ${ready} 个；其余 ${total - ready} 个不会进入回答。`
+      )
+      : (
+        currentLanguage === "en"
+          ? `${ready}/${total} attachments were read.`
+          : `${ready}/${total} 个附件已全部读取。`
+      )
+  ];
+  attachments.slice(0, 6).forEach((item, index) => {
+    const filename = String(item.filename || "").trim() || (
+      currentLanguage === "en" ? `Attachment ${index + 1}` : `附件 ${index + 1}`
+    );
+    const failed = ["failed", "rejected"].includes(String(item.status || "")) || Boolean(item.error_code);
+    const state = failed
+      ? (
+        currentLanguage === "en"
+          ? `not read: ${documentAttachmentErrorLabel(item.error_code)}`
+          : `未读取：${documentAttachmentErrorLabel(item.error_code)}`
+      )
+      : (currentLanguage === "en" ? "read" : "已读取");
+    const location = documentAttachmentLocationLabel(item);
+    lines.push(`- ${[filename, location, state].filter(Boolean).join(" · ")}`);
+  });
+  if (attachments.length > 6) {
+    lines.push(
+      currentLanguage === "en"
+        ? `- ${attachments.length - 6} more attachments are included in the file record.`
+        : `- 另有 ${attachments.length - 6} 个附件已记录在文件清单中。`
+    );
+  }
+  return lines;
+}
 
 function documentUserWarning(warning) {
   if (currentLanguage === "en") return warning;
   return DOCUMENT_WARNING_TRANSLATIONS.get(warning) || warning;
 }
 
-function documentUserWarnings(warnings) {
+function documentUserWarnings(warnings, doc = null) {
   if (!Array.isArray(warnings)) return [];
+  const attachmentSummaryCoversWarning = Number(doc && doc.attachment_count || 0) > 0;
   return warnings
     .map((warning) => String(warning || "").trim())
     .filter(Boolean)
     .filter((warning) => !DOCUMENT_INTERNAL_WARNING_PREFIXES.some((prefix) => warning.startsWith(prefix)))
+    .filter((warning) => !(
+      attachmentSummaryCoversWarning
+      && (
+        /attachment\(s\) could not be indexed/i.test(warning)
+        || /embedded document\(s\) could not be indexed/i.test(warning)
+      )
+    ))
     .map(documentUserWarning);
 }
 
@@ -9448,10 +9588,11 @@ function logDocumentDiagnostics(warnings) {
 
 function documentReadyAnswerText(doc, warnings = currentDocumentWarnings) {
   if (!doc) return "";
-  const visibleWarnings = documentUserWarnings(warnings);
+  const visibleWarnings = documentUserWarnings(warnings, doc);
   return [
     documentAcceptedLine(doc),
     documentReadableSummaryLine(doc),
+    ...documentAttachmentSummaryLines(doc),
     visibleWarnings.length ? visibleWarnings.join("\n") : ""
   ].filter(Boolean).join("\n");
 }
@@ -9727,7 +9868,11 @@ function acceptUploadedDocument(payload, uploadMessageId, recovered = false) {
     unit_parse: payload.unit_parse || null
   });
   const summaryLine = rememberDocumentSummaryData(payload);
-  setDocumentStatus(summaryLine, currentDocumentId ? "ready" : "warning");
+  const attachmentCoverageGap = documentHasAttachmentCoverageGap(currentDocumentSummaryData || payload);
+  setDocumentStatus(
+    summaryLine,
+    currentDocumentId ? (attachmentCoverageGap ? "warning" : "ready") : "warning"
+  );
   currentDocumentWarnings = Array.isArray(payload.warnings) ? payload.warnings.filter(Boolean) : [];
   logDocumentDiagnostics(currentDocumentWarnings);
   const accepted = currentDocumentId
@@ -9736,8 +9881,9 @@ function acceptUploadedDocument(payload, uploadMessageId, recovered = false) {
   currentDocumentAnswerMode = currentDocumentId ? "ready" : "warning";
   setDocumentAnswer(accepted);
   currentDocumentReadyFileMessageId = uploadMessageId;
-  updateConversationMessage(uploadMessageId, documentFileReadyLine(), { label: textFor("role.file", "文件"), role: "file", kind: "document_ready" });
-  currentDocumentReadyAssistantMessageId = appendAssistantConversation(accepted, { kind: "document_ready" });
+  const readyKind = attachmentCoverageGap ? "document_partial" : "document_ready";
+  updateConversationMessage(uploadMessageId, documentFileReadyLine(), { label: textFor("role.file", "文件"), role: "file", kind: readyKind });
+  currentDocumentReadyAssistantMessageId = appendAssistantConversation(accepted, { kind: readyKind });
   setDocumentBusy(false);
   setDocumentContextVisible(false);
   refreshCurrentProjectFilesAfterUpload();
@@ -9748,19 +9894,22 @@ function refreshDocumentReadyPresentation() {
   if (!currentDocumentId || currentDocumentAnswerMode !== "ready" || !currentDocumentSummaryData) return;
   const answer = documentReadyAnswerText(currentDocumentSummaryData);
   const fileReady = documentFileReadyLine();
+  const attachmentCoverageGap = documentHasAttachmentCoverageGap(currentDocumentSummaryData);
+  const readyKind = attachmentCoverageGap ? "document_partial" : "document_ready";
+  setDocumentStatus(currentDocumentStatusLine(), attachmentCoverageGap ? "warning" : "ready");
   setDocumentAnswer(answer);
   if (currentDocumentReadyFileMessageId) {
     updateConversationMessage(currentDocumentReadyFileMessageId, fileReady, {
       label: textFor("role.file", "文件"),
       role: "file",
-      kind: "document_ready"
+      kind: readyKind
     });
   }
   if (currentDocumentReadyAssistantMessageId) {
     updateConversationMessage(currentDocumentReadyAssistantMessageId, answer, {
       label: "Iris",
       role: "assistant",
-      kind: "document_ready"
+      kind: readyKind
     });
   }
 }

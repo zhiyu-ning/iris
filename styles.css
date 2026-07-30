@@ -57,8 +57,8 @@
   --control-hover-filter: brightness(1.018) saturate(1.06);
   --control-active-filter: brightness(0.985) saturate(1.02);
   --control-press-shadow: inset 0 2px 5px rgba(24, 42, 67, 0.08);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=375");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=375");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=376");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=376");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -212,8 +212,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 22px 54px rgba(85, 91, 255, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=375");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=375");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=376");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=376");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -269,8 +269,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=375");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=375");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=376");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=376");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -1805,6 +1805,23 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
     var(--assistant-bubble);
 }
 
+.message[data-kind="document_partial"] {
+  border-color: color-mix(in srgb, #d39236 28%, var(--line));
+  background:
+    radial-gradient(circle at 10% 0%, color-mix(in srgb, #f1b85f 12%, transparent), transparent 40%),
+    radial-gradient(circle at 96% 104%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 42%),
+    var(--assistant-bubble);
+}
+
+.message[data-kind="document_partial"] .messageMeta::before {
+  background: #d39236;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #d39236 12%, transparent);
+}
+
+.message[data-kind="document_partial"] .documentMessageSectionTitle {
+  color: color-mix(in srgb, #b56b20 74%, var(--ink));
+}
+
 .message[data-kind="document_summary"],
 .message[data-kind="document_answer"] {
   max-width: min(86%, 468px);
@@ -2055,7 +2072,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=375");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=376");
 }
 
 .brandName {
@@ -10700,7 +10717,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 /* v354 Iris companion interface: portrait-led entry, calm conversation, and card-based settings. */
 :root {
-  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=375");
+  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=376");
   --iris-violet: #7567f8;
   --iris-violet-deep: #5547e8;
   --iris-lilac: #b9b0ff;
@@ -12021,7 +12038,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 .accessConnectingGlyph,
 .capabilitySuggestionMark,
 .sheetGlyph {
-  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=375");
+  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=376");
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -12917,7 +12934,7 @@ body {
   height: 76px;
   display: block;
   border-radius: 22px;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=375") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=376") center / 58px 58px no-repeat;
   filter: drop-shadow(0 12px 24px rgba(104, 85, 224, 0.16));
 }
 
@@ -15190,7 +15207,7 @@ body > .dock.unifiedComposer {
   width: 76px !important;
   height: 76px !important;
   display: block !important;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=375") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=376") center / 58px 58px no-repeat;
 }
 
 #accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessFocusIntro > .accessFocusGlyph,
