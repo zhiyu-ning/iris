@@ -202,7 +202,7 @@ const els = {
   canvasDeleteConfirm: document.getElementById("canvasDeleteConfirmButton")
 };
 
-const VOICE_UI_VERSION = "390";
+const VOICE_UI_VERSION = "391";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -1750,7 +1750,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v390-calendar-preparation";
+const WEB_VERSION = "voice-ui-web-polish-v391-reply-readability";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -2312,6 +2312,41 @@ const REPLY_FIELD_KEYS = new Set([
   "from", "to", "cc", "bcc", "subject", "body", "time", "date", "location",
   "source", "status", "result"
 ]);
+const REPLY_TOPIC_KEY_PATTERN = /^(?:[\u3400-\u9fffA-Za-z0-9+&＆/·]{1,12}(?:层|端|侧|方面|部分|阶段|现状|方向|方案|体验|能力|限制|说明|提醒|生态)|结论|建议|原因|风险|重点|下一步|现状|方向|方案|说明|提醒|注意)$/i;
+const REPLY_STRONG_SECTION_PATTERN = /^\s*(?:\*\*|__)([^*_\n]{1,28}?)[：:]?(?:\*\*|__)\s*$/;
+
+function isReplyTopicKey(value) {
+  return REPLY_TOPIC_KEY_PATTERN.test(String(value || "").replace(/\s+/g, "").trim());
+}
+
+function repairAttachedReplyBullets(text) {
+  return String(text || "").split("\n").map((line) => (
+    line.replace(
+      /([\u3400-\u9fff」』）)])-\s+(?=[A-Za-z\u3400-\u9fff])/g,
+      (match, tail, offset, source) => {
+        const prefix = source.slice(0, Number(offset || 0) + String(tail || "").length);
+        const clause = prefix.split(/[。！？!?]/).pop() || "";
+        return /[：:]/.test(clause) ? `${tail}\n- ` : match;
+      }
+    )
+  )).join("\n");
+}
+
+function normalizeReplyDisplayStructure(text) {
+  let value = repairAttachedReplyBullets(
+    String(text || "")
+      .replace(/\r\n?/g, "\n")
+      .replace(/[\u2028\u2029]/g, "\n")
+  );
+  value = value.replace(
+    /([。！？!?：:])([\u3400-\u9fffA-Za-z0-9+&＆/· ]{1,14})[：:]/g,
+    (match, punctuation, rawKey) => {
+      const key = String(rawKey || "").trim();
+      return isReplyTopicKey(key) ? `${punctuation}\n\n${key}：` : match;
+    }
+  );
+  return value.replace(/\n{3,}/g, "\n\n").trim();
+}
 
 function appendReplyInlineText(target, text) {
   const value = String(text || "");
@@ -2359,6 +2394,12 @@ function replyFieldParts(line) {
   ) ? { key, value, section: false } : null;
 }
 
+function replyTopicParts(line) {
+  const match = String(line || "").match(/^\s*([^：:\n]{1,18})[：:]\s*(\S.*)$/);
+  if (!match || !isReplyTopicKey(match[1])) return null;
+  return { key: match[1].trim(), value: match[2].trim() };
+}
+
 function replyLineKind(line) {
   const value = String(line || "");
   const stripped = value.trim();
@@ -2370,6 +2411,8 @@ function replyLineKind(line) {
   if (/^\s*(?:\d{1,3}[.)、]|[一二三四五六七八九十]+[、.])\s*\S/.test(value)) return "ordered";
   if (/^\s*>\s?\S/.test(value)) return "quote";
   if (/^\s*[A-Z0-9]{6}\s*$/.test(value)) return "token";
+  if (REPLY_STRONG_SECTION_PATTERN.test(value)) return "section";
+  if (replyTopicParts(value)) return "topic";
   const field = replyFieldParts(value);
   if (field) return field.section ? "section" : "field";
   if (stripped.length <= 28 && /[：:]$/.test(stripped)) return "section";
@@ -2431,9 +2474,10 @@ function appendReplyTable(container, lines) {
 }
 
 function renderAssistantReplyBody(body, text) {
-  const value = String(text || "").trim();
+  const sourceValue = String(text || "").trim();
+  const value = normalizeReplyDisplayStructure(sourceValue);
   body.dataset.replyRender = "true";
-  body.dataset.replyText = value;
+  body.dataset.replyText = sourceValue;
   delete body.dataset.documentRender;
   delete body.dataset.documentKind;
   body.replaceChildren();
@@ -2479,12 +2523,32 @@ function renderAssistantReplyBody(body, text) {
       continue;
     }
     if (kind === "section") {
-      const field = replyFieldParts(lines[index]);
+      const strongSection = lines[index].match(REPLY_STRONG_SECTION_PATTERN);
+      const field = strongSection ? null : replyFieldParts(lines[index]);
       appendReplyParagraph(
         body,
-        field ? field.key : lines[index].trim().replace(/[：:]$/, ""),
+        field
+          ? field.key
+          : strongSection
+            ? strongSection[1].trim().replace(/[：:]$/, "")
+            : lines[index].trim().replace(/[：:]$/, ""),
         "replySectionLabel"
       );
+      index += 1;
+      continue;
+    }
+    if (kind === "topic") {
+      const topic = replyTopicParts(lines[index]);
+      const wrapper = document.createElement("section");
+      wrapper.className = "replyTopic";
+      const label = document.createElement("h3");
+      label.className = "replyTopicLabel";
+      label.textContent = topic ? topic.key : "";
+      const summary = document.createElement("p");
+      summary.className = "replyTopicSummary";
+      appendReplyInlineText(summary, topic ? topic.value : lines[index].trim());
+      wrapper.append(label, summary);
+      body.appendChild(wrapper);
       index += 1;
       continue;
     }
@@ -13480,13 +13544,7 @@ async function summarizeCurrentDocument() {
       handleUnauthorizedResponse(response);
       throw new Error(payload.detail || `summarize_failed_${response.status}`);
     }
-    const points = Array.isArray(payload.key_points) && payload.key_points.length
-      ? `\n\n${textFor("document.summaryPoints", "要点")}：\n${payload.key_points.map((item) => `- ${item}`).join("\n")}`
-      : "";
-    const outline = Array.isArray(payload.outline) && payload.outline.length
-      ? `\n\n${textFor("document.summaryOutline", "结构")}：\n${payload.outline.map((item) => `- ${item}`).join("\n")}`
-      : "";
-    const text = `${payload.summary || textFor("document.summaryEmpty", "没有生成摘要。")}${points}${outline}`;
+    const text = payload.summary || textFor("document.summaryEmpty", "没有生成摘要。");
     setDocumentAnswer(text);
     if (!updateConversationMessage(pendingId, text, { label: textFor("document.summaryLabel", "Iris · PDF 摘要"), kind: "document_summary" })) {
       const summaryId = appendAssistantConversation(text, { label: textFor("document.summaryLabel", "Iris · PDF 摘要"), kind: "document_summary" });
