@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=384" type="image/png" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=384" />
-    <link rel="manifest" href="/iris/manifest.json?v=384" />
-    <link rel="stylesheet" href="/iris/styles.css?v=384" />
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=385" type="image/png" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=385" />
+    <link rel="manifest" href="/iris/manifest.json?v=385" />
+    <link rel="stylesheet" href="/iris/styles.css?v=385" />
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -124,6 +124,10 @@
               <span class="capabilityIcon capabilityTodoIcon" aria-hidden="true"></span>
               <span>待办事项</span>
             </button>
+            <button type="button" data-capability-action="canvas">
+              <span class="capabilityIcon capabilityCanvasIcon" aria-hidden="true"></span>
+              <span data-i18n="canvas.capability">创作画布</span>
+            </button>
           </div>
           <div class="capabilitySuggestion">
             <div>
@@ -170,6 +174,141 @@
         </section>
       </section>
 
+      <section id="canvasWorkspace" class="canvasWorkspace" aria-label="Iris Canvas" aria-hidden="true" hidden>
+        <header class="canvasHeader">
+          <div class="canvasHeaderBrand">
+            <span class="canvasHeaderMark" aria-hidden="true"></span>
+            <div>
+              <span class="canvasHeaderKicker">IRIS CANVAS</span>
+              <strong id="canvasHeaderTitle" data-i18n="canvas.workspace">创作空间</strong>
+            </div>
+          </div>
+          <div class="canvasHeaderActions">
+            <span id="canvasSaveStatus" class="canvasSaveStatus" role="status" aria-live="polite" data-tone="saved" data-i18n="canvas.saved">已保存</span>
+            <button id="canvasLibraryToggle" class="canvasIconButton canvasLibraryToggle" type="button" aria-label="画布列表" title="画布列表" data-i18n-aria-label="canvas.libraryToggle" data-i18n-title="canvas.libraryToggle">
+              <span aria-hidden="true"></span>
+            </button>
+            <button id="canvasCloseButton" class="canvasIconButton canvasCloseButton" type="button" aria-label="关闭画布" title="关闭画布" data-i18n-aria-label="canvas.close" data-i18n-title="canvas.close">×</button>
+          </div>
+        </header>
+
+        <div class="canvasBody">
+          <aside id="canvasLibrary" class="canvasLibrary" aria-label="画布列表">
+            <div class="canvasLibraryHeading">
+              <div>
+                <span data-i18n="canvas.libraryKicker">你的空间</span>
+                <strong data-i18n="canvas.library">画布</strong>
+              </div>
+              <button id="canvasNewButton" class="canvasNewButton" type="button" data-i18n="canvas.new">新建</button>
+            </div>
+            <div id="canvasLibraryList" class="canvasLibraryList" role="list"></div>
+          </aside>
+
+          <main id="canvasDocument" class="canvasDocument">
+            <section id="canvasEmptyState" class="canvasEmptyState">
+              <span class="canvasEmptyGlyph" aria-hidden="true"></span>
+              <span class="canvasEmptyKicker" data-i18n="canvas.emptyKicker">一张安静的纸</span>
+              <h2 data-i18n="canvas.emptyTitle">把想法写成作品</h2>
+              <p data-i18n="canvas.emptyHint">从空白开始，或把 Iris 的一条回答送进画布继续修改。</p>
+              <button id="canvasEmptyCreateButton" type="button" data-i18n="canvas.createBlank">创建空白画布</button>
+            </section>
+
+            <section id="canvasEditorShell" class="canvasEditorShell" hidden>
+              <div class="canvasDocumentTopline">
+                <label class="canvasTitleField">
+                  <span class="srOnly" data-i18n="canvas.title">标题</span>
+                  <input id="canvasTitleInput" type="text" maxlength="160" autocomplete="off" placeholder="未命名画布" data-i18n-placeholder="canvas.untitled" />
+                </label>
+                <span id="canvasRevisionBadge" class="canvasRevisionBadge">v1</span>
+              </div>
+
+              <div class="canvasToolbar" role="toolbar" aria-label="画布工具栏" data-i18n-aria-label="canvas.toolbar">
+                <label class="canvasCompactField">
+                  <span data-i18n="canvas.type">类型</span>
+                  <select id="canvasKindSelect">
+                    <option value="writing" data-i18n="canvas.writing">写作</option>
+                    <option value="code" data-i18n="canvas.code">代码</option>
+                  </select>
+                </label>
+                <label class="canvasCompactField canvasLanguageField">
+                  <span data-i18n="canvas.language">语言</span>
+                  <input id="canvasLanguageInput" type="text" maxlength="48" placeholder="Markdown" />
+                </label>
+                <div class="canvasFormatGroup" aria-label="格式">
+                  <button type="button" data-canvas-format="bold" aria-label="粗体"><strong>B</strong></button>
+                  <button type="button" data-canvas-format="italic" aria-label="斜体"><em>I</em></button>
+                  <button type="button" data-canvas-format="heading" aria-label="标题">H</button>
+                  <button type="button" data-canvas-format="list" aria-label="列表">≡</button>
+                </div>
+                <button id="canvasAssistOpenButton" class="canvasToolbarAction canvasAssistOpen" type="button" data-i18n="canvas.assistAction">请 Iris 修改</button>
+                <button id="canvasPreviewToggle" class="canvasToolbarAction" type="button" data-i18n="canvas.preview">预览</button>
+                <button id="canvasVersionsButton" class="canvasToolbarAction" type="button" data-i18n="canvas.versions">版本</button>
+                <button id="canvasExportButton" class="canvasToolbarAction" type="button" data-i18n="canvas.export">导出</button>
+              </div>
+
+              <div class="canvasPaper">
+                <textarea id="canvasEditor" spellcheck="true" autocomplete="off" placeholder="从这里开始写…" data-i18n-placeholder="canvas.content"></textarea>
+                <article id="canvasPreview" class="canvasPreview" aria-label="画布预览" hidden></article>
+              </div>
+
+              <footer class="canvasDocumentFooter">
+                <span id="canvasWordCount">0 字</span>
+                <span id="canvasUpdatedAt"></span>
+                <button id="canvasDeleteButton" type="button" data-i18n="canvas.delete">删除</button>
+              </footer>
+            </section>
+          </main>
+
+          <aside id="canvasAssistPanel" class="canvasAssistPanel" aria-label="AI 修改建议" hidden>
+            <div class="canvasAssistHeading">
+              <div>
+                <span data-i18n="canvas.assistKicker">IRIS REVISION</span>
+                <strong data-i18n="canvas.assistTitle">一起改得更好</strong>
+              </div>
+              <button id="canvasAssistCloseButton" class="canvasIconButton" type="button" aria-label="收起建议" data-i18n-aria-label="canvas.assistClose">×</button>
+            </div>
+            <p id="canvasSelectionStatus" class="canvasSelectionStatus" data-i18n="canvas.assistWhole">将修改整篇内容</p>
+            <textarea id="canvasAssistInput" rows="4" placeholder="例如：更自然、更简洁，保留原来的语气" data-i18n-placeholder="canvas.assistPlaceholder"></textarea>
+            <button id="canvasAssistSubmitButton" class="canvasAssistSubmitButton" type="button" data-i18n="canvas.assistPreview">生成修改预览</button>
+            <section id="canvasSuggestionCard" class="canvasSuggestionCard" hidden>
+              <div class="canvasSuggestionHeading">
+                <strong data-i18n="canvas.suggestion">修改预览</strong>
+                <span data-i18n="canvas.previewOnly">还没有写入画布</span>
+              </div>
+              <pre id="canvasSuggestionText"></pre>
+              <div class="canvasSuggestionActions">
+                <button id="canvasSuggestionDiscardButton" type="button" data-i18n="canvas.discard">放弃</button>
+                <button id="canvasSuggestionApplyButton" type="button" data-i18n="canvas.apply">应用修改</button>
+              </div>
+            </section>
+          </aside>
+        </div>
+
+        <aside id="canvasVersionDrawer" class="canvasVersionDrawer" aria-label="版本历史" aria-hidden="true" hidden>
+          <div class="canvasVersionHeading">
+            <div>
+              <span data-i18n="canvas.historyKicker">VERSION HISTORY</span>
+              <strong data-i18n="canvas.history">版本历史</strong>
+            </div>
+            <button id="canvasVersionCloseButton" class="canvasIconButton" type="button" aria-label="关闭版本历史" data-i18n-aria-label="canvas.historyClose">×</button>
+          </div>
+          <div id="canvasVersionList" class="canvasVersionList" role="list"></div>
+        </aside>
+
+        <section id="canvasDeletePanel" class="canvasDeletePanel" role="dialog" aria-modal="true" aria-labelledby="canvasDeleteTitle" hidden>
+          <div class="canvasDeleteCard">
+            <span data-i18n="canvas.deleteKicker">永久删除</span>
+            <h2 id="canvasDeleteTitle" data-i18n="canvas.deleteTitle">删除这张画布？</h2>
+            <p id="canvasDeleteScope"></p>
+            <strong data-i18n="canvas.deleteWarning">历史版本也会一起删除，这项操作无法撤销。</strong>
+            <div>
+              <button id="canvasDeleteCancelButton" type="button" data-i18n="canvas.cancel">取消</button>
+              <button id="canvasDeleteConfirmButton" type="button" data-i18n="canvas.deleteConfirm">永久删除</button>
+            </div>
+          </div>
+        </section>
+      </section>
+
       <section id="accessGate" class="accessGate" aria-label="Iris private entrance" aria-hidden="true" hidden>
         <div class="accessQuickControls" aria-label="quick settings">
           <button id="accessThemeToggle" class="accessQuickButton" type="button" aria-label="切换主题" title="切换主题" data-i18n-aria-label="action.themeCycle" data-i18n-title="action.themeCycle">
@@ -187,7 +326,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=384" alt="" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=385" alt="" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -254,7 +393,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=384" alt="" />
+              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=385" alt="" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
@@ -748,7 +887,7 @@
         </div>
       </aside>
     </main>
-    <script src="/iris/public-config.js?v=384"></script>
-    <script src="/iris/app.js?v=384"></script>
+    <script src="/iris/public-config.js?v=385"></script>
+    <script src="/iris/app.js?v=385"></script>
   </body>
 </html>

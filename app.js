@@ -146,10 +146,50 @@ const els = {
   diagnosticsCopy: document.getElementById("copyDiagnosticsButton"),
   diagnosticsClear: document.getElementById("clearDiagnosticsButton"),
   manual: document.getElementById("manualInput"),
-  manualSend: document.getElementById("manualSend")
+  manualSend: document.getElementById("manualSend"),
+  canvasWorkspace: document.getElementById("canvasWorkspace"),
+  canvasHeaderTitle: document.getElementById("canvasHeaderTitle"),
+  canvasSaveStatus: document.getElementById("canvasSaveStatus"),
+  canvasLibraryToggle: document.getElementById("canvasLibraryToggle"),
+  canvasClose: document.getElementById("canvasCloseButton"),
+  canvasLibrary: document.getElementById("canvasLibrary"),
+  canvasNew: document.getElementById("canvasNewButton"),
+  canvasLibraryList: document.getElementById("canvasLibraryList"),
+  canvasEmptyState: document.getElementById("canvasEmptyState"),
+  canvasEmptyCreate: document.getElementById("canvasEmptyCreateButton"),
+  canvasEditorShell: document.getElementById("canvasEditorShell"),
+  canvasTitle: document.getElementById("canvasTitleInput"),
+  canvasRevisionBadge: document.getElementById("canvasRevisionBadge"),
+  canvasKind: document.getElementById("canvasKindSelect"),
+  canvasLanguage: document.getElementById("canvasLanguageInput"),
+  canvasAssistOpen: document.getElementById("canvasAssistOpenButton"),
+  canvasPreviewToggle: document.getElementById("canvasPreviewToggle"),
+  canvasVersions: document.getElementById("canvasVersionsButton"),
+  canvasExport: document.getElementById("canvasExportButton"),
+  canvasEditor: document.getElementById("canvasEditor"),
+  canvasPreview: document.getElementById("canvasPreview"),
+  canvasWordCount: document.getElementById("canvasWordCount"),
+  canvasUpdatedAt: document.getElementById("canvasUpdatedAt"),
+  canvasDelete: document.getElementById("canvasDeleteButton"),
+  canvasAssistPanel: document.getElementById("canvasAssistPanel"),
+  canvasAssistClose: document.getElementById("canvasAssistCloseButton"),
+  canvasSelectionStatus: document.getElementById("canvasSelectionStatus"),
+  canvasAssistInput: document.getElementById("canvasAssistInput"),
+  canvasAssistSubmit: document.getElementById("canvasAssistSubmitButton"),
+  canvasSuggestionCard: document.getElementById("canvasSuggestionCard"),
+  canvasSuggestionText: document.getElementById("canvasSuggestionText"),
+  canvasSuggestionDiscard: document.getElementById("canvasSuggestionDiscardButton"),
+  canvasSuggestionApply: document.getElementById("canvasSuggestionApplyButton"),
+  canvasVersionDrawer: document.getElementById("canvasVersionDrawer"),
+  canvasVersionClose: document.getElementById("canvasVersionCloseButton"),
+  canvasVersionList: document.getElementById("canvasVersionList"),
+  canvasDeletePanel: document.getElementById("canvasDeletePanel"),
+  canvasDeleteScope: document.getElementById("canvasDeleteScope"),
+  canvasDeleteCancel: document.getElementById("canvasDeleteCancelButton"),
+  canvasDeleteConfirm: document.getElementById("canvasDeleteConfirmButton")
 };
 
-const VOICE_UI_VERSION = "384";
+const VOICE_UI_VERSION = "385";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -660,6 +700,67 @@ const UI_TEXT = {
     "conversation.shareSnapshot": "快照创建于 {time}，不会随原会话更新。",
     "conversation.shareBack": "打开 Iris",
     "conversation.shareYou": "你",
+    "canvas.capability": "创作画布",
+    "canvas.workspace": "创作空间",
+    "canvas.saved": "已保存",
+    "canvas.saving": "正在保存",
+    "canvas.unsaved": "有未保存修改",
+    "canvas.conflict": "画布已在别处更新，已载入最新版",
+    "canvas.libraryToggle": "画布列表",
+    "canvas.close": "关闭画布",
+    "canvas.libraryKicker": "你的空间",
+    "canvas.library": "画布",
+    "canvas.new": "新建",
+    "canvas.emptyKicker": "一张安静的纸",
+    "canvas.emptyTitle": "把想法写成作品",
+    "canvas.emptyHint": "从空白开始，或把 Iris 的一条回答送进画布继续修改。",
+    "canvas.createBlank": "创建空白画布",
+    "canvas.title": "标题",
+    "canvas.untitled": "未命名画布",
+    "canvas.toolbar": "画布工具栏",
+    "canvas.type": "类型",
+    "canvas.writing": "写作",
+    "canvas.code": "代码",
+    "canvas.language": "语言",
+    "canvas.preview": "预览",
+    "canvas.edit": "编辑",
+    "canvas.versions": "版本",
+    "canvas.export": "导出",
+    "canvas.content": "从这里开始写…",
+    "canvas.delete": "删除",
+    "canvas.assistKicker": "IRIS REVISION",
+    "canvas.assistTitle": "一起改得更好",
+    "canvas.assistAction": "请 Iris 修改",
+    "canvas.assistClose": "收起建议",
+    "canvas.assistWhole": "将修改整篇内容",
+    "canvas.assistSelection": "将只修改已选择的 {count} 个字符",
+    "canvas.assistPlaceholder": "例如：更自然、更简洁，保留原来的语气",
+    "canvas.assistPreview": "生成修改预览",
+    "canvas.suggestion": "修改预览",
+    "canvas.previewOnly": "还没有写入画布",
+    "canvas.discard": "放弃",
+    "canvas.apply": "应用修改",
+    "canvas.historyKicker": "VERSION HISTORY",
+    "canvas.history": "版本历史",
+    "canvas.historyClose": "关闭版本历史",
+    "canvas.restore": "恢复为新版本",
+    "canvas.current": "当前版本",
+    "canvas.deleteKicker": "永久删除",
+    "canvas.deleteTitle": "删除这张画布？",
+    "canvas.deleteWarning": "历史版本也会一起删除，这项操作无法撤销。",
+    "canvas.cancel": "取消",
+    "canvas.deleteConfirm": "永久删除",
+    "canvas.deleteScope": "将删除「{title}」及其 {count} 个历史版本。",
+    "canvas.loadFailed": "暂时无法载入画布。",
+    "canvas.saveFailed": "保存失败，请稍后再试",
+    "canvas.assistFailed": "Iris 暂时没有给出修改建议。",
+    "canvas.temporaryBlocked": "临时对话不会保存持久画布。",
+    "canvas.sendTo": "在 Canvas 中编辑",
+    "canvas.created": "已送入 Canvas",
+    "canvas.wordCount": "{count} 字",
+    "canvas.updated": "更新于 {time}",
+    "canvas.emptyList": "还没有画布",
+    "canvas.exportFailed": "导出失败，请稍后再试。",
     "conversation.delete": "删除",
     "conversation.deleteKicker": "永久删除",
     "conversation.deleteTitle": "删除「{title}」？",
@@ -1051,6 +1152,67 @@ const UI_TEXT = {
     "conversation.shareSnapshot": "Snapshot created {time}. It does not update with the private conversation.",
     "conversation.shareBack": "Open Iris",
     "conversation.shareYou": "You",
+    "canvas.capability": "Canvas",
+    "canvas.workspace": "Creative space",
+    "canvas.saved": "Saved",
+    "canvas.saving": "Saving",
+    "canvas.unsaved": "Unsaved changes",
+    "canvas.conflict": "Updated elsewhere; the latest version is loaded",
+    "canvas.libraryToggle": "Canvas library",
+    "canvas.close": "Close Canvas",
+    "canvas.libraryKicker": "Your space",
+    "canvas.library": "Canvases",
+    "canvas.new": "New",
+    "canvas.emptyKicker": "A quiet page",
+    "canvas.emptyTitle": "Shape an idea into something finished",
+    "canvas.emptyHint": "Start blank, or send one of Iris's replies here and keep editing.",
+    "canvas.createBlank": "Create a blank canvas",
+    "canvas.title": "Title",
+    "canvas.untitled": "Untitled canvas",
+    "canvas.toolbar": "Canvas toolbar",
+    "canvas.type": "Type",
+    "canvas.writing": "Writing",
+    "canvas.code": "Code",
+    "canvas.language": "Language",
+    "canvas.preview": "Preview",
+    "canvas.edit": "Edit",
+    "canvas.versions": "Versions",
+    "canvas.export": "Export",
+    "canvas.content": "Start writing here…",
+    "canvas.delete": "Delete",
+    "canvas.assistKicker": "IRIS REVISION",
+    "canvas.assistTitle": "Make it better together",
+    "canvas.assistAction": "Revise with Iris",
+    "canvas.assistClose": "Close suggestions",
+    "canvas.assistWhole": "The full canvas will be revised",
+    "canvas.assistSelection": "Only the selected {count} characters will be revised",
+    "canvas.assistPlaceholder": "For example: make it warmer and more concise, while keeping my voice",
+    "canvas.assistPreview": "Generate a revision preview",
+    "canvas.suggestion": "Revision preview",
+    "canvas.previewOnly": "Nothing has been written yet",
+    "canvas.discard": "Discard",
+    "canvas.apply": "Apply revision",
+    "canvas.historyKicker": "VERSION HISTORY",
+    "canvas.history": "Version history",
+    "canvas.historyClose": "Close version history",
+    "canvas.restore": "Restore as a new version",
+    "canvas.current": "Current version",
+    "canvas.deleteKicker": "PERMANENT DELETE",
+    "canvas.deleteTitle": "Delete this canvas?",
+    "canvas.deleteWarning": "Its version history will also be deleted. This cannot be undone.",
+    "canvas.cancel": "Cancel",
+    "canvas.deleteConfirm": "Delete permanently",
+    "canvas.deleteScope": "This will delete “{title}” and its {count} saved versions.",
+    "canvas.loadFailed": "Canvas could not be loaded right now.",
+    "canvas.saveFailed": "Could not save. Please try again",
+    "canvas.assistFailed": "Iris could not prepare a revision right now.",
+    "canvas.temporaryBlocked": "Temporary conversations do not keep persistent canvases.",
+    "canvas.sendTo": "Edit in Canvas",
+    "canvas.created": "Sent to Canvas",
+    "canvas.wordCount": "{count} words",
+    "canvas.updated": "Updated {time}",
+    "canvas.emptyList": "No canvases yet",
+    "canvas.exportFailed": "Export failed. Please try again.",
     "conversation.delete": "Delete",
     "conversation.deleteKicker": "PERMANENT DELETE",
     "conversation.deleteTitle": "Delete “{title}”?",
@@ -1364,6 +1526,15 @@ let currentTurnId = "";
 let currentResponseId = "";
 let currentConversationId = "";
 let currentConversationTitle = "";
+let canvasItems = [];
+let currentCanvas = null;
+let canvasDirty = false;
+let canvasSaveTimer = 0;
+let canvasSavePromise = null;
+let canvasSuggestion = null;
+let canvasSelection = { start: 0, end: 0 };
+let canvasDeleteToken = "";
+let canvasRestoreFocus = null;
 let conversationVersionGroup = null;
 let conversationVersionRequestSeq = 0;
 let conversationVersionSourceTurnId = "";
@@ -1528,7 +1699,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v384-conversation-sharing";
+const WEB_VERSION = "voice-ui-web-polish-v385-canvas";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -3935,6 +4106,8 @@ function feedbackIcon(kind) {
       ? '<path d="M6 4v5.2c0 1.5 1.2 2.8 2.8 2.8H17"/><path d="m13.5 8.5 3.5 3.5-3.5 3.5"/><circle cx="6" cy="4" r="1.7"/>'
       : kind === "regenerate"
         ? '<path d="M17.8 7.7A7 7 0 1 0 18 13"/><path d="M17.8 3.8v3.9h-3.9"/>'
+        : kind === "canvas"
+          ? '<path d="M5 3.5h9.8L18 6.7v11.8H5Z"/><path d="M14.5 3.5v3.6H18"/><path d="M8 10h7M8 13h7M8 16h4.2"/>'
         : kind === "edit"
           ? '<path d="m5 15.8.6-3.5L14.7 3.2a1.6 1.6 0 0 1 2.2 0l1 1a1.6 1.6 0 0 1 0 2.2l-9.1 9.1-3.8.3Z"/><path d="m12.9 5 3.2 3.2"/>'
           : '<path d="M7.8 9.8 11 16.2c.5 1 1.8.9 2.1-.1l.2-.8c.2-.7.1-1.5-.2-2.1l-.6-1.2h4.2c1.3 0 2.2-1.2 1.8-2.4l-1.6-5.2c-.3-.9-1.1-1.5-2-1.5H7.8v6.9Z"/><path d="M4 2.5h3.8v8H4z"/>';
@@ -4263,6 +4436,38 @@ function attachMessageFeedbackControls(item, rawTarget) {
     regenerateConversationTurn(group, target, regenerate);
   });
   group.appendChild(regenerate);
+  const canvas = document.createElement("button");
+  canvas.type = "button";
+  canvas.className = "messageFeedbackIcon messageCanvasIcon";
+  canvas.innerHTML = feedbackIcon("canvas");
+  canvas.setAttribute("aria-label", textFor("canvas.sendTo", "在 Canvas 中编辑"));
+  canvas.title = textFor("canvas.sendTo", "在 Canvas 中编辑");
+  canvas.addEventListener("click", async () => {
+    const body = item.querySelector(".messageText");
+    const content = String(body ? body.textContent : "").trim();
+    if (!content) return;
+    canvas.disabled = true;
+    canvas.setAttribute("aria-busy", "true");
+    try {
+      await createCanvasFromContent(content, {
+        sourceTurnId: target.turnId,
+        restoreFocus: canvas
+      });
+      const status = group.querySelector(".messageFeedbackStatus");
+      if (status) status.textContent = textFor("canvas.created", "已送入 Canvas");
+    } catch (error) {
+      const status = group.querySelector(".messageFeedbackStatus");
+      if (status) {
+        status.textContent = error.message === "temporary_conversation_canvas_not_persisted"
+          ? textFor("canvas.temporaryBlocked", "临时对话不会保存持久画布。")
+          : textFor("canvas.loadFailed", "暂时无法载入画布。");
+      }
+    } finally {
+      canvas.disabled = false;
+      canvas.removeAttribute("aria-busy");
+    }
+  });
+  group.appendChild(canvas);
   const branch = document.createElement("button");
   branch.type = "button";
   branch.className = "messageFeedbackIcon messageBranchIcon";
@@ -14874,6 +15079,767 @@ async function handleAccessSubmit(event) {
   }
 }
 
+function canvasConversationScope() {
+  const record = currentConversationRecord();
+  if (record && record.memory_mode === "temporary") {
+    throw new Error("temporary_conversation_canvas_not_persisted");
+  }
+  return {
+    conversationId: currentConversationId || "",
+    projectId: String((record && record.project_id) || "")
+  };
+}
+
+function canvasTitleFromContent(content) {
+  const firstLine = String(content || "")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^#{1,6}\s+/, "").replace(/^[-*+]\s+/, "").trim())
+    .find(Boolean);
+  return (firstLine || textFor("canvas.untitled", "未命名画布")).slice(0, 96);
+}
+
+function canvasKindFromContent(content) {
+  return /```[A-Za-z0-9_+.#-]*\s*\n[\s\S]+?```/.test(String(content || "")) ? "code" : "writing";
+}
+
+function canvasLanguageFromContent(content, kind) {
+  if (kind !== "code") return "markdown";
+  const match = String(content || "").match(/```([A-Za-z0-9_+.#-]+)/);
+  return String((match && match[1]) || "plain").toLowerCase();
+}
+
+function canvasRequestPath(path) {
+  return backendUrl(`/client/v1/canvases${path}`);
+}
+
+async function canvasJsonRequest(path, options = {}) {
+  const response = await fetch(canvasRequestPath(path), {
+    ...options,
+    headers: {
+      ...authHeaders(),
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {})
+    }
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    handleUnauthorizedResponse(response);
+    const error = new Error(String(payload.detail || `HTTP ${response.status}`));
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
+  }
+  return payload;
+}
+
+function setCanvasSaveStatus(key = "canvas.saved", tone = "saved", fallback = "") {
+  if (!els.canvasSaveStatus) return;
+  els.canvasSaveStatus.textContent = textFor(key, fallback || key);
+  els.canvasSaveStatus.dataset.tone = tone;
+}
+
+function canvasDateLabel(value, options = {}) {
+  const parsed = new Date(String(value || ""));
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toLocaleString(currentLanguage === "en" ? "en-US" : "zh-CN", {
+    month: options.compact ? undefined : "short",
+    day: options.compact ? undefined : "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function canvasWordCount(content) {
+  const value = String(content || "");
+  if (currentLanguage === "en") {
+    return (value.trim().match(/\S+/g) || []).length;
+  }
+  return value.replace(/\s/g, "").length;
+}
+
+function updateCanvasDocumentMeta() {
+  if (!currentCanvas) return;
+  if (els.canvasHeaderTitle) {
+    els.canvasHeaderTitle.textContent = String(currentCanvas.title || textFor("canvas.workspace", "创作空间"));
+  }
+  if (els.canvasRevisionBadge) {
+    els.canvasRevisionBadge.textContent = `v${Math.max(1, Number(currentCanvas.revision) || 1)}`;
+  }
+  if (els.canvasWordCount) {
+    els.canvasWordCount.textContent = formatTextFor(
+      "canvas.wordCount",
+      "{count} 字",
+      { count: canvasWordCount(els.canvasEditor ? els.canvasEditor.value : currentCanvas.content) }
+    );
+  }
+  if (els.canvasUpdatedAt) {
+    els.canvasUpdatedAt.textContent = formatTextFor(
+      "canvas.updated",
+      "更新于 {time}",
+      { time: canvasDateLabel(currentCanvas.updated_at, { compact: true }) }
+    );
+  }
+}
+
+function upsertCanvasListItem(canvas) {
+  if (!canvas || !canvas.canvas_id) return;
+  const index = canvasItems.findIndex((item) => item.canvas_id === canvas.canvas_id);
+  const summary = { ...(index >= 0 ? canvasItems[index] : {}), ...canvas };
+  delete summary.content;
+  delete summary.version;
+  if (index >= 0) canvasItems.splice(index, 1);
+  canvasItems.unshift(summary);
+}
+
+function renderCanvasLibrary() {
+  if (!els.canvasLibraryList) return;
+  els.canvasLibraryList.replaceChildren();
+  if (!canvasItems.length) {
+    const empty = document.createElement("p");
+    empty.className = "canvasLibraryEmpty";
+    empty.textContent = textFor("canvas.emptyList", "还没有画布");
+    els.canvasLibraryList.appendChild(empty);
+    return;
+  }
+  canvasItems.forEach((canvas) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "canvasLibraryItem";
+    button.dataset.canvasId = String(canvas.canvas_id || "");
+    button.classList.toggle("isActive", Boolean(currentCanvas && currentCanvas.canvas_id === canvas.canvas_id));
+    button.setAttribute("role", "listitem");
+    const icon = document.createElement("span");
+    icon.className = `canvasLibraryItemIcon is${canvas.kind === "code" ? "Code" : "Writing"}`;
+    icon.textContent = canvas.kind === "code" ? "</>" : "Aa";
+    const copy = document.createElement("span");
+    copy.className = "canvasLibraryItemCopy";
+    const title = document.createElement("strong");
+    title.textContent = String(canvas.title || textFor("canvas.untitled", "未命名画布"));
+    const meta = document.createElement("small");
+    meta.textContent = `${canvas.kind === "code" ? textFor("canvas.code", "代码") : textFor("canvas.writing", "写作")} · ${canvasDateLabel(canvas.updated_at, { compact: true })}`;
+    copy.append(title, meta);
+    button.append(icon, copy);
+    button.addEventListener("click", () => {
+      openCanvasById(String(canvas.canvas_id || "")).catch((error) => {
+        logLine(error.message || "canvas open failed");
+      });
+    });
+    els.canvasLibraryList.appendChild(button);
+  });
+}
+
+function setCanvasEmptyState(empty) {
+  if (els.canvasEmptyState) els.canvasEmptyState.hidden = !empty;
+  if (els.canvasEditorShell) els.canvasEditorShell.hidden = empty;
+  if (els.canvasAssistPanel && empty) els.canvasAssistPanel.hidden = true;
+  if (els.canvasWorkspace) els.canvasWorkspace.classList.toggle("hasCanvas", !empty);
+}
+
+function resetCanvasSuggestion() {
+  canvasSuggestion = null;
+  if (els.canvasSuggestionCard) els.canvasSuggestionCard.hidden = true;
+  if (els.canvasSuggestionText) els.canvasSuggestionText.textContent = "";
+}
+
+function populateCanvasEditor(canvas) {
+  currentCanvas = canvas || null;
+  canvasDirty = false;
+  window.clearTimeout(canvasSaveTimer);
+  canvasSaveTimer = 0;
+  resetCanvasSuggestion();
+  if (!currentCanvas) {
+    setCanvasEmptyState(true);
+    if (els.canvasHeaderTitle) els.canvasHeaderTitle.textContent = textFor("canvas.workspace", "创作空间");
+    renderCanvasLibrary();
+    return;
+  }
+  setCanvasEmptyState(false);
+  if (els.canvasTitle) els.canvasTitle.value = String(currentCanvas.title || "");
+  if (els.canvasKind) els.canvasKind.value = currentCanvas.kind === "code" ? "code" : "writing";
+  if (els.canvasLanguage) els.canvasLanguage.value = String(currentCanvas.language || "");
+  if (els.canvasEditor) {
+    els.canvasEditor.value = String(currentCanvas.content || "");
+    els.canvasEditor.classList.toggle("isCode", currentCanvas.kind === "code");
+  }
+  setCanvasPreview(false);
+  updateCanvasDocumentMeta();
+  setCanvasSaveStatus("canvas.saved", "saved", "已保存");
+  if (els.canvasAssistPanel) els.canvasAssistPanel.hidden = false;
+  renderCanvasLibrary();
+}
+
+async function loadCanvasLibrary() {
+  const payload = await canvasJsonRequest("?limit=100");
+  canvasItems = Array.isArray(payload.items) ? payload.items : [];
+  renderCanvasLibrary();
+  return canvasItems;
+}
+
+async function openCanvasById(canvasId) {
+  if (!canvasId) return;
+  if (currentCanvas && currentCanvas.canvas_id !== canvasId && canvasDirty) {
+    const saved = await saveCurrentCanvas({ source: "switch" });
+    if (!saved) return;
+  }
+  const payload = await canvasJsonRequest(`/${encodeURIComponent(canvasId)}`);
+  populateCanvasEditor(payload.canvas || null);
+  if (window.matchMedia("(max-width: 760px)").matches && els.canvasWorkspace) {
+    els.canvasWorkspace.classList.remove("libraryOpen");
+  }
+}
+
+async function openCanvasWorkspace(options = {}) {
+  if (!els.canvasWorkspace) return;
+  canvasRestoreFocus = options.restoreFocus || document.activeElement;
+  els.canvasWorkspace.hidden = false;
+  els.canvasWorkspace.setAttribute("aria-hidden", "false");
+  document.body.classList.add("canvasOpen");
+  await loadCanvasLibrary();
+  if (options.canvas && options.canvas.canvas_id) {
+    upsertCanvasListItem(options.canvas);
+    populateCanvasEditor(options.canvas);
+  } else if (currentCanvas && canvasItems.some((item) => item.canvas_id === currentCanvas.canvas_id)) {
+    await openCanvasById(currentCanvas.canvas_id);
+  } else if (canvasItems.length) {
+    await openCanvasById(canvasItems[0].canvas_id);
+  } else {
+    populateCanvasEditor(null);
+    if (els.canvasWorkspace) els.canvasWorkspace.classList.add("libraryOpen");
+  }
+}
+
+async function closeCanvasWorkspace() {
+  if (!els.canvasWorkspace || els.canvasWorkspace.hidden) return;
+  if (canvasDirty) {
+    const saved = await saveCurrentCanvas({ source: "close" });
+    if (!saved) return;
+  }
+  closeCanvasVersionDrawer();
+  closeCanvasDeletePanel();
+  if (els.canvasAssistPanel) els.canvasAssistPanel.hidden = true;
+  els.canvasWorkspace.hidden = true;
+  els.canvasWorkspace.setAttribute("aria-hidden", "true");
+  els.canvasWorkspace.classList.remove("libraryOpen", "assistOpen");
+  document.body.classList.remove("canvasOpen");
+  if (canvasRestoreFocus && typeof canvasRestoreFocus.focus === "function") {
+    canvasRestoreFocus.focus({ preventScroll: true });
+  }
+}
+
+async function createCanvasFromContent(content, options = {}) {
+  const scope = canvasConversationScope();
+  const cleanContent = String(content || "");
+  const kind = options.kind || canvasKindFromContent(cleanContent);
+  const payload = await canvasJsonRequest("", {
+    method: "POST",
+    body: JSON.stringify({
+      user_id: currentSubjectId(),
+      client_id: voiceClientId(),
+      conversation_id: scope.conversationId,
+      project_id: scope.projectId,
+      source_turn_id: String(options.sourceTurnId || ""),
+      title: String(options.title || canvasTitleFromContent(cleanContent)),
+      content: cleanContent,
+      kind,
+      language: String(options.language || canvasLanguageFromContent(cleanContent, kind))
+    })
+  });
+  const canvas = payload.canvas;
+  upsertCanvasListItem(canvas);
+  await openCanvasWorkspace({ canvas, restoreFocus: options.restoreFocus });
+  return canvas;
+}
+
+async function createBlankCanvas() {
+  return createCanvasFromContent("", {
+    title: textFor("canvas.untitled", "未命名画布"),
+    kind: "writing",
+    language: "markdown",
+    restoreFocus: document.activeElement
+  });
+}
+
+function canvasDraftSnapshot() {
+  if (!currentCanvas) return null;
+  return {
+    title: String((els.canvasTitle && els.canvasTitle.value) || textFor("canvas.untitled", "未命名画布")).trim(),
+    content: String((els.canvasEditor && els.canvasEditor.value) || ""),
+    kind: els.canvasKind && els.canvasKind.value === "code" ? "code" : "writing",
+    language: String((els.canvasLanguage && els.canvasLanguage.value) || "").trim()
+  };
+}
+
+function scheduleCanvasSave(delay = 720) {
+  window.clearTimeout(canvasSaveTimer);
+  canvasSaveTimer = window.setTimeout(() => {
+    canvasSaveTimer = 0;
+    saveCurrentCanvas({ source: "autosave" }).catch((error) => {
+      logLine(error.message || "canvas autosave failed");
+    });
+  }, delay);
+}
+
+function markCanvasDirty() {
+  if (!currentCanvas) return;
+  canvasDirty = true;
+  setCanvasSaveStatus("canvas.unsaved", "dirty", "有未保存修改");
+  updateCanvasDocumentMeta();
+  if (els.canvasEditor && els.canvasKind) {
+    els.canvasEditor.classList.toggle("isCode", els.canvasKind.value === "code");
+  }
+  if (els.canvasPreview && !els.canvasPreview.hidden) renderCanvasPreview();
+  scheduleCanvasSave();
+}
+
+async function loadLatestCanvasAfterConflict(canvasId) {
+  const latest = await canvasJsonRequest(`/${encodeURIComponent(canvasId)}`);
+  populateCanvasEditor(latest.canvas || null);
+  setCanvasSaveStatus("canvas.conflict", "warning", "画布已在别处更新，已载入最新版");
+  return false;
+}
+
+async function saveCurrentCanvas(options = {}) {
+  window.clearTimeout(canvasSaveTimer);
+  canvasSaveTimer = 0;
+  if (!currentCanvas || !canvasDirty) return true;
+  if (canvasSavePromise) {
+    await canvasSavePromise;
+    return canvasDirty ? saveCurrentCanvas(options) : true;
+  }
+  const canvasId = currentCanvas.canvas_id;
+  const expectedRevision = Number(currentCanvas.revision) || 1;
+  const draft = canvasDraftSnapshot();
+  canvasDirty = false;
+  setCanvasSaveStatus("canvas.saving", "saving", "正在保存");
+  canvasSavePromise = (async () => {
+    try {
+      const payload = await canvasJsonRequest(`/${encodeURIComponent(canvasId)}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          user_id: currentSubjectId(),
+          client_id: voiceClientId(),
+          expected_revision: expectedRevision,
+          source: String(options.source || "manual").slice(0, 32),
+          ...draft
+        })
+      });
+      const saved = payload.canvas;
+      currentCanvas = saved;
+      upsertCanvasListItem(saved);
+      if (!canvasDirty) {
+        if (els.canvasTitle) els.canvasTitle.value = saved.title || "";
+        if (els.canvasKind) els.canvasKind.value = saved.kind || "writing";
+        if (els.canvasLanguage) els.canvasLanguage.value = saved.language || "";
+        if (els.canvasEditor) els.canvasEditor.value = saved.content || "";
+        setCanvasSaveStatus("canvas.saved", "saved", "已保存");
+      } else {
+        setCanvasSaveStatus("canvas.unsaved", "dirty", "有未保存修改");
+      }
+      updateCanvasDocumentMeta();
+      renderCanvasLibrary();
+      return true;
+    } catch (error) {
+      if (error.status === 409) return loadLatestCanvasAfterConflict(canvasId);
+      canvasDirty = true;
+      setCanvasSaveStatus("canvas.saveFailed", "error", "保存失败，请稍后再试");
+      scheduleCanvasSave(1800);
+      return false;
+    } finally {
+      canvasSavePromise = null;
+    }
+  })();
+  return canvasSavePromise;
+}
+
+function appendCanvasPreviewParagraph(container, lines) {
+  const text = lines.join("\n").trim();
+  if (!text) return;
+  const paragraph = document.createElement("p");
+  paragraph.textContent = text;
+  container.appendChild(paragraph);
+}
+
+function renderCanvasPreview() {
+  if (!els.canvasPreview || !els.canvasEditor) return;
+  els.canvasPreview.replaceChildren();
+  const content = els.canvasEditor.value || "";
+  const kind = els.canvasKind && els.canvasKind.value === "code" ? "code" : "writing";
+  if (kind === "code") {
+    const pre = document.createElement("pre");
+    const code = document.createElement("code");
+    code.textContent = content.replace(/^```[A-Za-z0-9_+.#-]*\s*\n?/, "").replace(/\n?```\s*$/, "");
+    pre.appendChild(code);
+    els.canvasPreview.appendChild(pre);
+    return;
+  }
+  const lines = content.split(/\r?\n/);
+  let paragraph = [];
+  let codeLines = [];
+  let inCode = false;
+  lines.forEach((line) => {
+    if (/^```/.test(line.trim())) {
+      if (inCode) {
+        const pre = document.createElement("pre");
+        const code = document.createElement("code");
+        code.textContent = codeLines.join("\n");
+        pre.appendChild(code);
+        els.canvasPreview.appendChild(pre);
+        codeLines = [];
+      } else {
+        appendCanvasPreviewParagraph(els.canvasPreview, paragraph);
+        paragraph = [];
+      }
+      inCode = !inCode;
+      return;
+    }
+    if (inCode) {
+      codeLines.push(line);
+      return;
+    }
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    const listItem = line.match(/^[-*+]\s+(.+)$/);
+    if (heading) {
+      appendCanvasPreviewParagraph(els.canvasPreview, paragraph);
+      paragraph = [];
+      const node = document.createElement(heading[1].length === 1 ? "h1" : heading[1].length === 2 ? "h2" : "h3");
+      node.textContent = heading[2];
+      els.canvasPreview.appendChild(node);
+    } else if (listItem) {
+      appendCanvasPreviewParagraph(els.canvasPreview, paragraph);
+      paragraph = [];
+      let list = els.canvasPreview.lastElementChild;
+      if (!list || list.tagName !== "UL") {
+        list = document.createElement("ul");
+        els.canvasPreview.appendChild(list);
+      }
+      const item = document.createElement("li");
+      item.textContent = listItem[1];
+      list.appendChild(item);
+    } else if (!line.trim()) {
+      appendCanvasPreviewParagraph(els.canvasPreview, paragraph);
+      paragraph = [];
+    } else {
+      paragraph.push(line);
+    }
+  });
+  if (codeLines.length) {
+    const pre = document.createElement("pre");
+    const code = document.createElement("code");
+    code.textContent = codeLines.join("\n");
+    pre.appendChild(code);
+    els.canvasPreview.appendChild(pre);
+  }
+  appendCanvasPreviewParagraph(els.canvasPreview, paragraph);
+}
+
+function setCanvasPreview(enabled) {
+  const active = Boolean(enabled);
+  if (els.canvasEditor) els.canvasEditor.hidden = active;
+  if (els.canvasPreview) {
+    els.canvasPreview.hidden = !active;
+    if (active) renderCanvasPreview();
+  }
+  if (els.canvasPreviewToggle) {
+    els.canvasPreviewToggle.textContent = active
+      ? textFor("canvas.edit", "编辑")
+      : textFor("canvas.preview", "预览");
+    els.canvasPreviewToggle.setAttribute("aria-pressed", active ? "true" : "false");
+  }
+}
+
+function applyCanvasFormat(kind) {
+  if (!els.canvasEditor || els.canvasEditor.hidden) return;
+  const input = els.canvasEditor;
+  const start = input.selectionStart;
+  const end = input.selectionEnd;
+  const selected = input.value.slice(start, end);
+  let prefix = "";
+  let suffix = "";
+  if (kind === "bold") {
+    prefix = "**";
+    suffix = "**";
+  } else if (kind === "italic") {
+    prefix = "_";
+    suffix = "_";
+  } else if (kind === "heading") {
+    prefix = "## ";
+  } else if (kind === "list") {
+    prefix = "- ";
+  }
+  input.setRangeText(`${prefix}${selected}${suffix}`, start, end, "end");
+  input.focus();
+  markCanvasDirty();
+}
+
+function updateCanvasSelectionStatus() {
+  if (!els.canvasEditor) return;
+  canvasSelection = {
+    start: Math.max(0, els.canvasEditor.selectionStart || 0),
+    end: Math.max(0, els.canvasEditor.selectionEnd || 0)
+  };
+  const count = Math.max(0, canvasSelection.end - canvasSelection.start);
+  if (els.canvasSelectionStatus) {
+    els.canvasSelectionStatus.textContent = count
+      ? formatTextFor("canvas.assistSelection", "将只修改已选择的 {count} 个字符", { count })
+      : textFor("canvas.assistWhole", "将修改整篇内容");
+  }
+}
+
+function openCanvasAssistPanel() {
+  if (!currentCanvas || !els.canvasAssistPanel) return;
+  updateCanvasSelectionStatus();
+  resetCanvasSuggestion();
+  els.canvasAssistPanel.hidden = false;
+  if (els.canvasWorkspace) els.canvasWorkspace.classList.add("assistOpen");
+  if (els.canvasAssistInput) els.canvasAssistInput.focus({ preventScroll: true });
+}
+
+function closeCanvasAssistPanel() {
+  if (els.canvasAssistPanel) els.canvasAssistPanel.hidden = true;
+  if (els.canvasWorkspace) els.canvasWorkspace.classList.remove("assistOpen");
+  resetCanvasSuggestion();
+}
+
+async function requestCanvasAssistPreview() {
+  if (!currentCanvas || !els.canvasAssistInput) return;
+  const instruction = els.canvasAssistInput.value.trim();
+  if (!instruction) {
+    els.canvasAssistInput.focus();
+    return;
+  }
+  if (canvasDirty && !(await saveCurrentCanvas({ source: "before_assist" }))) return;
+  updateCanvasSelectionStatus();
+  if (els.canvasAssistSubmit) {
+    els.canvasAssistSubmit.disabled = true;
+    els.canvasAssistSubmit.setAttribute("aria-busy", "true");
+  }
+  try {
+    const payload = await canvasJsonRequest(`/${encodeURIComponent(currentCanvas.canvas_id)}/assist-preview`, {
+      method: "POST",
+      body: JSON.stringify({
+        user_id: currentSubjectId(),
+        client_id: voiceClientId(),
+        expected_revision: currentCanvas.revision,
+        instruction,
+        selection_start: canvasSelection.end > canvasSelection.start ? canvasSelection.start : null,
+        selection_end: canvasSelection.end > canvasSelection.start ? canvasSelection.end : null
+      })
+    });
+    canvasSuggestion = payload.suggestion || null;
+    if (els.canvasSuggestionText) {
+      els.canvasSuggestionText.textContent = String(
+        (canvasSuggestion && (canvasSuggestion.suggestion || canvasSuggestion.preview_content)) || ""
+      );
+    }
+    if (els.canvasSuggestionCard) els.canvasSuggestionCard.hidden = !canvasSuggestion;
+  } catch (error) {
+    if (error.status === 409) {
+      await loadLatestCanvasAfterConflict(currentCanvas.canvas_id);
+    } else {
+      setCanvasSaveStatus("canvas.assistFailed", "error", "Iris 暂时没有给出修改建议。");
+    }
+  } finally {
+    if (els.canvasAssistSubmit) {
+      els.canvasAssistSubmit.disabled = false;
+      els.canvasAssistSubmit.removeAttribute("aria-busy");
+    }
+  }
+}
+
+async function applyCanvasSuggestion() {
+  if (!canvasSuggestion || !currentCanvas) return;
+  if (Number(canvasSuggestion.base_revision) !== Number(currentCanvas.revision)) {
+    await loadLatestCanvasAfterConflict(currentCanvas.canvas_id);
+    return;
+  }
+  if (els.canvasEditor) els.canvasEditor.value = String(canvasSuggestion.preview_content || "");
+  canvasDirty = true;
+  resetCanvasSuggestion();
+  const saved = await saveCurrentCanvas({ source: "ai_apply" });
+  if (saved) {
+    if (els.canvasAssistInput) els.canvasAssistInput.value = "";
+    setCanvasSaveStatus("canvas.saved", "saved", "已保存");
+  }
+}
+
+function closeCanvasVersionDrawer() {
+  if (!els.canvasVersionDrawer) return;
+  els.canvasVersionDrawer.hidden = true;
+  els.canvasVersionDrawer.setAttribute("aria-hidden", "true");
+  if (els.canvasWorkspace) els.canvasWorkspace.classList.remove("versionsOpen");
+}
+
+function renderCanvasVersions(items) {
+  if (!els.canvasVersionList) return;
+  els.canvasVersionList.replaceChildren();
+  items.forEach((version) => {
+    const card = document.createElement("article");
+    card.className = "canvasVersionItem";
+    card.setAttribute("role", "listitem");
+    const heading = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = `v${version.revision}`;
+    const time = document.createElement("span");
+    time.textContent = canvasDateLabel(version.created_at);
+    heading.append(title, time);
+    const meta = document.createElement("p");
+    meta.textContent = `${version.source || "manual"} · ${version.char_count || 0} ${currentLanguage === "en" ? "chars" : "字符"}`;
+    const preview = document.createElement("pre");
+    preview.hidden = true;
+    const actions = document.createElement("div");
+    const view = document.createElement("button");
+    view.type = "button";
+    view.textContent = currentLanguage === "en" ? "View" : "查看";
+    view.addEventListener("click", async () => {
+      view.disabled = true;
+      try {
+        const payload = await canvasJsonRequest(
+          `/${encodeURIComponent(currentCanvas.canvas_id)}/versions/${encodeURIComponent(version.revision)}`
+        );
+        preview.textContent = String((payload.canvas && payload.canvas.content) || "");
+        preview.hidden = !preview.hidden;
+      } finally {
+        view.disabled = false;
+      }
+    });
+    const restore = document.createElement("button");
+    restore.type = "button";
+    restore.textContent = Number(version.revision) === Number(currentCanvas.revision)
+      ? textFor("canvas.current", "当前版本")
+      : textFor("canvas.restore", "恢复为新版本");
+    restore.disabled = Number(version.revision) === Number(currentCanvas.revision);
+    restore.addEventListener("click", () => {
+      restoreCanvasVersion(Number(version.revision), restore).catch((error) => {
+        logLine(error.message || "canvas restore failed");
+      });
+    });
+    actions.append(view, restore);
+    card.append(heading, meta, preview, actions);
+    els.canvasVersionList.appendChild(card);
+  });
+}
+
+async function openCanvasVersionDrawer() {
+  if (!currentCanvas || !els.canvasVersionDrawer) return;
+  if (canvasDirty && !(await saveCurrentCanvas({ source: "before_history" }))) return;
+  const payload = await canvasJsonRequest(`/${encodeURIComponent(currentCanvas.canvas_id)}/versions?limit=200`);
+  renderCanvasVersions(Array.isArray(payload.items) ? payload.items : []);
+  els.canvasVersionDrawer.hidden = false;
+  els.canvasVersionDrawer.setAttribute("aria-hidden", "false");
+  if (els.canvasWorkspace) els.canvasWorkspace.classList.add("versionsOpen");
+}
+
+async function restoreCanvasVersion(revision, button) {
+  if (!currentCanvas) return;
+  if (button) button.disabled = true;
+  try {
+    const payload = await canvasJsonRequest(`/${encodeURIComponent(currentCanvas.canvas_id)}/restore`, {
+      method: "POST",
+      body: JSON.stringify({
+        user_id: currentSubjectId(),
+        client_id: voiceClientId(),
+        revision,
+        expected_revision: currentCanvas.revision
+      })
+    });
+    populateCanvasEditor(payload.canvas || null);
+    await openCanvasVersionDrawer();
+  } catch (error) {
+    if (error.status === 409) await loadLatestCanvasAfterConflict(currentCanvas.canvas_id);
+    else throw error;
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function exportCurrentCanvas() {
+  if (!currentCanvas) return;
+  if (canvasDirty && !(await saveCurrentCanvas({ source: "before_export" }))) return;
+  const format = currentCanvas.kind === "code" ? "source" : "markdown";
+  try {
+    const response = await fetch(
+      canvasRequestPath(`/${encodeURIComponent(currentCanvas.canvas_id)}/export?format=${encodeURIComponent(format)}`),
+      { headers: authHeaders() }
+    );
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const blob = await response.blob();
+    const disposition = response.headers.get("content-disposition") || "";
+    const match = disposition.match(/filename="?([^";]+)"?/i);
+    const filename = (match && match[1]) || `${currentCanvas.title || "iris-canvas"}.${format === "source" ? "txt" : "md"}`;
+    const href = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = href;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(href), 1200);
+  } catch (error) {
+    setCanvasSaveStatus("canvas.exportFailed", "error", "导出失败，请稍后再试。");
+  }
+}
+
+function closeCanvasDeletePanel() {
+  canvasDeleteToken = "";
+  if (els.canvasDeletePanel) els.canvasDeletePanel.hidden = true;
+}
+
+async function openCanvasDeletePanel() {
+  if (!currentCanvas || !els.canvasDeletePanel) return;
+  if (canvasDirty && !(await saveCurrentCanvas({ source: "before_delete" }))) return;
+  const preview = await canvasJsonRequest(`/${encodeURIComponent(currentCanvas.canvas_id)}/deletion-preview`, {
+    method: "POST",
+    body: JSON.stringify({
+      user_id: currentSubjectId(),
+      client_id: voiceClientId()
+    })
+  });
+  canvasDeleteToken = String(preview.confirmation_token || "");
+  if (els.canvasDeleteScope) {
+    els.canvasDeleteScope.textContent = formatTextFor(
+      "canvas.deleteScope",
+      "将删除「{title}」及其 {count} 个历史版本。",
+      { title: preview.title || currentCanvas.title, count: preview.version_count || currentCanvas.version_count || 1 }
+    );
+  }
+  els.canvasDeletePanel.hidden = false;
+  if (els.canvasDeleteCancel) els.canvasDeleteCancel.focus({ preventScroll: true });
+}
+
+async function confirmCanvasDelete() {
+  if (!currentCanvas || !canvasDeleteToken || !els.canvasDeleteConfirm) return;
+  const canvasId = currentCanvas.canvas_id;
+  els.canvasDeleteConfirm.disabled = true;
+  try {
+    await canvasJsonRequest(`/${encodeURIComponent(canvasId)}`, {
+      method: "DELETE",
+      body: JSON.stringify({
+        user_id: currentSubjectId(),
+        client_id: voiceClientId(),
+        confirmation_token: canvasDeleteToken
+      })
+    });
+    canvasItems = canvasItems.filter((item) => item.canvas_id !== canvasId);
+    currentCanvas = null;
+    closeCanvasDeletePanel();
+    renderCanvasLibrary();
+    if (canvasItems.length) await openCanvasById(canvasItems[0].canvas_id);
+    else populateCanvasEditor(null);
+  } catch (error) {
+    if (error.status === 409) {
+      closeCanvasDeletePanel();
+      await loadLatestCanvasAfterConflict(canvasId);
+    } else {
+      throw error;
+    }
+  } finally {
+    els.canvasDeleteConfirm.disabled = false;
+  }
+}
+
 function registerVoiceServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
   const registrationPromise = navigator.serviceWorker
@@ -14927,11 +15893,132 @@ if (els.capabilityPanel) {
       if (els.documentUpload) els.documentUpload.click();
       return;
     }
+    if (action === "canvas") {
+      setCapabilityPanelOpen(false);
+      try {
+        canvasConversationScope();
+      } catch (error) {
+        setSubtitle(textFor("canvas.temporaryBlocked", "临时对话不会保存持久画布。"), {
+          speaker: "IRIS",
+          resetFlow: true
+        });
+        return;
+      }
+      openCanvasWorkspace({ restoreFocus: button }).catch((error) => {
+        setSubtitle(textFor("canvas.loadFailed", "暂时无法载入画布。"), {
+          speaker: "IRIS",
+          resetFlow: true
+        });
+        logLine(error.message || "canvas workspace failed");
+      });
+      return;
+    }
     if (action === "memory") openMemorySettings();
   });
 }
 if (els.capabilityCustom) {
   els.capabilityCustom.addEventListener("click", openDetails);
+}
+if (els.canvasClose) {
+  els.canvasClose.addEventListener("click", () => {
+    closeCanvasWorkspace().catch((error) => logLine(error.message || "canvas close failed"));
+  });
+}
+if (els.canvasLibraryToggle) {
+  els.canvasLibraryToggle.addEventListener("click", () => {
+    if (els.canvasWorkspace) els.canvasWorkspace.classList.toggle("libraryOpen");
+  });
+}
+[els.canvasNew, els.canvasEmptyCreate].filter(Boolean).forEach((button) => {
+  button.addEventListener("click", () => {
+    button.disabled = true;
+    createBlankCanvas()
+      .then(() => {
+        if (els.canvasWorkspace) els.canvasWorkspace.classList.remove("libraryOpen");
+        if (els.canvasTitle) {
+          els.canvasTitle.focus({ preventScroll: true });
+          els.canvasTitle.select();
+        }
+      })
+      .catch((error) => {
+        if (error.message === "temporary_conversation_canvas_not_persisted") {
+          setSubtitle(textFor("canvas.temporaryBlocked", "临时对话不会保存持久画布。"), {
+            speaker: "IRIS",
+            resetFlow: true
+          });
+        } else {
+          setCanvasSaveStatus("canvas.loadFailed", "error", "暂时无法载入画布。");
+        }
+      })
+      .finally(() => {
+        button.disabled = false;
+      });
+  });
+});
+[els.canvasTitle, els.canvasEditor, els.canvasLanguage].filter(Boolean).forEach((input) => {
+  input.addEventListener("input", markCanvasDirty);
+});
+if (els.canvasKind) {
+  els.canvasKind.addEventListener("change", () => {
+    if (els.canvasLanguage && !els.canvasLanguage.value.trim()) {
+      els.canvasLanguage.value = els.canvasKind.value === "code" ? "plain" : "markdown";
+    }
+    markCanvasDirty();
+  });
+}
+if (els.canvasEditor) {
+  ["select", "keyup", "mouseup"].forEach((eventName) => {
+    els.canvasEditor.addEventListener(eventName, updateCanvasSelectionStatus);
+  });
+}
+if (els.canvasWorkspace) {
+  els.canvasWorkspace.addEventListener("click", (event) => {
+    const button = event.target instanceof HTMLElement
+      ? event.target.closest("[data-canvas-format]")
+      : null;
+    if (!button || !els.canvasWorkspace.contains(button)) return;
+    applyCanvasFormat(String(button.dataset.canvasFormat || ""));
+  });
+}
+if (els.canvasPreviewToggle) {
+  els.canvasPreviewToggle.addEventListener("click", () => {
+    setCanvasPreview(Boolean(els.canvasPreview && els.canvasPreview.hidden));
+  });
+}
+if (els.canvasAssistOpen) els.canvasAssistOpen.addEventListener("click", openCanvasAssistPanel);
+if (els.canvasAssistClose) els.canvasAssistClose.addEventListener("click", closeCanvasAssistPanel);
+if (els.canvasAssistSubmit) {
+  els.canvasAssistSubmit.addEventListener("click", () => {
+    requestCanvasAssistPreview().catch((error) => logLine(error.message || "canvas assist failed"));
+  });
+}
+if (els.canvasSuggestionDiscard) els.canvasSuggestionDiscard.addEventListener("click", resetCanvasSuggestion);
+if (els.canvasSuggestionApply) {
+  els.canvasSuggestionApply.addEventListener("click", () => {
+    applyCanvasSuggestion().catch((error) => logLine(error.message || "canvas apply failed"));
+  });
+}
+if (els.canvasVersions) {
+  els.canvasVersions.addEventListener("click", () => {
+    openCanvasVersionDrawer().catch((error) => logLine(error.message || "canvas versions failed"));
+  });
+}
+if (els.canvasVersionClose) els.canvasVersionClose.addEventListener("click", closeCanvasVersionDrawer);
+if (els.canvasExport) {
+  els.canvasExport.addEventListener("click", () => {
+    exportCurrentCanvas().catch((error) => logLine(error.message || "canvas export failed"));
+  });
+}
+if (els.canvasDelete) {
+  els.canvasDelete.addEventListener("click", () => {
+    openCanvasDeletePanel().catch((error) => logLine(error.message || "canvas delete preview failed"));
+  });
+}
+if (els.canvasDeleteCancel) els.canvasDeleteCancel.addEventListener("click", closeCanvasDeletePanel);
+if (els.canvasDeleteConfirm) {
+  els.canvasDeleteConfirm.addEventListener("click", () => {
+    confirmCanvasDelete().catch((error) => logLine(error.message || "canvas delete failed"));
+  });
 }
 if (els.detailsToggle) els.detailsToggle.addEventListener("click", openDetails);
 if (els.closeDetails) els.closeDetails.addEventListener("click", closeDetails);
@@ -15226,6 +16313,30 @@ document.addEventListener("keydown", (event) => {
   if (["Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", " "].includes(event.key)) {
     document.body.classList.add("keyboardInput");
     syncFormKeyboardFocus(document.activeElement);
+  }
+  if (
+    document.body.classList.contains("canvasOpen")
+    && (event.metaKey || event.ctrlKey)
+    && event.key.toLowerCase() === "s"
+  ) {
+    event.preventDefault();
+    saveCurrentCanvas({ source: "keyboard" }).catch((error) => {
+      logLine(error.message || "canvas keyboard save failed");
+    });
+    return;
+  }
+  if (event.key === "Escape" && document.body.classList.contains("canvasOpen")) {
+    event.preventDefault();
+    if (els.canvasDeletePanel && !els.canvasDeletePanel.hidden) {
+      closeCanvasDeletePanel();
+    } else if (els.canvasVersionDrawer && !els.canvasVersionDrawer.hidden) {
+      closeCanvasVersionDrawer();
+    } else if (els.canvasAssistPanel && !els.canvasAssistPanel.hidden && els.canvasWorkspace.classList.contains("assistOpen")) {
+      closeCanvasAssistPanel();
+    } else {
+      closeCanvasWorkspace().catch((error) => logLine(error.message || "canvas escape close failed"));
+    }
+    return;
   }
   if (event.key !== "Escape" || !document.body.classList.contains("detailsOpen")) return;
   event.preventDefault();

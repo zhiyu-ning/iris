@@ -1,23 +1,23 @@
-const VERSION = "384";
-const CACHE = "iris-pages-v384-conversation-sharing";
+const VERSION = "385";
+const CACHE = "iris-pages-v385-canvas";
 const ASSETS = [
-  "/iris/styles.css?v=384",
-  "/iris/public-config.js?v=384",
-  "/iris/app.js?v=384",
-  "/iris/manifest.json?v=384",
-  "/iris/assets/brand/iris-companion-avatar.jpg?v=384",
-  "/iris/assets/brand/iris-app-icon-dark-192.png?v=384",
-  "/iris/assets/brand/iris-app-icon-dark-512.png?v=384",
-  "/iris/assets/brand/iris-app-icon-dark-192.webp?v=384",
-  "/iris/assets/brand/iris-app-icon-dark-512.webp?v=384",
-  "/iris/assets/brand/iris-app-icon-light-192.png?v=384",
-  "/iris/assets/brand/iris-app-icon-light-512.png?v=384",
-  "/iris/assets/brand/iris-app-icon-light-192.webp?v=384",
-  "/iris/assets/brand/iris-app-icon-light-512.webp?v=384",
-  "/iris/assets/brand/iris-symbol-light-192.webp?v=384",
-  "/iris/assets/brand/iris-symbol-light-512.webp?v=384",
-  "/iris/assets/brand/iris-symbol-light-192.png?v=384",
-  "/iris/assets/brand/iris-symbol-light-512.png?v=384"
+  "/iris/styles.css?v=385",
+  "/iris/public-config.js?v=385",
+  "/iris/app.js?v=385",
+  "/iris/manifest.json?v=385",
+  "/iris/assets/brand/iris-companion-avatar.jpg?v=385",
+  "/iris/assets/brand/iris-app-icon-dark-192.png?v=385",
+  "/iris/assets/brand/iris-app-icon-dark-512.png?v=385",
+  "/iris/assets/brand/iris-app-icon-dark-192.webp?v=385",
+  "/iris/assets/brand/iris-app-icon-dark-512.webp?v=385",
+  "/iris/assets/brand/iris-app-icon-light-192.png?v=385",
+  "/iris/assets/brand/iris-app-icon-light-512.png?v=385",
+  "/iris/assets/brand/iris-app-icon-light-192.webp?v=385",
+  "/iris/assets/brand/iris-app-icon-light-512.webp?v=385",
+  "/iris/assets/brand/iris-symbol-light-192.webp?v=385",
+  "/iris/assets/brand/iris-symbol-light-512.webp?v=385",
+  "/iris/assets/brand/iris-symbol-light-192.png?v=385",
+  "/iris/assets/brand/iris-symbol-light-512.png?v=385"
 ];
 
 function isCurrentVersionedStatic(url) {
@@ -76,7 +76,7 @@ self.addEventListener("push", (event) => {
     target.searchParams.set("proactive_notification_id", notificationId);
   }
   const icon = new URL(
-    "/iris/assets/brand/iris-app-icon-dark-192.png?v=384",
+    "/iris/assets/brand/iris-app-icon-dark-192.png?v=385",
     self.location.origin
   ).href;
   event.waitUntil(
