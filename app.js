@@ -195,7 +195,7 @@ const els = {
   canvasDeleteConfirm: document.getElementById("canvasDeleteConfirmButton")
 };
 
-const VOICE_UI_VERSION = "386";
+const VOICE_UI_VERSION = "387";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -1513,6 +1513,7 @@ let currentAudioUrl = "";
 let ttsRequestSeq = 0;
 let activeTtsRequestId = 0;
 let activeTtsAbortController = null;
+let activeTtsSession = null;
 let serverAudioElement = null;
 let serverAudioUnlocked = false;
 let serverAudioUnlockPromise = null;
@@ -1705,7 +1706,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v386-thinking-modes";
+const WEB_VERSION = "voice-ui-web-polish-v387-progressive-voice";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -9234,6 +9235,11 @@ function diagnosticsSnapshot() {
     voiceProfile: selectedVoiceProfile(),
     model: els.modelSelect ? els.modelSelect.value : "",
     ttsRoute: els.webTtsRoute ? els.webTtsRoute.textContent.trim() : "",
+    ttsPlayback: activeTtsSession ? {
+      progressive: Boolean(activeTtsSession.progressive),
+      segment: activeTtsSession.currentSegment + 1,
+      segmentCount: activeTtsSession.segmentCount
+    } : null,
     audibility: els.webTtsAudibility ? els.webTtsAudibility.textContent.trim() : "",
     document: currentDocumentId ? {
       id: currentDocumentId,
@@ -13429,7 +13435,14 @@ function suspendVoiceCaptureAfterSttFatal(reason = "stt_error") {
 function shutdownVoiceSessionForPageHide() {
   cancelUserPartialRender();
   cancelAgentReplyRender();
-  const hasPlaybackWork = Boolean(currentAudio || currentAudioUrl || activeTtsRequestId || activeTtsAbortController || agentSpeaking);
+  const hasPlaybackWork = Boolean(
+    currentAudio
+    || currentAudioUrl
+    || activeTtsRequestId
+    || activeTtsAbortController
+    || activeTtsSession
+    || agentSpeaking
+  );
   if (!running && !ws && !hasPlaybackWork && !audioContext && !stream) return;
   running = false;
   serverSttEnabled = false;
@@ -14992,155 +15005,346 @@ function shouldTryServerTts() {
   return serverTtsAvailable || supportedVoiceProfiles.has(profile);
 }
 
+const TTS_SEGMENT_TARGET_CHARS = 150;
+const TTS_SEGMENT_MAX_CHARS = 220;
+const TTS_PREFETCH_WINDOW = 2;
+
+function splitLongSpeechUnit(value, maxChars = TTS_SEGMENT_MAX_CHARS) {
+  const parts = [];
+  let remaining = String(value || "").trim();
+  while (remaining.length > maxChars) {
+    const windowText = remaining.slice(0, maxChars + 1);
+    const minimumBoundary = Math.max(36, Math.floor(maxChars * 0.45));
+    let boundary = -1;
+    for (const expression of [/[，,、：:\s]/g, /[。！？!?；;]/g]) {
+      expression.lastIndex = 0;
+      for (const match of windowText.matchAll(expression)) {
+        const candidate = Number(match.index || 0) + String(match[0] || "").length;
+        if (candidate >= minimumBoundary && candidate <= maxChars) boundary = Math.max(boundary, candidate);
+      }
+    }
+    if (boundary < minimumBoundary) boundary = maxChars;
+    const part = remaining.slice(0, boundary).trim();
+    if (part) parts.push(part);
+    remaining = remaining.slice(boundary).trim();
+  }
+  if (remaining) parts.push(remaining);
+  return parts;
+}
+
+function splitProgressiveSpeechSegments(
+  text,
+  targetChars = TTS_SEGMENT_TARGET_CHARS,
+  maxChars = TTS_SEGMENT_MAX_CHARS
+) {
+  const value = String(text || "").replace(/\s+/g, " ").trim();
+  if (!value) return [];
+  if (value.length <= targetChars) return [value];
+
+  const sentenceUnits = [];
+  let currentUnit = "";
+  for (const character of value) {
+    currentUnit += character;
+    if (/[。！？!?；;\n]/.test(character)) {
+      const unit = currentUnit.trim();
+      if (unit) sentenceUnits.push(unit);
+      currentUnit = "";
+    }
+  }
+  if (currentUnit.trim()) sentenceUnits.push(currentUnit.trim());
+
+  const boundedUnits = sentenceUnits.flatMap((unit) => (
+    unit.length > maxChars ? splitLongSpeechUnit(unit, maxChars) : [unit]
+  ));
+  const segments = [];
+  let segment = "";
+  boundedUnits.forEach((unit) => {
+    const joined = segment ? `${segment} ${unit}` : unit;
+    if (segment && joined.length > targetChars) {
+      segments.push(segment);
+      segment = unit;
+      return;
+    }
+    segment = joined;
+  });
+  if (segment) segments.push(segment);
+  return segments.flatMap((item) => (
+    item.length > maxChars ? splitLongSpeechUnit(item, maxChars) : [item]
+  ));
+}
+
+function updateProgressiveTtsState(session, segmentIndex = -1) {
+  if (!session) {
+    delete document.body.dataset.ttsProgressive;
+    delete document.body.dataset.ttsSegment;
+    return;
+  }
+  session.currentSegment = Math.max(0, segmentIndex);
+  document.body.dataset.ttsProgressive = session.segmentCount > 1 ? "true" : "false";
+  document.body.dataset.ttsSegment = `${session.currentSegment + 1}/${session.segmentCount}`;
+  if (session.segmentCount > 1 && currentVisualState === "ai_speaking" && els.state) {
+    const label = currentLanguage === "en"
+      ? `Speaking · ${session.currentSegment + 1}/${session.segmentCount}`
+      : `回答中 · ${session.currentSegment + 1}/${session.segmentCount}`;
+    els.state.textContent = label;
+    if (els.statusIndicator) els.statusIndicator.setAttribute("aria-label", label);
+  }
+}
+
+async function fetchServerTtsSegment({
+  text,
+  profile,
+  abortController,
+  isCurrentRequest,
+  segmentIndex,
+  segmentCount
+}) {
+  const response = await fetch(backendUrl("/voice/tts"), {
+    method: "POST",
+    signal: abortController ? abortController.signal : undefined,
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders()
+    },
+    body: JSON.stringify({
+      text,
+      voice_profile: profile,
+      emotion: document.body.dataset.voiceState === "agent_speaking" ? "warm" : "neutral"
+    })
+  });
+  if (!isCurrentRequest()) return null;
+  if (!response.ok) {
+    handleUnauthorizedResponse(response);
+    const error = new Error(`server_tts_http_${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  const provider = response.headers.get("X-Jarvis-TTS-Provider") || "server";
+  const serverProfile = response.headers.get("X-Jarvis-Voice-Profile") || profile;
+  const cached = response.headers.get("X-Jarvis-TTS-Cached") || "0";
+  const blob = await response.blob();
+  if (!isCurrentRequest()) return null;
+  if (!blob.size) throw new Error("server_tts_empty_audio");
+  logLine(
+    `server TTS ready · segment=${segmentIndex + 1}/${segmentCount} `
+    + `provider=${provider} profile=${serverProfile} bytes=${blob.size} cached=${cached}`
+  );
+  return {
+    blob,
+    provider,
+    serverProfile,
+    cached,
+    segmentIndex
+  };
+}
+
 async function speakWithServerTts(text, turnId, responseId, requestId) {
   if (!shouldTryServerTts() || !window.fetch || typeof Audio === "undefined") return false;
   const profile = selectedVoiceProfile();
+  const segments = splitProgressiveSpeechSegments(text);
+  if (!segments.length) return false;
   const abortController = typeof AbortController !== "undefined" ? new AbortController() : null;
   activeTtsAbortController = abortController;
   const isCurrentRequest = () => activeTtsRequestId === requestId && (!abortController || !abortController.signal.aborted);
   const clearAbortController = () => {
     if (activeTtsAbortController === abortController) activeTtsAbortController = null;
   };
+  const session = {
+    requestId,
+    turnId,
+    responseId,
+    segmentCount: segments.length,
+    currentSegment: 0,
+    progressive: segments.length > 1,
+    started: false,
+    finished: false,
+    totalBytes: 0,
+    provider: "",
+    serverProfile: profile
+  };
+  activeTtsSession = session;
+  updateProgressiveTtsState(session, 0);
+  const pendingSegments = new Map();
+  const ensureSegment = (index) => {
+    if (index < 0 || index >= segments.length) return Promise.resolve(null);
+    if (!pendingSegments.has(index)) {
+      pendingSegments.set(
+        index,
+        fetchServerTtsSegment({
+          text: segments[index],
+          profile,
+          abortController,
+          isCurrentRequest,
+          segmentIndex: index,
+          segmentCount: segments.length
+        }).catch((error) => ({ error }))
+      );
+    }
+    return pendingSegments.get(index);
+  };
+  const prefetchFrom = (index) => {
+    for (let offset = 0; offset < TTS_PREFETCH_WINDOW; offset += 1) {
+      ensureSegment(index + offset);
+    }
+  };
+  const releasePendingSegments = () => {
+    if (abortController && !abortController.signal.aborted) abortController.abort();
+    pendingSegments.clear();
+  };
   rememberTtsRoute({
     provider: "server_pending",
     voiceProfile: profile,
     source: "server_http_tts",
-    summary: `正在请求服务器 TTS：profile=${profile}`
+    summary: segments.length > 1
+      ? `正在准备渐进式语音：profile=${profile}，segments=${segments.length}`
+      : `正在请求服务器 TTS：profile=${profile}`
   });
-  try {
-    const response = await fetch(backendUrl("/voice/tts"), {
-      method: "POST",
-      signal: abortController ? abortController.signal : undefined,
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeaders()
-      },
-      body: JSON.stringify({
-        text,
-        voice_profile: profile,
-        emotion: document.body.dataset.voiceState === "agent_speaking" ? "warm" : "neutral"
-      })
-    });
-    if (!isCurrentRequest()) return true;
-    if (!response.ok) {
-      handleUnauthorizedResponse(response);
-      rememberServerTtsFailure(profile);
-      clearAbortController();
+
+  const finish = ({ failed = false, failure = null } = {}) => {
+    if (session.finished || activeTtsRequestId !== requestId) return;
+    session.finished = true;
+    if (currentAudio) {
+      releaseServerAudioSource(currentAudio, currentAudioUrl);
+      currentAudio = null;
+    } else if (currentAudioUrl) {
+      releaseServerAudioSource(serverAudioElement, currentAudioUrl);
+    }
+    releasePendingSegments();
+    activeTtsRequestId = 0;
+    clearAbortController();
+    if (activeTtsSession === session) activeTtsSession = null;
+    updateProgressiveTtsState(null);
+    agentSpeaking = false;
+    PresenceController.setMouthOpen(0);
+    if (failed) {
+      rememberServerTtsFailure(session.serverProfile || profile);
       rememberTtsRoute({
         provider: "server_http_tts_failed",
-        voiceProfile: profile,
+        voiceProfile: session.serverProfile || profile,
         source: "server_http_tts",
-        summary: `服务器 TTS 请求失败：HTTP ${response.status}`
+        summary: `渐进式语音在 ${session.currentSegment + 1}/${session.segmentCount} 段中断：${failure || "unknown"}`
       });
-      logLine(`server TTS ${response.status}`);
-      return false;
-    }
-    const provider = response.headers.get("X-Jarvis-TTS-Provider") || "server";
-    const serverProfile = response.headers.get("X-Jarvis-Voice-Profile") || profile;
-    const cached = response.headers.get("X-Jarvis-TTS-Cached") || "0";
-    const blob = await response.blob();
-    if (!isCurrentRequest()) return true;
-    if (!blob.size) {
-      rememberServerTtsFailure(profile);
-      clearAbortController();
+      setState("tts_error");
+      setSttHint("Edge TTS 没能播完这次回答，请稍后再试。");
+    } else {
       rememberTtsRoute({
-        provider: "server_http_tts_failed",
-        voiceProfile: serverProfile,
+        provider: session.provider || "server",
+        voiceProfile: session.serverProfile || profile,
         source: "server_http_tts",
-        summary: "服务器 TTS 返回空音频。"
+        summary: session.progressive
+          ? `渐进式语音播放完成：segments=${session.segmentCount}，${session.totalBytes} bytes`
+          : `服务器 TTS 播放完成：${session.totalBytes} bytes`
       });
-      logLine("server TTS empty audio");
-      return false;
+      clearServerTtsFailure(session.serverProfile || profile);
+      if (currentRawState === "agent_speaking") {
+        setState(running ? "listening" : "idle", { preserveSubtitle: true });
+      }
     }
+    logLine(
+      failed
+        ? `server TTS stopped · segment=${session.currentSegment + 1}/${session.segmentCount}`
+        : `server TTS ended · segments=${session.segmentCount}`
+    );
+    send({ type: "playback_finished", turn_id: turnId, response_id: responseId });
+  };
+
+  const handleLateFailure = (error) => {
+    if (!isCurrentRequest()) return;
+    if (error && error.name === "AbortError") return;
+    finish({ failed: true, failure: error && error.message });
+  };
+
+  const playSegment = async (index) => {
+    if (!isCurrentRequest()) return false;
+    updateProgressiveTtsState(session, index);
+    prefetchFrom(index);
+    const asset = await ensureSegment(index);
+    pendingSegments.delete(index);
+    if (!asset || !isCurrentRequest()) return false;
+    if (asset.error) throw asset.error;
+    session.currentSegment = index;
+    session.provider = asset.provider;
+    session.serverProfile = asset.serverProfile;
+    session.totalBytes += asset.blob.size;
+
     const audio = getServerAudioElement();
-    releaseServerAudioSource(audio, currentAudioUrl);
-    const audioUrl = URL.createObjectURL(blob);
+    if (currentAudioUrl) releaseServerAudioSource(audio, currentAudioUrl);
+    const audioUrl = URL.createObjectURL(asset.blob);
     currentAudioUrl = audioUrl;
     audio.src = audioUrl;
     audio.volume = outputVolume;
     audio.muted = false;
     audio.load();
     currentAudio = audio;
-    let playbackStarted = false;
+
     const markStarted = () => {
-      if (!isCurrentRequest()) return;
-      if (playbackStarted) return;
-      playbackStarted = true;
+      if (!isCurrentRequest() || session.started) return;
+      session.started = true;
       serverAudioUnlocked = true;
       agentSpeaking = true;
       PresenceController.setMouthOpen(0.6);
       setState("agent_speaking");
-      rememberTtsRoute({
-        provider,
-        voiceProfile: serverProfile,
-        source: "server_http_tts",
-        summary: `服务器 TTS 已播放：provider=${provider}，profile=${serverProfile}，${blob.size} bytes，cached=${cached}`
-      });
-      logLine(`server TTS started · provider=${provider} profile=${serverProfile} bytes=${blob.size} cached=${cached}`);
+      updateProgressiveTtsState(session, index);
       send({ type: "playback_started", turn_id: turnId, response_id: responseId });
     };
-    const finish = () => {
-      if (activeTtsRequestId !== requestId) return;
+    audio.onplay = markStarted;
+    audio.onended = () => {
+      if (!isCurrentRequest()) return;
       if (currentAudio === audio) currentAudio = null;
       releaseServerAudioSource(audio, audioUrl);
-      activeTtsRequestId = 0;
-      if (activeTtsAbortController === abortController) activeTtsAbortController = null;
-      agentSpeaking = false;
-      PresenceController.setMouthOpen(0);
-      rememberTtsRoute({
-        provider,
-        voiceProfile: serverProfile,
-        source: "server_http_tts",
-        summary: `服务器 TTS 播放完成：provider=${provider}，profile=${serverProfile}，${blob.size} bytes，cached=${cached}`
-      });
-      logLine("server TTS ended");
-      send({ type: "playback_finished", turn_id: turnId, response_id: responseId });
-      if (currentRawState === "agent_speaking") setState(running ? "listening" : "idle", { preserveSubtitle: true });
-    };
-    audio.onplay = markStarted;
-    audio.onended = finish;
-    audio.onerror = () => {
-      if (activeTtsRequestId !== requestId) return;
-      if (!playbackStarted) rememberServerTtsFailure(serverProfile || profile);
-      if (playbackStarted) {
+      if (index + 1 >= segments.length) {
         finish();
         return;
       }
-      rememberTtsRoute({
-        provider: "server_http_tts_failed",
-        voiceProfile: serverProfile,
-        source: "server_http_tts",
-        summary: "Edge TTS 音频播放失败。"
-      });
+      playSegment(index + 1).catch(handleLateFailure);
+    };
+    audio.onerror = () => {
+      if (!isCurrentRequest()) return;
       if (currentAudio === audio) currentAudio = null;
       releaseServerAudioSource(audio, audioUrl);
-      activeTtsRequestId = 0;
-      if (activeTtsAbortController === abortController) activeTtsAbortController = null;
-      setState("tts_error");
-      setSttHint("Edge TTS 音频播放失败，请稍后再试。");
-      send({ type: "playback_finished", turn_id: turnId, response_id: responseId });
+      handleLateFailure(new Error(`server_tts_playback_segment_${index + 1}_failed`));
     };
     try {
       await audio.play();
-    } catch (err) {
+    } catch (error) {
       if (currentAudio === audio) currentAudio = null;
       releaseServerAudioSource(audio, audioUrl);
-      throw err;
+      throw error;
     }
     if (!isCurrentRequest()) {
       if (currentAudio === audio) currentAudio = null;
       releaseServerAudioSource(audio, audioUrl);
-      return true;
+      return false;
     }
     markStarted();
-    clearServerTtsFailure(serverProfile || profile);
+    rememberTtsRoute({
+      provider: asset.provider,
+      voiceProfile: asset.serverProfile,
+      source: "server_http_tts",
+      summary: session.progressive
+        ? `渐进式语音正在播放：segment=${index + 1}/${segments.length}，cached=${asset.cached}`
+        : `服务器 TTS 已播放：provider=${asset.provider}，profile=${asset.serverProfile}，${asset.blob.size} bytes，cached=${asset.cached}`
+    });
+    logLine(
+      `server TTS started · segment=${index + 1}/${segments.length} `
+      + `provider=${asset.provider} profile=${asset.serverProfile} bytes=${asset.blob.size} cached=${asset.cached}`
+    );
     return true;
+  };
+
+  try {
+    prefetchFrom(0);
+    return await playSegment(0);
   } catch (err) {
     if (err && err.name === "AbortError") {
       logLine("server TTS aborted");
+      pendingSegments.clear();
       clearAbortController();
       return false;
     }
+    releasePendingSegments();
+    if (activeTtsSession === session) activeTtsSession = null;
+    updateProgressiveTtsState(null);
     rememberServerTtsFailure(profile);
     clearAbortController();
     rememberTtsRoute({
@@ -15167,6 +15371,8 @@ function stopPlayback(reason, options = {}) {
   } else if (currentAudioUrl) {
     releaseServerAudioSource(serverAudioElement, currentAudioUrl);
   }
+  activeTtsSession = null;
+  updateProgressiveTtsState(null);
   if (agentSpeaking && notifyInterrupt) {
     send({ type: "interrupt", turn_id: currentTurnId, response_id: currentResponseId, reason: reason || "client_stop", timestamp: Date.now() });
   }
@@ -15221,6 +15427,7 @@ function hasActiveVoicePlayback() {
     || currentAudio
     || activeTtsRequestId
     || activeTtsAbortController
+    || activeTtsSession
   );
 }
 
