@@ -13,6 +13,7 @@ const els = {
   caption: document.querySelector(".captionFloat"),
   dialogueScroll: document.getElementById("dialogueScroll"),
   detailsToggle: document.getElementById("detailsToggle"),
+  conversationShare: document.getElementById("conversationShareButton"),
   voiceCall: document.getElementById("voiceCallButton"),
   capabilityToggle: document.getElementById("capabilityToggle"),
   capabilityPanel: document.getElementById("capabilityPanel"),
@@ -148,7 +149,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "383";
+const VOICE_UI_VERSION = "384";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -185,6 +186,10 @@ const serverVoiceProfileLabels = new Map(Object.entries(VOICE_PROFILE_LABELS));
 const params = new URLSearchParams(window.location.search);
 const IS_QA_MODE = params.has("qa");
 const QA_HISTORY_ENABLED = params.get("qa_history") === "1";
+const PUBLIC_SHARE_TOKEN = String(params.get("share") || "").trim();
+const PUBLIC_SHARE_REQUESTED = params.has("share");
+const PUBLIC_SHARE_MODE = PUBLIC_SHARE_REQUESTED;
+const PUBLIC_SHARE_TOKEN_VALID = /^shr_[A-Za-z0-9_-]{43}$/.test(PUBLIC_SHARE_TOKEN);
 const responseAuthTokens = new WeakMap();
 const irisNativeFetch = typeof window.fetch === "function" ? window.fetch.bind(window) : null;
 
@@ -326,6 +331,7 @@ function isPublicFrontendMode() {
 }
 
 function canUseBackendNow() {
+  if (PUBLIC_SHARE_MODE) return false;
   return !isPublicFrontendMode() || Boolean(currentAuthToken());
 }
 
@@ -622,6 +628,38 @@ const UI_TEXT = {
     "conversation.export": "导出",
     "conversation.exportMarkdown": "Markdown",
     "conversation.exportJson": "JSON",
+    "conversation.share": "分享",
+    "conversation.shareCurrent": "分享当前会话",
+    "conversation.shareKicker": "只读快照",
+    "conversation.shareTitle": "分享这段对话",
+    "conversation.shareLoading": "正在核对可分享内容…",
+    "conversation.shareScope": "将分享当前 {count} 条你与 Iris 的文字消息。",
+    "conversation.shareBoundary": "不会包含你的身份、长期记忆、项目信息、文件原件、工具记录或之后的新消息。",
+    "conversation.shareWarning": "任何拿到链接的人都能查看这份快照。创建前请先检查当前对话。",
+    "conversation.shareExpiry": "链接有效期",
+    "conversation.shareExpiry1": "1 天",
+    "conversation.shareExpiry7": "7 天",
+    "conversation.shareExpiry30": "30 天",
+    "conversation.shareExpiryNever": "长期有效",
+    "conversation.shareConfirm": "创建只读链接",
+    "conversation.shareCreating": "正在创建安全链接…",
+    "conversation.shareReady": "只读链接已创建",
+    "conversation.shareCopy": "复制链接",
+    "conversation.shareCopied": "链接已复制",
+    "conversation.shareOpen": "打开",
+    "conversation.shareSystem": "系统分享",
+    "conversation.shareRevoke": "撤销链接",
+    "conversation.shareRevoked": "链接已撤销",
+    "conversation.shareClose": "关闭",
+    "conversation.shareUnavailable": "暂时无法分享这段会话。",
+    "conversation.shareTemporaryBlocked": "临时对话不会生成公开链接。",
+    "conversation.shareEmpty": "这段会话还没有可分享的文字消息。",
+    "conversation.shareExpired": "这份分享已过期",
+    "conversation.shareNotFound": "这份分享不存在或已被撤销",
+    "conversation.shareReadOnly": "由 Iris 创建的只读对话快照",
+    "conversation.shareSnapshot": "快照创建于 {time}，不会随原会话更新。",
+    "conversation.shareBack": "打开 Iris",
+    "conversation.shareYou": "你",
     "conversation.delete": "删除",
     "conversation.deleteKicker": "永久删除",
     "conversation.deleteTitle": "删除「{title}」？",
@@ -981,6 +1019,38 @@ const UI_TEXT = {
     "conversation.export": "Export",
     "conversation.exportMarkdown": "Markdown",
     "conversation.exportJson": "JSON",
+    "conversation.share": "Share",
+    "conversation.shareCurrent": "Share current conversation",
+    "conversation.shareKicker": "READ-ONLY SNAPSHOT",
+    "conversation.shareTitle": "Share this conversation",
+    "conversation.shareLoading": "Checking what can be shared…",
+    "conversation.shareScope": "This shares {count} current text messages between you and Iris.",
+    "conversation.shareBoundary": "Your identity, long-term memory, project metadata, original files, tool records, and future messages stay private.",
+    "conversation.shareWarning": "Anyone with the link can read this snapshot. Review the current conversation before creating it.",
+    "conversation.shareExpiry": "Link expiry",
+    "conversation.shareExpiry1": "1 day",
+    "conversation.shareExpiry7": "7 days",
+    "conversation.shareExpiry30": "30 days",
+    "conversation.shareExpiryNever": "No expiry",
+    "conversation.shareConfirm": "Create read-only link",
+    "conversation.shareCreating": "Creating secure link…",
+    "conversation.shareReady": "Read-only link created",
+    "conversation.shareCopy": "Copy link",
+    "conversation.shareCopied": "Link copied",
+    "conversation.shareOpen": "Open",
+    "conversation.shareSystem": "Share…",
+    "conversation.shareRevoke": "Revoke link",
+    "conversation.shareRevoked": "Link revoked",
+    "conversation.shareClose": "Close",
+    "conversation.shareUnavailable": "This conversation cannot be shared right now.",
+    "conversation.shareTemporaryBlocked": "Temporary conversations never create public links.",
+    "conversation.shareEmpty": "This conversation has no shareable text yet.",
+    "conversation.shareExpired": "This shared snapshot has expired",
+    "conversation.shareNotFound": "This shared snapshot does not exist or was revoked",
+    "conversation.shareReadOnly": "A read-only conversation snapshot created by Iris",
+    "conversation.shareSnapshot": "Snapshot created {time}. It does not update with the private conversation.",
+    "conversation.shareBack": "Open Iris",
+    "conversation.shareYou": "You",
     "conversation.delete": "Delete",
     "conversation.deleteKicker": "PERMANENT DELETE",
     "conversation.deleteTitle": "Delete “{title}”?",
@@ -1383,6 +1453,8 @@ let conversationLibraryLoaded = false;
 let conversationLibraryLoading = false;
 let conversationLibraryItems = [];
 let conversationLibrarySearchTimer = 0;
+let conversationShareOverlay = null;
+let conversationShareReturnFocus = null;
 let projectLibraryItems = [];
 let projectLibraryLoaded = false;
 let projectLibraryLoading = false;
@@ -1456,7 +1528,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v383-temporary-conversations";
+const WEB_VERSION = "voice-ui-web-polish-v384-conversation-sharing";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -1475,7 +1547,7 @@ const WEB_TEXT_CAPABILITIES = {
   calendar_read: true,
   calendar_write: true,
   tts: true,
-  share_sheet: false,
+  share_sheet: true,
   widget: false,
   microphone: false,
   server_stt: false,
@@ -1507,6 +1579,7 @@ function applyBrowserTargeting() {
 }
 
 function mountComposerViewportPortal() {
+  if (PUBLIC_SHARE_MODE) return;
   if (!els.dock || els.dock.parentElement === document.body) return;
   // A fixed descendant of the transformed app canvas can disappear from the
   // compositor after input/document state changes. Keep one root-level layer
@@ -5352,6 +5425,17 @@ function updateConversationIdentity(record = currentConversationRecord()) {
       ? textFor("conversation.temporaryMemoryOff", "不留长期记忆")
       : textFor("empty.memory", "记忆连续");
   }
+  if (els.conversationShare) {
+    const shareable = Boolean(record && !temporary && Number(record.message_count || 0) > 0);
+    els.conversationShare.disabled = !shareable;
+    els.conversationShare.setAttribute(
+      "aria-label",
+      temporary
+        ? textFor("conversation.shareTemporaryBlocked", "临时对话不会生成公开链接。")
+        : textFor("conversation.shareCurrent", "分享当前会话")
+    );
+    els.conversationShare.title = els.conversationShare.getAttribute("aria-label");
+  }
   document.documentElement.dataset.conversationMode = temporary ? "temporary" : "personal";
   if (els.conversationStatus) {
     const statusText = temporary
@@ -5451,6 +5535,639 @@ function conversationExportControl(item) {
   });
   control.append(summary, choices);
   return control;
+}
+
+function conversationShareErrorMessage(detail, fallback = "") {
+  const code = String(detail || "").trim();
+  const messages = currentLanguage === "en"
+    ? {
+        temporary_conversation_cannot_be_shared: "Temporary conversations never create public links.",
+        conversation_share_has_no_messages: "This conversation has no shareable text yet.",
+        conversation_share_preview_stale: "The conversation changed. Review the latest snapshot before sharing.",
+        conversation_share_confirmation_token_invalid: "This share confirmation is no longer valid. Review it again.",
+        conversation_share_confirmation_token_expired: "This share confirmation expired. Review it again.",
+        conversation_share_confirmation_scope_mismatch: "This confirmation belongs to another conversation.",
+        conversation_share_content_limit_exceeded: "This conversation is too large to share as one snapshot.",
+        conversation_share_signing_secret_unavailable: "Secure sharing is temporarily unavailable.",
+        conversation_share_user_limit_exceeded: "You have reached the active share-link limit. Revoke an older link first.",
+        conversation_share_conversation_limit_exceeded: "This conversation already has too many active links. Revoke one first.",
+        conversation_not_found_or_scope_mismatch: "This conversation is no longer available."
+      }
+    : {
+        temporary_conversation_cannot_be_shared: "临时对话不会生成公开链接。",
+        conversation_share_has_no_messages: "这段会话还没有可分享的文字消息。",
+        conversation_share_preview_stale: "这段会话刚刚有更新，请重新核对最新快照。",
+        conversation_share_confirmation_token_invalid: "这次分享确认已经失效，请重新核对。",
+        conversation_share_confirmation_token_expired: "这次分享确认已经过期，请重新核对。",
+        conversation_share_confirmation_scope_mismatch: "这次确认不属于当前会话。",
+        conversation_share_content_limit_exceeded: "这段会话太长，暂时无法作为一份快照分享。",
+        conversation_share_signing_secret_unavailable: "安全分享暂时不可用，请稍后再试。",
+        conversation_share_user_limit_exceeded: "活跃分享链接已达到上限，请先撤销旧链接。",
+        conversation_share_conversation_limit_exceeded: "这段会话的活跃链接过多，请先撤销一个。",
+        conversation_not_found_or_scope_mismatch: "这段会话已经不可用。"
+      };
+  return messages[code] || code || fallback || textFor("conversation.shareUnavailable", "暂时无法分享这段会话。");
+}
+
+function conversationShareUrl(publicToken) {
+  const token = String(publicToken || "").trim();
+  if (!/^shr_[A-Za-z0-9_-]{43}$/.test(token)) return "";
+  const url = new URL(window.location.href);
+  url.pathname = `${appBasePath()}/`;
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("share", token);
+  return url.toString();
+}
+
+async function copyConversationShareUrl(url) {
+  const value = String(url || "").trim();
+  if (!value) return false;
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+    await navigator.clipboard.writeText(value);
+    return true;
+  }
+  const input = document.createElement("textarea");
+  input.value = value;
+  input.setAttribute("readonly", "");
+  input.style.position = "fixed";
+  input.style.opacity = "0";
+  document.body.appendChild(input);
+  input.select();
+  const copied = document.execCommand("copy");
+  input.remove();
+  return copied;
+}
+
+function closeConversationShareDialog() {
+  if (!conversationShareOverlay) return;
+  const overlay = conversationShareOverlay;
+  conversationShareOverlay = null;
+  overlay.remove();
+  document.body.classList.remove("conversationShareOpen");
+  const returnFocus = conversationShareReturnFocus;
+  conversationShareReturnFocus = null;
+  if (returnFocus && returnFocus.isConnected && typeof returnFocus.focus === "function") {
+    returnFocus.focus({ preventScroll: true });
+  }
+}
+
+function conversationShareActionButton(label, className = "") {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  if (className) button.className = className;
+  return button;
+}
+
+function conversationShareExpirySelect(preview) {
+  const field = document.createElement("label");
+  field.className = "conversationShareExpiry";
+  const label = document.createElement("span");
+  label.textContent = textFor("conversation.shareExpiry", "链接有效期");
+  const select = document.createElement("select");
+  select.setAttribute("aria-label", label.textContent);
+  [
+    [1, textFor("conversation.shareExpiry1", "1 天")],
+    [7, textFor("conversation.shareExpiry7", "7 天")],
+    [30, textFor("conversation.shareExpiry30", "30 天")],
+    [0, textFor("conversation.shareExpiryNever", "长期有效")]
+  ].forEach(([value, text]) => {
+    if (
+      Array.isArray(preview.available_expiry_days)
+      && !preview.available_expiry_days.map(Number).includes(value)
+    ) return;
+    const option = document.createElement("option");
+    option.value = String(value);
+    option.textContent = text;
+    option.selected = value === Number(preview.default_expiry_days || 7);
+    select.appendChild(option);
+  });
+  field.append(label, select);
+  return { field, select };
+}
+
+function renderConversationShareReady(container, item, share) {
+  container.replaceChildren();
+  const ready = document.createElement("section");
+  ready.className = "conversationShareReady";
+  const marker = document.createElement("span");
+  marker.className = "conversationShareReadyMark";
+  marker.setAttribute("aria-hidden", "true");
+  marker.textContent = "✓";
+  const title = document.createElement("h3");
+  title.textContent = textFor("conversation.shareReady", "只读链接已创建");
+  const url = conversationShareUrl(share && share.public_token);
+  const input = document.createElement("input");
+  input.type = "url";
+  input.readOnly = true;
+  input.value = url;
+  input.setAttribute("aria-label", currentLanguage === "en" ? "Public share link" : "公开分享链接");
+  const actions = document.createElement("div");
+  actions.className = "conversationShareReadyActions";
+  const copy = conversationShareActionButton(textFor("conversation.shareCopy", "复制链接"), "sharePrimaryAction");
+  const open = conversationShareActionButton(textFor("conversation.shareOpen", "打开"));
+  const system = conversationShareActionButton(textFor("conversation.shareSystem", "系统分享"));
+  const revoke = conversationShareActionButton(textFor("conversation.shareRevoke", "撤销链接"), "shareDangerAction");
+  const status = document.createElement("p");
+  status.className = "conversationShareInlineStatus";
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+  copy.addEventListener("click", async () => {
+    copy.disabled = true;
+    try {
+      const copied = await copyConversationShareUrl(url);
+      status.dataset.tone = copied ? "success" : "error";
+      status.textContent = copied
+        ? textFor("conversation.shareCopied", "链接已复制")
+        : textFor("conversation.shareUnavailable", "暂时无法分享这段会话。");
+    } catch (error) {
+      status.dataset.tone = "error";
+      status.textContent = error.message || textFor("conversation.shareUnavailable", "暂时无法分享这段会话。");
+    } finally {
+      copy.disabled = false;
+    }
+  });
+  open.addEventListener("click", () => {
+    if (url) window.open(url, "_blank", "noopener,noreferrer");
+  });
+  if (typeof navigator.share === "function") {
+    system.addEventListener("click", () => {
+      navigator.share({ title: String(item.title || "Iris"), url }).catch((error) => {
+        if (error && error.name !== "AbortError") {
+          status.dataset.tone = "error";
+          status.textContent = error.message || textFor("conversation.shareUnavailable", "暂时无法分享这段会话。");
+        }
+      });
+    });
+  } else {
+    system.hidden = true;
+  }
+  revoke.addEventListener("click", async () => {
+    revoke.disabled = true;
+    revoke.setAttribute("aria-busy", "true");
+    try {
+      const response = await fetch(
+        backendUrl(
+          `/client/v1/conversations/${encodeURIComponent(item.conversation_id)}`
+          + `/shares/${encodeURIComponent(share.share_id)}`
+        ),
+        {
+          method: "DELETE",
+          headers: { ...authHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: currentSubjectId(),
+            client_id: voiceClientId()
+          })
+        }
+      );
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        handleUnauthorizedResponse(response);
+        throw new Error(conversationShareErrorMessage(payload.detail));
+      }
+      input.disabled = true;
+      actions.querySelectorAll("button").forEach((button) => {
+        button.disabled = true;
+      });
+      status.dataset.tone = "success";
+      status.textContent = textFor("conversation.shareRevoked", "链接已撤销");
+      setConversationFeedback(status.textContent, "success");
+    } catch (error) {
+      revoke.disabled = false;
+      revoke.removeAttribute("aria-busy");
+      status.dataset.tone = "error";
+      status.textContent = error.message || textFor("conversation.shareUnavailable", "暂时无法分享这段会话。");
+    }
+  });
+  actions.append(copy, open, system, revoke);
+  ready.append(marker, title, input, actions, status);
+  container.appendChild(ready);
+  copy.focus({ preventScroll: true });
+}
+
+function appendExistingConversationShares(container, item, shares) {
+  const active = (Array.isArray(shares) ? shares : []).filter((share) => share.status === "active");
+  if (!active.length) return;
+  const section = document.createElement("section");
+  section.className = "conversationExistingShares";
+  const title = document.createElement("p");
+  title.className = "conversationExistingSharesTitle";
+  title.textContent = currentLanguage === "en"
+    ? `${active.length} active ${active.length === 1 ? "link" : "links"}`
+    : `${active.length} 个有效链接`;
+  const list = document.createElement("div");
+  list.className = "conversationExistingShareList";
+  active.slice(0, 4).forEach((share) => {
+    const row = document.createElement("div");
+    row.className = "conversationExistingShare";
+    const copy = document.createElement("div");
+    const created = document.createElement("strong");
+    created.textContent = conversationUpdatedLabel(share.created_at);
+    const expiry = document.createElement("span");
+    expiry.textContent = share.expires_at
+      ? (currentLanguage === "en"
+        ? `Expires ${conversationUpdatedLabel(share.expires_at)}`
+        : `${conversationUpdatedLabel(share.expires_at)} 到期`)
+      : textFor("conversation.shareExpiryNever", "长期有效");
+    copy.append(created, expiry);
+    const actions = document.createElement("div");
+    const use = conversationShareActionButton(textFor("conversation.shareCopy", "复制链接"));
+    const revoke = conversationShareActionButton(textFor("conversation.shareRevoke", "撤销链接"), "shareDangerAction");
+    use.addEventListener("click", async () => {
+      use.disabled = true;
+      try {
+        await copyConversationShareUrl(conversationShareUrl(share.public_token));
+        use.textContent = textFor("conversation.shareCopied", "链接已复制");
+      } finally {
+        window.setTimeout(() => {
+          use.disabled = false;
+          use.textContent = textFor("conversation.shareCopy", "复制链接");
+        }, 900);
+      }
+    });
+    revoke.addEventListener("click", async () => {
+      revoke.disabled = true;
+      try {
+        const response = await fetch(
+          backendUrl(
+            `/client/v1/conversations/${encodeURIComponent(item.conversation_id)}`
+            + `/shares/${encodeURIComponent(share.share_id)}`
+          ),
+          {
+            method: "DELETE",
+            headers: { ...authHeaders(), "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: currentSubjectId(),
+              client_id: voiceClientId()
+            })
+          }
+        );
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          handleUnauthorizedResponse(response);
+          throw new Error(conversationShareErrorMessage(payload.detail));
+        }
+        row.dataset.revoked = "true";
+        row.remove();
+        if (!list.children.length) section.remove();
+        setConversationFeedback(textFor("conversation.shareRevoked", "链接已撤销"), "success");
+      } catch (error) {
+        revoke.disabled = false;
+        setConversationFeedback(
+          error.message || textFor("conversation.shareUnavailable", "暂时无法分享这段会话。"),
+          "error"
+        );
+      }
+    });
+    actions.append(use, revoke);
+    row.append(copy, actions);
+    list.appendChild(row);
+  });
+  section.append(title, list);
+  container.appendChild(section);
+}
+
+async function openConversationShareDialog(item, opener = null) {
+  if (!item || !item.conversation_id) return;
+  closeConversationShareDialog();
+  conversationShareReturnFocus = opener instanceof HTMLElement ? opener : document.activeElement;
+  const overlay = document.createElement("div");
+  overlay.className = "conversationShareOverlay";
+  const dialog = document.createElement("section");
+  dialog.className = "conversationShareDialog";
+  dialog.setAttribute("role", "dialog");
+  dialog.setAttribute("aria-modal", "true");
+  dialog.setAttribute("aria-labelledby", "conversationShareDialogTitle");
+  const header = document.createElement("header");
+  const heading = document.createElement("div");
+  const kicker = document.createElement("span");
+  kicker.textContent = textFor("conversation.shareKicker", "只读快照");
+  const title = document.createElement("h2");
+  title.id = "conversationShareDialogTitle";
+  title.textContent = textFor("conversation.shareTitle", "分享这段对话");
+  const close = conversationShareActionButton("×", "conversationShareClose");
+  close.setAttribute("aria-label", textFor("conversation.shareClose", "关闭"));
+  close.addEventListener("click", closeConversationShareDialog);
+  heading.append(kicker, title);
+  header.append(heading, close);
+  const body = document.createElement("div");
+  body.className = "conversationShareBody";
+  const loading = document.createElement("div");
+  loading.className = "conversationShareLoading";
+  loading.innerHTML = '<span aria-hidden="true"></span>';
+  const loadingText = document.createElement("p");
+  loadingText.textContent = textFor("conversation.shareLoading", "正在核对可分享内容…");
+  loading.appendChild(loadingText);
+  body.appendChild(loading);
+  dialog.append(header, body);
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+  conversationShareOverlay = overlay;
+  document.body.classList.add("conversationShareOpen");
+  overlay.addEventListener("pointerdown", (event) => {
+    if (event.target === overlay) closeConversationShareDialog();
+  });
+  overlay.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeConversationShareDialog();
+      return;
+    }
+    if (event.key === "Tab") {
+      const focusable = Array.from(
+        dialog.querySelectorAll(
+          'button:not([disabled]):not([hidden]), input:not([disabled]), select:not([disabled]), '
+          + 'textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((element) => element instanceof HTMLElement && element.offsetParent !== null);
+      if (!focusable.length) {
+        event.preventDefault();
+        dialog.focus({ preventScroll: true });
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!dialog.contains(document.activeElement)) {
+        event.preventDefault();
+        first.focus({ preventScroll: true });
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus({ preventScroll: true });
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus({ preventScroll: true });
+      }
+    }
+  });
+  close.focus({ preventScroll: true });
+
+  if (String(item.memory_mode || "personal") === "temporary") {
+    body.replaceChildren();
+    const warning = document.createElement("p");
+    warning.className = "conversationShareBlocked";
+    warning.textContent = textFor("conversation.shareTemporaryBlocked", "临时对话不会生成公开链接。");
+    body.appendChild(warning);
+    return;
+  }
+
+  try {
+    const [previewResponse, sharesResponse] = await Promise.all([
+      fetch(
+        backendUrl(`/client/v1/conversations/${encodeURIComponent(item.conversation_id)}/share-preview`),
+        {
+          method: "POST",
+          headers: { ...authHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: currentSubjectId(),
+            client_id: voiceClientId()
+          }),
+          cache: "no-store"
+        }
+      ),
+      fetch(
+        backendUrl(`/client/v1/conversations/${encodeURIComponent(item.conversation_id)}/shares`),
+        { headers: authHeaders(), cache: "no-store" }
+      )
+    ]);
+    const preview = await previewResponse.json().catch(() => ({}));
+    const existing = await sharesResponse.json().catch(() => ({}));
+    if (!previewResponse.ok) {
+      handleUnauthorizedResponse(previewResponse);
+      throw new Error(conversationShareErrorMessage(preview.detail));
+    }
+    if (!sharesResponse.ok) {
+      handleUnauthorizedResponse(sharesResponse);
+      throw new Error(conversationShareErrorMessage(existing.detail));
+    }
+    if (!conversationShareOverlay || conversationShareOverlay !== overlay) return;
+    body.replaceChildren();
+    const conversationTitle = document.createElement("strong");
+    conversationTitle.className = "conversationShareConversationTitle";
+    conversationTitle.textContent = String(preview.title || item.title || "Iris");
+    const scope = document.createElement("p");
+    scope.className = "conversationShareScope";
+    scope.textContent = textFor(
+      "conversation.shareScope",
+      "将分享当前 {count} 条你与 Iris 的文字消息。"
+    ).replace("{count}", String(Math.max(0, Number(preview.message_count) || 0)));
+    const boundary = document.createElement("p");
+    boundary.className = "conversationShareBoundary";
+    boundary.textContent = textFor(
+      "conversation.shareBoundary",
+      "不会包含你的身份、长期记忆、项目信息、文件原件、工具记录或之后的新消息。"
+    );
+    const warning = document.createElement("p");
+    warning.className = "conversationShareWarning";
+    warning.textContent = textFor(
+      "conversation.shareWarning",
+      "任何拿到链接的人都能查看这份快照。创建前请先检查当前对话。"
+    );
+    const { field, select } = conversationShareExpirySelect(preview);
+    const confirm = conversationShareActionButton(
+      textFor("conversation.shareConfirm", "创建只读链接"),
+      "conversationShareConfirm"
+    );
+    const status = document.createElement("p");
+    status.className = "conversationShareInlineStatus";
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    confirm.addEventListener("click", async () => {
+      confirm.disabled = true;
+      confirm.setAttribute("aria-busy", "true");
+      status.dataset.tone = "info";
+      status.textContent = textFor("conversation.shareCreating", "正在创建安全链接…");
+      try {
+        const response = await fetch(
+          backendUrl(`/client/v1/conversations/${encodeURIComponent(item.conversation_id)}/shares`),
+          {
+            method: "POST",
+            headers: { ...authHeaders(), "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: currentSubjectId(),
+              client_id: voiceClientId(),
+              confirmation_token: preview.confirmation_token,
+              expires_in_days: Number(select.value)
+            }),
+            cache: "no-store"
+          }
+        );
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          handleUnauthorizedResponse(response);
+          throw new Error(conversationShareErrorMessage(payload.detail));
+        }
+        renderConversationShareReady(body, item, payload.share || {});
+        setConversationFeedback(textFor("conversation.shareReady", "只读链接已创建"), "success");
+      } catch (error) {
+        confirm.disabled = false;
+        confirm.removeAttribute("aria-busy");
+        status.dataset.tone = "error";
+        status.textContent = error.message || textFor("conversation.shareUnavailable", "暂时无法分享这段会话。");
+      }
+    });
+    body.append(conversationTitle, scope, boundary, warning, field, confirm, status);
+    appendExistingConversationShares(body, item, existing.items);
+    confirm.focus({ preventScroll: true });
+  } catch (error) {
+    if (!conversationShareOverlay || conversationShareOverlay !== overlay) return;
+    body.replaceChildren();
+    const failure = document.createElement("p");
+    failure.className = "conversationShareBlocked";
+    failure.textContent = error.message || textFor("conversation.shareUnavailable", "暂时无法分享这段会话。");
+    body.appendChild(failure);
+  }
+}
+
+function publicShareDate(value) {
+  const parsed = new Date(String(value || ""));
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toLocaleString(currentLanguage === "en" ? "en-US" : "zh-CN", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function renderPublicConversationShare(payload) {
+  const share = payload && payload.share && typeof payload.share === "object"
+    ? payload.share
+    : null;
+  if (!share || !Array.isArray(share.messages)) throw new Error("conversation_share_invalid");
+  const view = document.getElementById("publicConversationShare");
+  if (!view) return;
+  view.replaceChildren();
+  const header = document.createElement("header");
+  header.className = "publicShareHeader";
+  const brand = document.createElement("a");
+  brand.className = "publicShareBrand";
+  brand.href = `${appBasePath()}/`;
+  brand.innerHTML = '<span aria-hidden="true"></span><strong>Iris</strong>';
+  const badge = document.createElement("span");
+  badge.className = "publicShareBadge";
+  badge.textContent = currentLanguage === "en" ? "READ ONLY" : "只读";
+  header.append(brand, badge);
+  const hero = document.createElement("section");
+  hero.className = "publicShareHero";
+  const kicker = document.createElement("span");
+  kicker.textContent = textFor("conversation.shareKicker", "只读快照");
+  const title = document.createElement("h1");
+  title.textContent = String(share.title || "Iris");
+  const summary = document.createElement("p");
+  summary.textContent = textFor(
+    "conversation.shareReadOnly",
+    "由 Iris 创建的只读对话快照"
+  );
+  const timestamp = document.createElement("small");
+  timestamp.textContent = textFor(
+    "conversation.shareSnapshot",
+    "快照创建于 {time}，不会随原会话更新。"
+  ).replace("{time}", publicShareDate(share.created_at));
+  hero.append(kicker, title, summary, timestamp);
+  const stream = document.createElement("section");
+  stream.className = "publicShareMessages";
+  stream.setAttribute("aria-label", currentLanguage === "en" ? "Shared conversation" : "分享的对话");
+  share.messages.forEach((message) => {
+    if (!message || !["user", "assistant"].includes(message.role)) return;
+    const article = document.createElement("article");
+    article.className = `publicShareMessage ${message.role}`;
+    const meta = document.createElement("p");
+    meta.className = "publicShareMessageMeta";
+    meta.textContent = message.role === "user"
+      ? textFor("conversation.shareYou", "你")
+      : "Iris";
+    if (message.time) {
+      const time = document.createElement("span");
+      time.textContent = publicShareDate(message.time);
+      meta.appendChild(time);
+    }
+    const content = document.createElement("p");
+    content.className = "publicShareMessageText";
+    content.textContent = String(message.content || "");
+    article.append(meta, content);
+    stream.appendChild(article);
+  });
+  const footer = document.createElement("footer");
+  footer.className = "publicShareFooter";
+  const copy = document.createElement("p");
+  copy.textContent = textFor(
+    "conversation.shareBoundary",
+    "不会包含你的身份、长期记忆、项目信息、文件原件、工具记录或之后的新消息。"
+  );
+  const back = document.createElement("a");
+  back.href = `${appBasePath()}/`;
+  back.textContent = textFor("conversation.shareBack", "打开 Iris");
+  footer.append(copy, back);
+  view.append(header, hero, stream, footer);
+  document.title = `${share.title || "Iris"} · Iris`;
+}
+
+function renderPublicConversationShareFailure(detail) {
+  const view = document.getElementById("publicConversationShare");
+  if (!view) return;
+  view.replaceChildren();
+  const failure = document.createElement("section");
+  failure.className = "publicShareFailure";
+  const brand = document.createElement("span");
+  brand.className = "publicShareFailureMark";
+  brand.setAttribute("aria-hidden", "true");
+  const title = document.createElement("h1");
+  title.textContent = detail === "conversation_share_expired"
+    ? textFor("conversation.shareExpired", "这份分享已过期")
+    : textFor("conversation.shareNotFound", "这份分享不存在或已被撤销");
+  const back = document.createElement("a");
+  back.href = `${appBasePath()}/`;
+  back.textContent = textFor("conversation.shareBack", "打开 Iris");
+  failure.append(brand, title, back);
+  view.appendChild(failure);
+}
+
+async function initializePublicConversationShare() {
+  if (!PUBLIC_SHARE_MODE) return false;
+  document.body.classList.add("publicShareMode");
+  document.body.classList.remove("accessLocked");
+  const terminal = document.querySelector(".terminal");
+  if (terminal) {
+    terminal.hidden = true;
+    terminal.setAttribute("aria-hidden", "true");
+  }
+  if (els.dock) els.dock.hidden = true;
+  if (els.accessGate) {
+    els.accessGate.hidden = true;
+    els.accessGate.setAttribute("aria-hidden", "true");
+  }
+  const view = document.createElement("main");
+  view.id = "publicConversationShare";
+  view.className = "publicConversationShare";
+  view.setAttribute("aria-live", "polite");
+  const loading = document.createElement("section");
+  loading.className = "publicShareLoading";
+  loading.innerHTML = '<span aria-hidden="true"></span>';
+  const loadingText = document.createElement("p");
+  loadingText.textContent = currentLanguage === "en" ? "Opening shared conversation…" : "正在打开分享的对话…";
+  loading.appendChild(loadingText);
+  view.appendChild(loading);
+  document.body.appendChild(view);
+  if (!PUBLIC_SHARE_TOKEN_VALID) {
+    renderPublicConversationShareFailure(404);
+    return true;
+  }
+  try {
+    const response = await fetch(
+      backendUrl(`/client/v1/public/conversation-shares/${encodeURIComponent(PUBLIC_SHARE_TOKEN)}`),
+      { cache: "no-store" }
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(String(payload.detail || "conversation_share_not_found"));
+    }
+    renderPublicConversationShare(payload);
+  } catch (error) {
+    renderPublicConversationShareFailure(String(error.message || "conversation_share_not_found"));
+  }
+  return true;
 }
 
 function beginConversationRename(row, item) {
@@ -6055,6 +6772,13 @@ function renderConversationLibrary() {
       }
     }
     if (Number(item.message_count || 0) > 0) {
+      if (item.memory_mode !== "temporary") {
+        const share = document.createElement("button");
+        share.type = "button";
+        share.textContent = textFor("conversation.share", "分享");
+        share.addEventListener("click", () => openConversationShareDialog(item, share));
+        actions.appendChild(share);
+      }
       actions.appendChild(conversationExportControl(item));
     }
     if (!item.is_default) {
@@ -8276,6 +9000,7 @@ function proactiveComposerBusy() {
 
 function canRunProactiveScan() {
   return !IS_QA_MODE
+    && !PUBLIC_SHARE_MODE
     && !pagehideCleanupStarted
     && document.visibilityState === "visible"
     && canUseBackendNow()
@@ -9396,6 +10121,10 @@ function hideAccessGate() {
 }
 
 function maybePromptForAccess() {
+  if (PUBLIC_SHARE_MODE) {
+    hideAccessGate();
+    return;
+  }
   if (currentAuthToken() || !isPublicFrontendMode()) {
     hideAccessGate();
     return;
@@ -14166,6 +14895,12 @@ els.main.addEventListener("click", () => handleMainButton().catch((err) => logLi
 if (els.dockMic) {
   els.dockMic.addEventListener("click", () => handleDockVoiceCommand().catch((err) => logLine(err.message || "dock voice failed")));
 }
+if (els.conversationShare) {
+  els.conversationShare.addEventListener("click", () => {
+    const record = currentConversationRecord();
+    if (record) openConversationShareDialog(record, els.conversationShare);
+  });
+}
 if (els.voiceCall) {
   els.voiceCall.addEventListener("click", () => {
     if (els.dockMic) els.dockMic.click();
@@ -14668,7 +15403,14 @@ initVoiceClientId();
 initThemeSettings();
 initLanguageSettings();
 refreshAccessRevealButton();
-maybePromptForAccess();
+if (PUBLIC_SHARE_MODE) {
+  initializePublicConversationShare().catch((err) => {
+    logLine(err.message || "public conversation share failed");
+    renderPublicConversationShareFailure("conversation_share_not_found");
+  });
+} else {
+  maybePromptForAccess();
+}
 initModelSettings();
 initVoiceProfileSettings();
 initVolumeSettings();
@@ -14676,7 +15418,7 @@ renderWebTtsAudibility();
 renderWebTtsRoute();
 syncComposerSendAvailability();
 syncViewportMetrics({ refreshSubtitle: false });
-if (canUseBackendNow()) {
+if (!PUBLIC_SHARE_MODE && canUseBackendNow()) {
   initializeConversationSpace().catch((err) => logLine(err.message || "conversation initialization failed"));
   schedulePendingDocumentUploadReconciliation(900);
   scheduleProactiveScan(3200);
