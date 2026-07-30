@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=379" type="image/png" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=379" />
-    <link rel="manifest" href="/iris/manifest.json?v=379" />
-    <link rel="stylesheet" href="/iris/styles.css?v=379" />
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=380" type="image/png" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=380" />
+    <link rel="manifest" href="/iris/manifest.json?v=380" />
+    <link rel="stylesheet" href="/iris/styles.css?v=380" />
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -180,7 +180,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=379" alt="" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=380" alt="" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -247,7 +247,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=379" alt="" />
+              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=380" alt="" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
@@ -317,6 +317,30 @@
                 <label for="projectInstructionsInput" data-i18n="project.instructions">项目说明</label>
                 <textarea id="projectInstructionsInput" maxlength="4000" rows="3" placeholder="告诉 Iris 这个项目的目标、背景和回答偏好" data-i18n-placeholder="project.instructionsPlaceholder"></textarea>
                 <p data-i18n="project.instructionsHint">说明只影响项目内回答，不会扩大工具权限。</p>
+                <label for="projectGoalInput" data-i18n="project.goal">项目目标</label>
+                <textarea id="projectGoalInput" maxlength="1200" rows="2" placeholder="这个项目最终要抵达哪里？" data-i18n-placeholder="project.goalPlaceholder"></textarea>
+                <label class="projectFollowupToggle" for="projectFollowupEnabled">
+                  <input id="projectFollowupEnabled" type="checkbox" />
+                  <span>
+                    <strong data-i18n="project.followup">允许 Iris 主动跟进</strong>
+                    <small data-i18n="project.followupHint">只跟进这里明确列出的步骤，仍遵守静默时段和频率上限。</small>
+                  </span>
+                </label>
+                <section class="projectPlan" aria-labelledby="projectPlanTitle">
+                  <div class="projectPlanHeader">
+                    <div>
+                      <span id="projectPlanTitle" data-i18n="project.plan">下一步</span>
+                      <small data-i18n="project.planHint">把目标拆成几个可以真正完成的动作</small>
+                    </div>
+                    <output id="projectTaskStatus" aria-live="polite"></output>
+                  </div>
+                  <div class="projectTaskComposer">
+                    <input id="projectTaskInput" type="text" maxlength="240" autocomplete="off" placeholder="添加一个清晰的下一步" data-i18n-placeholder="project.taskPlaceholder" />
+                    <input id="projectTaskDueInput" type="date" aria-label="截止日期" data-i18n-aria-label="project.taskDue" />
+                    <button id="projectTaskAddButton" type="button" data-i18n="project.taskAdd">添加</button>
+                  </div>
+                  <div id="projectTaskList" class="projectTaskList"></div>
+                </section>
                 <section class="projectFiles" aria-labelledby="projectFilesTitle">
                   <div class="projectFilesHeader">
                     <div>
@@ -689,7 +713,7 @@
         </div>
       </aside>
     </main>
-    <script src="/iris/public-config.js?v=379"></script>
-    <script src="/iris/app.js?v=379"></script>
+    <script src="/iris/public-config.js?v=380"></script>
+    <script src="/iris/app.js?v=380"></script>
   </body>
 </html>

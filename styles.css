@@ -57,8 +57,8 @@
   --control-hover-filter: brightness(1.018) saturate(1.06);
   --control-active-filter: brightness(0.985) saturate(1.02);
   --control-press-shadow: inset 0 2px 5px rgba(24, 42, 67, 0.08);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=379");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=379");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=380");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=380");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -212,8 +212,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 22px 54px rgba(85, 91, 255, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=379");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=379");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=380");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=380");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -269,8 +269,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=379");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=379");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=380");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=380");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -2072,7 +2072,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=379");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=380");
 }
 
 .brandName {
@@ -6564,6 +6564,314 @@ button[aria-disabled="true"]:not([data-loading="true"]) {
   line-height: 1.4;
 }
 
+.projectFollowupToggle {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 52px;
+  margin: 4px 0 1px !important;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--iris-hairline));
+  border-radius: 13px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 7%, transparent), transparent 58%),
+    color-mix(in srgb, var(--iris-pearl) 80%, transparent);
+  cursor: pointer;
+}
+
+.projectFollowupToggle > input {
+  width: 19px;
+  height: 19px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.projectFollowupToggle > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.projectFollowupToggle strong {
+  color: var(--ink);
+  font-size: 8.8px;
+  font-weight: 780;
+}
+
+.projectFollowupToggle small {
+  color: var(--ink-dim);
+  font-size: 7.4px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.projectPlan {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 3px 0 2px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--iris-hairline));
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--accent) 9%, transparent), transparent 52%),
+    color-mix(in srgb, var(--iris-pearl) 74%, transparent);
+}
+
+.projectPlanHeader,
+.projectPlanHeader > div {
+  display: flex;
+  min-width: 0;
+}
+
+.projectPlanHeader {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.projectPlanHeader > div {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.projectPlanHeader span {
+  color: color-mix(in srgb, var(--ink) 88%, var(--accent));
+  font-size: 8px;
+  font-weight: 820;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.projectPlanHeader small,
+.projectPlanHeader output {
+  color: var(--ink-dim);
+  font-size: 7.5px;
+  line-height: 1.35;
+}
+
+.projectPlanHeader output {
+  flex: 0 0 auto;
+  max-width: 44%;
+  padding-top: 1px;
+  text-align: right;
+}
+
+.projectPlanHeader output[data-tone="success"] {
+  color: color-mix(in srgb, var(--status-online) 76%, var(--ink));
+}
+
+.projectPlanHeader output[data-tone="warning"] {
+  color: color-mix(in srgb, #c78316 78%, var(--ink));
+}
+
+.projectPlanHeader output[data-tone="error"] {
+  color: color-mix(in srgb, var(--danger) 78%, var(--ink));
+}
+
+.projectTaskComposer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 118px auto;
+  gap: 6px;
+  min-width: 0;
+}
+
+.projectTaskComposer input,
+.projectTaskComposer button,
+.projectTaskInlineEditor input,
+.projectTaskInlineEditor button {
+  min-width: 0;
+  min-height: 45px;
+  border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--iris-hairline));
+  border-radius: 11px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--iris-pearl-strong) 92%, transparent);
+  font: inherit;
+  font-size: 8.5px;
+}
+
+.projectTaskComposer input,
+.projectTaskInlineEditor input {
+  padding: 0 10px;
+}
+
+.projectTaskComposer input:focus,
+.projectTaskInlineEditor input:focus {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--iris-hairline));
+  outline: 3px solid color-mix(in srgb, var(--accent) 12%, transparent);
+  outline-offset: 1px;
+}
+
+.projectTaskComposer button,
+.projectTaskInlineEditor button {
+  padding: 0 11px;
+  color: #fff;
+  font-weight: 780;
+  background: linear-gradient(135deg, #8e82f6, #7465e8);
+}
+
+.projectTaskComposer button[aria-busy="true"],
+.projectTaskItem[data-busy="true"] {
+  opacity: 0.62;
+}
+
+.projectTaskList {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.projectTaskItem {
+  display: grid;
+  grid-template-columns: 45px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 5px 6px;
+  border: 1px solid color-mix(in srgb, var(--iris-hairline) 92%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--iris-pearl-strong) 94%, transparent);
+}
+
+.projectTaskToggle {
+  position: relative;
+  width: 45px;
+  min-width: 45px;
+  height: 45px;
+  padding: 0;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+}
+
+.projectTaskToggle::before {
+  content: "";
+  position: absolute;
+  inset: 13px;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 46%, var(--iris-hairline));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--iris-pearl) 88%, transparent);
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.projectTaskToggle::after {
+  content: "";
+  position: absolute;
+  top: 18px;
+  left: 17px;
+  width: 9px;
+  height: 5px;
+  border: solid #fff;
+  border-width: 0 0 2px 2px;
+  opacity: 0;
+  transform: rotate(-45deg) scale(0.65);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.projectTaskToggle[aria-pressed="true"]::before {
+  border-color: transparent;
+  background: linear-gradient(135deg, #79d9c9, #7169eb);
+  transform: scale(1.04);
+}
+
+.projectTaskToggle[aria-pressed="true"]::after {
+  opacity: 1;
+  transform: rotate(-45deg) scale(1);
+}
+
+.projectTaskToggle:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  outline-offset: 0;
+}
+
+.projectTaskCopy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.projectTaskCopy strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 8.7px;
+  font-weight: 720;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projectTaskCopy small {
+  color: var(--ink-dim);
+  font-size: 7.4px;
+}
+
+.projectTaskCopy small[data-tone="danger"] {
+  color: color-mix(in srgb, var(--danger) 78%, var(--ink));
+}
+
+.projectTaskItem[data-status="completed"] .projectTaskCopy strong {
+  color: var(--ink-dim);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.projectTaskActions {
+  display: flex;
+  gap: 2px;
+}
+
+.projectTaskActions button {
+  min-width: 45px;
+  min-height: 45px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--ink-dim);
+  background: transparent;
+  font-size: 7.4px;
+  font-weight: 720;
+}
+
+.projectTaskActions button:hover,
+.projectTaskActions button:focus-visible {
+  color: color-mix(in srgb, var(--accent) 72%, var(--ink));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  outline: none;
+}
+
+.projectTaskActions .projectTaskDelete:hover,
+.projectTaskActions .projectTaskDelete:focus-visible {
+  color: color-mix(in srgb, var(--danger) 76%, var(--ink));
+  background: color-mix(in srgb, var(--danger) 7%, transparent);
+}
+
+.projectTaskInlineEditor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 118px auto auto;
+  grid-column: 1 / -1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.projectTaskInlineEditor .projectTaskCancel {
+  border-color: color-mix(in srgb, var(--ink-dim) 16%, var(--iris-hairline));
+  color: var(--ink-dim);
+  background: transparent;
+}
+
+.projectTaskEmpty {
+  margin: 0;
+  padding: 11px 8px;
+  border: 1px dashed color-mix(in srgb, var(--ink-dim) 16%, transparent);
+  border-radius: 11px;
+  color: var(--ink-dim);
+  text-align: center;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
 .projectFiles {
   display: grid;
   gap: 8px;
@@ -7118,6 +7426,12 @@ button[aria-disabled="true"]:not([data-loading="true"]) {
 :root[data-theme="pure-black"] .projectSpacePicker button,
 :root[data-theme="pure-black"] .projectEditor > input,
 :root[data-theme="pure-black"] .projectEditor > textarea,
+:root[data-theme="pure-black"] .projectFollowupToggle,
+:root[data-theme="pure-black"] .projectPlan,
+:root[data-theme="pure-black"] .projectTaskComposer input,
+:root[data-theme="pure-black"] .projectTaskInlineEditor input,
+:root[data-theme="pure-black"] .projectTaskItem,
+:root[data-theme="pure-black"] .projectTaskInlineEditor .projectTaskCancel,
 :root[data-theme="pure-black"] .projectFiles,
 :root[data-theme="pure-black"] .projectFileItem,
 :root[data-theme="pure-black"] .projectFileRemove,
@@ -7190,6 +7504,31 @@ button[aria-disabled="true"]:not([data-loading="true"]) {
   .conversationRenameEditor button:last-child {
     grid-column: 2;
   }
+
+  .projectTaskComposer {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .projectTaskComposer input:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .projectTaskItem {
+    grid-template-columns: 45px minmax(0, 1fr);
+  }
+
+  .projectTaskActions {
+    grid-column: 2;
+    justify-content: flex-end;
+  }
+
+  .projectTaskInlineEditor {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .projectTaskInlineEditor input:first-child {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (min-width: 800px) and (max-height: 850px) {
@@ -7203,6 +7542,12 @@ button[aria-disabled="true"]:not([data-loading="true"]) {
 
   .projectFileItem {
     padding-block: 2px;
+  }
+
+  .projectFollowupToggle,
+  .projectPlan,
+  .projectFiles {
+    padding-block: 7px;
   }
 }
 
@@ -11076,7 +11421,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 /* v354 Iris companion interface: portrait-led entry, calm conversation, and card-based settings. */
 :root {
-  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=379");
+  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=380");
   --iris-violet: #7567f8;
   --iris-violet-deep: #5547e8;
   --iris-lilac: #b9b0ff;
@@ -12397,7 +12742,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 .accessConnectingGlyph,
 .capabilitySuggestionMark,
 .sheetGlyph {
-  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=379");
+  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=380");
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -13304,7 +13649,7 @@ body {
   height: 76px;
   display: block;
   border-radius: 22px;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=379") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=380") center / 58px 58px no-repeat;
   filter: drop-shadow(0 12px 24px rgba(104, 85, 224, 0.16));
 }
 
@@ -15577,7 +15922,7 @@ body > .dock.unifiedComposer {
   width: 76px !important;
   height: 76px !important;
   display: block !important;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=379") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=380") center / 58px 58px no-repeat;
 }
 
 #accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessFocusIntro > .accessFocusGlyph,
@@ -16125,6 +16470,13 @@ body > .dock.unifiedComposer {
 .projectSpacePicker button,
 .projectEditor > input,
 .projectEditor > textarea,
+.projectFollowupToggle,
+.projectTaskComposer input,
+.projectTaskComposer button,
+.projectTaskInlineEditor input,
+.projectTaskInlineEditor button,
+.projectTaskToggle,
+.projectTaskActions button,
 .proactiveField select,
 .proactiveQuiet input,
 .proactiveTopics label {

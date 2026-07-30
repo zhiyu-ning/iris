@@ -50,6 +50,13 @@ const els = {
   projectEditor: document.getElementById("projectEditor"),
   projectName: document.getElementById("projectNameInput"),
   projectInstructions: document.getElementById("projectInstructionsInput"),
+  projectGoal: document.getElementById("projectGoalInput"),
+  projectFollowup: document.getElementById("projectFollowupEnabled"),
+  projectTaskInput: document.getElementById("projectTaskInput"),
+  projectTaskDue: document.getElementById("projectTaskDueInput"),
+  projectTaskAdd: document.getElementById("projectTaskAddButton"),
+  projectTaskList: document.getElementById("projectTaskList"),
+  projectTaskStatus: document.getElementById("projectTaskStatus"),
   projectMeta: document.getElementById("projectMeta"),
   projectFilesStatus: document.getElementById("projectFilesStatus"),
   projectFileList: document.getElementById("projectFileList"),
@@ -129,7 +136,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "379";
+const VOICE_UI_VERSION = "380";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -616,6 +623,35 @@ const UI_TEXT = {
     "project.instructions": "项目说明",
     "project.instructionsPlaceholder": "告诉 Iris 这个项目的目标、背景和回答偏好",
     "project.instructionsHint": "说明只影响项目内回答，不会扩大工具权限。",
+    "project.goal": "项目目标",
+    "project.goalPlaceholder": "这个项目最终要抵达哪里？",
+    "project.followup": "允许 Iris 主动跟进",
+    "project.followupHint": "只跟进这里明确列出的步骤，仍遵守静默时段和频率上限。",
+    "project.plan": "下一步",
+    "project.planHint": "把目标拆成几个可以真正完成的动作",
+    "project.taskPlaceholder": "添加一个清晰的下一步",
+    "project.taskDue": "截止日期",
+    "project.taskAdd": "添加",
+    "project.tasksEmpty": "还没有下一步。先写一件真正能开始的事。",
+    "project.tasksOpen": "{count} 项待完成",
+    "project.tasksComplete": "全部完成",
+    "project.taskNoDue": "暂不设日期",
+    "project.taskOverdue": "已逾期",
+    "project.taskToday": "今天到期",
+    "project.taskTomorrow": "明天到期",
+    "project.taskDueOn": "{date} 到期",
+    "project.taskComplete": "标记完成",
+    "project.taskReopen": "重新打开",
+    "project.taskEdit": "编辑",
+    "project.taskDelete": "删除",
+    "project.taskSave": "保存",
+    "project.taskCancel": "取消",
+    "project.taskAdded": "下一步已添加。",
+    "project.taskUpdated": "下一步已更新。",
+    "project.taskDeleted": "下一步已删除。",
+    "project.taskRequired": "请先写下要完成的事。",
+    "project.taskFailed": "项目步骤更新失败",
+    "project.taskRefreshing": "内容刚被更新，正在同步最新版本。",
     "project.files": "项目文件",
     "project.filesHint": "提问时自动检索这些文件",
     "project.filesEmpty": "这个项目还没有文件",
@@ -912,6 +948,35 @@ const UI_TEXT = {
     "project.instructions": "Project instructions",
     "project.instructionsPlaceholder": "Give Iris the goals, context, and response preferences for this project",
     "project.instructionsHint": "Instructions shape project replies but never expand tool permissions.",
+    "project.goal": "Project goal",
+    "project.goalPlaceholder": "Where should this project ultimately arrive?",
+    "project.followup": "Let Iris follow up proactively",
+    "project.followupHint": "Only explicit steps below are followed up, with quiet hours and frequency limits intact.",
+    "project.plan": "Next steps",
+    "project.planHint": "Turn the goal into a few actions you can actually finish",
+    "project.taskPlaceholder": "Add one clear next step",
+    "project.taskDue": "Due date",
+    "project.taskAdd": "Add",
+    "project.tasksEmpty": "No next steps yet. Start with one thing you can truly begin.",
+    "project.tasksOpen": "{count} open",
+    "project.tasksComplete": "All complete",
+    "project.taskNoDue": "No date",
+    "project.taskOverdue": "Overdue",
+    "project.taskToday": "Due today",
+    "project.taskTomorrow": "Due tomorrow",
+    "project.taskDueOn": "Due {date}",
+    "project.taskComplete": "Mark complete",
+    "project.taskReopen": "Reopen",
+    "project.taskEdit": "Edit",
+    "project.taskDelete": "Delete",
+    "project.taskSave": "Save",
+    "project.taskCancel": "Cancel",
+    "project.taskAdded": "Next step added.",
+    "project.taskUpdated": "Next step updated.",
+    "project.taskDeleted": "Next step deleted.",
+    "project.taskRequired": "Write the next step first.",
+    "project.taskFailed": "Project step update failed",
+    "project.taskRefreshing": "This changed elsewhere. Syncing the latest version.",
     "project.files": "Project files",
     "project.filesHint": "Iris searches these files when relevant",
     "project.filesEmpty": "No files in this project yet",
@@ -1244,6 +1309,9 @@ let projectDocumentProjectId = "";
 let projectDocumentLoading = false;
 let projectDocumentError = "";
 let projectDocumentRequestSeq = 0;
+let projectTaskEditingId = "";
+let projectTaskRenderedProjectId = "";
+const projectTaskBusyIds = new Set();
 let currentProjectFilterId = "";
 let projectFilterTouched = false;
 let activeAssistantMessageId = "";
@@ -1300,7 +1368,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v379-version-navigator";
+const WEB_VERSION = "voice-ui-web-polish-v380-project-goals";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -4390,6 +4458,281 @@ function projectConversationCount(projectId) {
   return conversationLibraryItems.filter((item) => String(item.project_id || "") === String(projectId || "")).length;
 }
 
+function mergeProjectRecord(nextProject) {
+  if (!nextProject || typeof nextProject !== "object") return null;
+  const projectId = String(nextProject.project_id || "").trim();
+  if (!projectId) return null;
+  const index = projectLibraryItems.findIndex((item) => String(item.project_id || "") === projectId);
+  if (index < 0) {
+    projectLibraryItems.unshift(nextProject);
+    return nextProject;
+  }
+  const previous = projectLibraryItems[index] || {};
+  const merged = {
+    ...previous,
+    ...nextProject,
+    conversation_count: nextProject.conversation_count ?? previous.conversation_count ?? 0
+  };
+  projectLibraryItems.splice(index, 1, merged);
+  return merged;
+}
+
+function projectTasks(project = currentProjectRecord()) {
+  const items = project && Array.isArray(project.tasks) ? project.tasks.filter((item) => item && item.task_id) : [];
+  return [...items].sort((left, right) => {
+    const leftDone = left.status === "completed" ? 1 : 0;
+    const rightDone = right.status === "completed" ? 1 : 0;
+    if (leftDone !== rightDone) return leftDone - rightDone;
+    const leftDue = String(left.due_on || "9999-12-31");
+    const rightDue = String(right.due_on || "9999-12-31");
+    if (leftDue !== rightDue) return leftDue.localeCompare(rightDue);
+    return String(left.created_at || "").localeCompare(String(right.created_at || ""));
+  });
+}
+
+function projectTaskDueLabel(task) {
+  const dueOn = String(task && task.due_on || "").trim();
+  if (!dueOn) return textFor("project.taskNoDue", "暂不设日期");
+  const due = new Date(`${dueOn}T00:00:00`);
+  if (Number.isNaN(due.getTime())) return dueOn;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Math.round((due.getTime() - today.getTime()) / 86400000);
+  if (days < 0) return textFor("project.taskOverdue", "已逾期");
+  if (days === 0) return textFor("project.taskToday", "今天到期");
+  if (days === 1) return textFor("project.taskTomorrow", "明天到期");
+  const formatted = due.toLocaleDateString(currentLanguage === "en" ? "en-US" : "zh-CN", {
+    month: "short",
+    day: "numeric"
+  });
+  return textFor("project.taskDueOn", "{date} 到期").replace("{date}", formatted);
+}
+
+function setProjectTaskStatus(message = "", tone = "info") {
+  if (!els.projectTaskStatus) return;
+  els.projectTaskStatus.textContent = String(message || "");
+  els.projectTaskStatus.dataset.tone = tone;
+}
+
+async function refreshProjectAfterTaskConflict() {
+  setProjectTaskStatus(textFor("project.taskRefreshing", "内容刚被更新，正在同步最新版本。"), "warning");
+  projectLibraryLoaded = false;
+  await refreshProjectLibrary({ force: true });
+}
+
+async function mutateProjectTask(task, changes, { remove = false, successKey = "project.taskUpdated" } = {}) {
+  const project = currentProjectRecord();
+  const taskId = String(task && task.task_id || "").trim();
+  if (!project || !taskId || projectTaskBusyIds.has(taskId)) return;
+  projectTaskBusyIds.add(taskId);
+  renderProjectTaskList();
+  try {
+    const response = await fetch(
+      backendUrl(`/client/v1/projects/${encodeURIComponent(project.project_id)}/tasks/${encodeURIComponent(taskId)}`),
+      {
+        method: remove ? "DELETE" : "PATCH",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: currentSubjectId(),
+          expected_revision: Number(task.revision || 1),
+          ...(remove ? {} : changes)
+        })
+      }
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      if (response.status === 409) {
+        await refreshProjectAfterTaskConflict();
+        return;
+      }
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    mergeProjectRecord(payload.project);
+    projectTaskEditingId = "";
+    renderProjectSpaceControl();
+    setProjectTaskStatus(textFor(successKey, "下一步已更新。"), "success");
+  } catch (error) {
+    setProjectTaskStatus(
+      `${textFor("project.taskFailed", "项目步骤更新失败")}：${error && error.message || ""}`,
+      "error"
+    );
+  } finally {
+    projectTaskBusyIds.delete(taskId);
+    renderProjectTaskList();
+  }
+}
+
+function projectTaskAction(labelKey, fallback, action, { ariaLabel = "", className = "" } = {}) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = className;
+  button.textContent = textFor(labelKey, fallback);
+  if (ariaLabel) button.setAttribute("aria-label", ariaLabel);
+  button.addEventListener("click", action);
+  return button;
+}
+
+function renderProjectTaskEditor(task, row) {
+  const editor = document.createElement("div");
+  editor.className = "projectTaskInlineEditor";
+  const title = document.createElement("input");
+  title.type = "text";
+  title.maxLength = 240;
+  title.value = String(task.title || "");
+  title.setAttribute("aria-label", textFor("project.taskPlaceholder", "添加一个清晰的下一步"));
+  const due = document.createElement("input");
+  due.type = "date";
+  due.value = String(task.due_on || "");
+  due.setAttribute("aria-label", textFor("project.taskDue", "截止日期"));
+  const save = projectTaskAction("project.taskSave", "保存", () => {
+    const nextTitle = title.value.trim();
+    if (!nextTitle) {
+      title.focus();
+      setProjectTaskStatus(textFor("project.taskRequired", "请先写下要完成的事。"), "warning");
+      return;
+    }
+    void mutateProjectTask(task, { title: nextTitle, due_on: due.value });
+  }, { className: "projectTaskSave" });
+  const cancel = projectTaskAction("project.taskCancel", "取消", () => {
+    projectTaskEditingId = "";
+    renderProjectTaskList();
+  }, { className: "projectTaskCancel" });
+  [title, due].forEach((control) => {
+    control.disabled = projectTaskBusyIds.has(task.task_id);
+  });
+  save.disabled = projectTaskBusyIds.has(task.task_id);
+  cancel.disabled = projectTaskBusyIds.has(task.task_id);
+  editor.append(title, due, save, cancel);
+  row.append(editor);
+  window.setTimeout(() => title.focus({ preventScroll: true }), 0);
+}
+
+function renderProjectTaskList() {
+  if (!els.projectTaskList) return;
+  const project = currentProjectRecord();
+  els.projectTaskList.replaceChildren();
+  if (!project) return;
+  const tasks = projectTasks(project);
+  const openCount = tasks.filter((task) => task.status === "open").length;
+  if (els.projectTaskStatus && !els.projectTaskStatus.textContent) {
+    els.projectTaskStatus.textContent = openCount
+      ? textFor("project.tasksOpen", "{count} 项待完成").replace("{count}", String(openCount))
+      : textFor("project.tasksComplete", "全部完成");
+    els.projectTaskStatus.dataset.tone = openCount ? "info" : "success";
+  }
+  if (!tasks.length) {
+    const empty = document.createElement("p");
+    empty.className = "projectTaskEmpty";
+    empty.textContent = textFor("project.tasksEmpty", "还没有下一步。先写一件真正能开始的事。");
+    els.projectTaskList.appendChild(empty);
+    return;
+  }
+  const archived = project.status === "archived";
+  tasks.forEach((task) => {
+    const row = document.createElement("article");
+    row.className = "projectTaskItem";
+    row.dataset.status = task.status === "completed" ? "completed" : "open";
+    row.dataset.busy = projectTaskBusyIds.has(task.task_id) ? "true" : "false";
+    if (projectTaskEditingId === task.task_id) {
+      renderProjectTaskEditor(task, row);
+      els.projectTaskList.appendChild(row);
+      return;
+    }
+    const completeLabel = task.status === "completed"
+      ? textFor("project.taskReopen", "重新打开")
+      : textFor("project.taskComplete", "标记完成");
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "projectTaskToggle";
+    toggle.setAttribute("aria-label", `${completeLabel}：${task.title}`);
+    toggle.setAttribute("aria-pressed", task.status === "completed" ? "true" : "false");
+    toggle.disabled = archived || projectTaskBusyIds.has(task.task_id);
+    toggle.addEventListener("click", () => {
+      void mutateProjectTask(task, {
+        status: task.status === "completed" ? "open" : "completed"
+      });
+    });
+    const copy = document.createElement("div");
+    copy.className = "projectTaskCopy";
+    const title = document.createElement("strong");
+    title.textContent = String(task.title || "");
+    const meta = document.createElement("small");
+    meta.textContent = projectTaskDueLabel(task);
+    if (String(task.due_on || "") && meta.textContent === textFor("project.taskOverdue", "已逾期")) {
+      meta.dataset.tone = "danger";
+    }
+    copy.append(title, meta);
+    const actions = document.createElement("div");
+    actions.className = "projectTaskActions";
+    const edit = projectTaskAction("project.taskEdit", "编辑", () => {
+      projectTaskEditingId = task.task_id;
+      renderProjectTaskList();
+    }, {
+      ariaLabel: `${textFor("project.taskEdit", "编辑")}：${task.title}`,
+      className: "projectTaskEdit"
+    });
+    edit.disabled = archived || projectTaskBusyIds.has(task.task_id);
+    const remove = projectTaskAction("project.taskDelete", "删除", () => {
+      void mutateProjectTask(task, {}, { remove: true, successKey: "project.taskDeleted" });
+    }, {
+      ariaLabel: `${textFor("project.taskDelete", "删除")}：${task.title}`,
+      className: "projectTaskDelete"
+    });
+    remove.disabled = projectTaskBusyIds.has(task.task_id);
+    actions.append(edit, remove);
+    row.append(toggle, copy, actions);
+    els.projectTaskList.appendChild(row);
+  });
+}
+
+async function addProjectTask() {
+  const project = currentProjectRecord();
+  const title = String(els.projectTaskInput && els.projectTaskInput.value || "").trim();
+  if (!project || project.status === "archived" || !els.projectTaskAdd || els.projectTaskAdd.disabled) return;
+  if (!title) {
+    setProjectTaskStatus(textFor("project.taskRequired", "请先写下要完成的事。"), "warning");
+    if (els.projectTaskInput) els.projectTaskInput.focus();
+    return;
+  }
+  els.projectTaskAdd.disabled = true;
+  els.projectTaskAdd.setAttribute("aria-busy", "true");
+  try {
+    const response = await fetch(
+      backendUrl(`/client/v1/projects/${encodeURIComponent(project.project_id)}/tasks`),
+      {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: currentSubjectId(),
+          title,
+          due_on: String(els.projectTaskDue && els.projectTaskDue.value || "")
+        })
+      }
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    mergeProjectRecord(payload.project);
+    if (els.projectTaskInput) els.projectTaskInput.value = "";
+    if (els.projectTaskDue) els.projectTaskDue.value = "";
+    renderProjectSpaceControl();
+    setProjectTaskStatus(textFor("project.taskAdded", "下一步已添加。"), "success");
+    if (els.projectTaskInput) els.projectTaskInput.focus({ preventScroll: true });
+  } catch (error) {
+    setProjectTaskStatus(
+      `${textFor("project.taskFailed", "项目步骤更新失败")}：${error && error.message || ""}`,
+      "error"
+    );
+  } finally {
+    els.projectTaskAdd.removeAttribute("aria-busy");
+    const latest = currentProjectRecord();
+    els.projectTaskAdd.disabled = !latest || latest.status === "archived";
+  }
+}
+
 function resetProjectDocumentLibrary(projectId = "") {
   projectDocumentItems = [];
   projectDocumentProjectId = String(projectId || "");
@@ -4587,8 +4930,17 @@ function renderProjectSpaceControl() {
   const project = currentProjectRecord();
   if (els.projectEditor) els.projectEditor.hidden = !project;
   if (!project) {
+    projectTaskEditingId = "";
+    projectTaskRenderedProjectId = "";
+    setProjectTaskStatus("");
+    renderProjectTaskList();
     resetProjectDocumentLibrary("");
     return;
+  }
+  if (projectTaskRenderedProjectId !== project.project_id) {
+    projectTaskRenderedProjectId = project.project_id;
+    projectTaskEditingId = "";
+    setProjectTaskStatus("");
   }
   if (els.projectName && document.activeElement !== els.projectName) {
     els.projectName.value = String(project.name || "");
@@ -4596,16 +4948,31 @@ function renderProjectSpaceControl() {
   if (els.projectInstructions && document.activeElement !== els.projectInstructions) {
     els.projectInstructions.value = String(project.instructions || "");
   }
+  if (els.projectGoal && document.activeElement !== els.projectGoal) {
+    els.projectGoal.value = String(project.goal || "");
+  }
+  if (els.projectFollowup) {
+    els.projectFollowup.checked = project.proactive_followup_enabled === true;
+  }
   if (els.projectMeta) {
     const conversationCount = Math.max(0, Number(project.conversation_count ?? projectConversationCount(project.project_id)));
     const documentCount = Math.max(0, Number(project.document_count || 0));
+    const openTaskCount = Math.max(0, Number(
+      project.open_task_count
+      ?? projectTasks(project).filter((task) => task.status === "open").length
+    ));
     els.projectMeta.textContent = currentLanguage === "en"
-      ? `${conversationCount} chats · ${documentCount} files`
-      : `${conversationCount} 个会话 · ${documentCount} 份文件`;
+      ? `${conversationCount} chats · ${documentCount} files · ${openTaskCount} next`
+      : `${conversationCount} 个会话 · ${documentCount} 份文件 · ${openTaskCount} 个下一步`;
   }
   const archived = project.status === "archived";
   if (els.projectName) els.projectName.disabled = archived;
   if (els.projectInstructions) els.projectInstructions.disabled = archived;
+  if (els.projectGoal) els.projectGoal.disabled = archived;
+  if (els.projectFollowup) els.projectFollowup.disabled = archived;
+  if (els.projectTaskInput) els.projectTaskInput.disabled = archived;
+  if (els.projectTaskDue) els.projectTaskDue.disabled = archived;
+  if (els.projectTaskAdd) els.projectTaskAdd.disabled = archived;
   if (els.projectSave) els.projectSave.disabled = archived;
   if (els.projectArchive) {
     els.projectArchive.textContent = archived
@@ -4613,6 +4980,7 @@ function renderProjectSpaceControl() {
       : textFor("project.archive", "归档项目");
     els.projectArchive.dataset.archived = archived ? "true" : "false";
   }
+  renderProjectTaskList();
   if (projectDocumentProjectId !== project.project_id) {
     void refreshProjectDocuments(project.project_id);
   } else {
@@ -4741,6 +5109,8 @@ async function saveCurrentProject(event) {
   if (!project || project.status === "archived") return;
   const name = String(els.projectName && els.projectName.value || "").trim();
   const instructions = String(els.projectInstructions && els.projectInstructions.value || "").trim();
+  const goal = String(els.projectGoal && els.projectGoal.value || "").trim();
+  const proactiveFollowupEnabled = Boolean(els.projectFollowup && els.projectFollowup.checked);
   if (!name) {
     setConversationFeedback(currentLanguage === "en" ? "Enter a project name." : "请填写项目名称。", "warning");
     return;
@@ -4753,15 +5123,21 @@ async function saveCurrentProject(event) {
     const response = await fetch(backendUrl(`/client/v1/projects/${encodeURIComponent(project.project_id)}`), {
       method: "PATCH",
       headers: { ...authHeaders(), "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: currentSubjectId(), name, instructions })
+      body: JSON.stringify({
+        user_id: currentSubjectId(),
+        name,
+        instructions,
+        goal,
+        proactive_followup_enabled: proactiveFollowupEnabled
+      })
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       handleUnauthorizedResponse(response);
       throw new Error(payload.detail || `HTTP ${response.status}`);
     }
-    projectLibraryLoaded = false;
-    await refreshProjectLibrary({ force: true });
+    mergeProjectRecord(payload.project);
+    renderProjectSpaceControl();
     setConversationFeedback(currentLanguage === "en" ? "Project updated." : "项目设置已保存。", "success");
   } finally {
     if (els.projectSave) {
@@ -5159,6 +5535,9 @@ async function beginConversationDelete(row, item) {
   actions.append(cancel, confirm);
   panel.append(kicker, title, scope, warning, actions);
   row.append(panel);
+  window.requestAnimationFrame(() => {
+    panel.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "auto" });
+  });
 
   try {
     const response = await fetch(
@@ -5187,6 +5566,7 @@ async function beginConversationDelete(row, item) {
     confirm.addEventListener("click", () => {
       confirmConversationDelete(row, item, preview, confirm);
     });
+    panel.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "auto" });
     confirm.focus({ preventScroll: true });
   } catch (error) {
     panel.remove();
@@ -7744,7 +8124,7 @@ function proactiveItemText(item) {
   const primary = String(trigger.item || "").trim();
   const nextStep = String(trigger.next_step || "").trim();
   if (!primary) return "";
-  if (item && item.kind === "contextual_followup") return primary;
+  if (item && ["contextual_followup", "project_progress"].includes(item.kind)) return primary;
   if (!nextStep || primary.includes(nextStep)) return primary;
   return `${primary}\n${nextStep}`;
 }
@@ -7958,10 +8338,11 @@ function renderProactiveInbox(items) {
     const copy = document.createElement("div");
     const meta = document.createElement("span");
     const contextual = item.kind === "contextual_followup";
+    const projectProgress = item.kind === "project_progress";
     meta.textContent = [
       currentLanguage === "en"
-        ? (contextual ? "Follow-up" : "Reminder")
-        : (contextual ? "回访" : "提醒"),
+        ? (projectProgress ? "Project" : (contextual ? "Follow-up" : "Reminder"))
+        : (projectProgress ? "项目" : (contextual ? "回访" : "提醒")),
       proactiveInboxTime(item.created_at)
     ].filter(Boolean).join(" · ");
     const text = document.createElement("p");
@@ -8180,11 +8561,12 @@ function renderProactiveItems(items) {
     const notificationId = String(item.notification_id || "").trim();
     if (notificationId) activeProactiveNotificationId = notificationId;
     const contextual = item.kind === "contextual_followup";
+    const projectProgress = item.kind === "project_progress";
     appendAssistantConversation(text, {
       id: notificationId || `proactive_${Math.abs(key.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`,
       label: currentLanguage === "en"
-        ? (contextual ? "Iris · Follow-up" : "Iris · Reminder")
-        : (contextual ? "Iris · 想起你了" : "Iris · 提醒"),
+        ? (projectProgress ? "Iris · Project check-in" : (contextual ? "Iris · Follow-up" : "Iris · Reminder"))
+        : (projectProgress ? "Iris · 项目回访" : (contextual ? "Iris · 想起你了" : "Iris · 提醒")),
       kind: "proactive_followup",
       actions: notificationId ? [proactiveDismissAction(notificationId)] : [],
       actionHint: currentLanguage === "en"
@@ -8227,6 +8609,7 @@ async function runProactiveScan() {
         channel: "web",
         client_id: voiceClientId(),
         record: true,
+        include_project_progress: true,
         include_contextual: true,
         contextual_min_inactive_minutes: 30
       })
@@ -13138,6 +13521,28 @@ if (els.projectEditor) {
   els.projectEditor.addEventListener("submit", (event) => {
     saveCurrentProject(event).catch((error) => {
       setConversationFeedback(`${currentLanguage === "en" ? "Save failed" : "保存失败"}：${error.message || ""}`, "error");
+    });
+  });
+}
+if (els.projectTaskAdd) {
+  els.projectTaskAdd.addEventListener("click", () => {
+    addProjectTask().catch((error) => {
+      setProjectTaskStatus(
+        `${textFor("project.taskFailed", "项目步骤更新失败")}：${error.message || ""}`,
+        "error"
+      );
+    });
+  });
+}
+if (els.projectTaskInput) {
+  els.projectTaskInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || event.isComposing) return;
+    event.preventDefault();
+    addProjectTask().catch((error) => {
+      setProjectTaskStatus(
+        `${textFor("project.taskFailed", "项目步骤更新失败")}：${error.message || ""}`,
+        "error"
+      );
     });
   });
 }
