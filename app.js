@@ -202,7 +202,7 @@ const els = {
   canvasDeleteConfirm: document.getElementById("canvasDeleteConfirmButton")
 };
 
-const VOICE_UI_VERSION = "389";
+const VOICE_UI_VERSION = "390";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -1750,7 +1750,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v389-reply-readability";
+const WEB_VERSION = "voice-ui-web-polish-v390-calendar-preparation";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -9781,6 +9781,20 @@ function proactiveItemText(item) {
   return `${primary}\n${nextStep}`;
 }
 
+function proactiveKindLabel(kind) {
+  const normalized = String(kind || "").trim();
+  if (currentLanguage === "en") {
+    if (normalized === "calendar_preparation") return "Calendar prep";
+    if (normalized === "project_progress") return "Project";
+    if (normalized === "contextual_followup") return "Follow-up";
+    return "Reminder";
+  }
+  if (normalized === "calendar_preparation") return "日程准备";
+  if (normalized === "project_progress") return "项目";
+  if (normalized === "contextual_followup") return "回访";
+  return "提醒";
+}
+
 async function acknowledgeProactiveItem(item, event = "seen") {
   const notificationId = String(item && item.notification_id || "").trim();
   if (!notificationId || !canUseBackendNow()) return false;
@@ -9989,12 +10003,8 @@ function renderProactiveInbox(items) {
     card.dataset.notificationId = String(item.notification_id);
     const copy = document.createElement("div");
     const meta = document.createElement("span");
-    const contextual = item.kind === "contextual_followup";
-    const projectProgress = item.kind === "project_progress";
     meta.textContent = [
-      currentLanguage === "en"
-        ? (projectProgress ? "Project" : (contextual ? "Follow-up" : "Reminder"))
-        : (projectProgress ? "项目" : (contextual ? "回访" : "提醒")),
+      proactiveKindLabel(item.kind),
       proactiveInboxTime(item.created_at)
     ].filter(Boolean).join(" · ");
     const text = document.createElement("p");
@@ -10571,13 +10581,9 @@ function renderProactiveItems(items) {
     renderedProactiveKeys.add(key);
     const notificationId = String(item.notification_id || "").trim();
     if (notificationId) activeProactiveNotificationId = notificationId;
-    const contextual = item.kind === "contextual_followup";
-    const projectProgress = item.kind === "project_progress";
     appendAssistantConversation(text, {
       id: notificationId || `proactive_${Math.abs(key.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0))}`,
-      label: currentLanguage === "en"
-        ? (projectProgress ? "Iris · Project check-in" : (contextual ? "Iris · Follow-up" : "Iris · Reminder"))
-        : (projectProgress ? "Iris · 项目回访" : (contextual ? "Iris · 想起你了" : "Iris · 提醒")),
+      label: `Iris · ${proactiveKindLabel(item.kind)}`,
       kind: "proactive_followup",
       actions: notificationId ? [proactiveDismissAction(notificationId)] : [],
       actionHint: currentLanguage === "en"
