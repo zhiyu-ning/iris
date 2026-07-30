@@ -169,11 +169,18 @@ const els = {
   canvasKind: document.getElementById("canvasKindSelect"),
   canvasLanguage: document.getElementById("canvasLanguageInput"),
   canvasAssistOpen: document.getElementById("canvasAssistOpenButton"),
+  canvasRun: document.getElementById("canvasRunButton"),
   canvasPreviewToggle: document.getElementById("canvasPreviewToggle"),
   canvasVersions: document.getElementById("canvasVersionsButton"),
   canvasExport: document.getElementById("canvasExportButton"),
   canvasEditor: document.getElementById("canvasEditor"),
   canvasPreview: document.getElementById("canvasPreview"),
+  canvasRunPanel: document.getElementById("canvasRunPanel"),
+  canvasRunStatus: document.getElementById("canvasRunStatus"),
+  canvasRunMeta: document.getElementById("canvasRunMeta"),
+  canvasRunOutput: document.getElementById("canvasRunOutput"),
+  canvasRunArtifacts: document.getElementById("canvasRunArtifacts"),
+  canvasRunClose: document.getElementById("canvasRunCloseButton"),
   canvasWordCount: document.getElementById("canvasWordCount"),
   canvasUpdatedAt: document.getElementById("canvasUpdatedAt"),
   canvasDelete: document.getElementById("canvasDeleteButton"),
@@ -195,7 +202,7 @@ const els = {
   canvasDeleteConfirm: document.getElementById("canvasDeleteConfirmButton")
 };
 
-const VOICE_UI_VERSION = "387";
+const VOICE_UI_VERSION = "389";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -728,6 +735,24 @@ const UI_TEXT = {
     "canvas.writing": "写作",
     "canvas.code": "代码",
     "canvas.language": "语言",
+    "canvas.run": "运行",
+    "canvas.running": "正在运行",
+    "canvas.analysisKicker": "ISOLATED ANALYSIS",
+    "canvas.runResult": "运行结果",
+    "canvas.runClose": "收起运行结果",
+    "canvas.runWaiting": "等待运行",
+    "canvas.runCompleted": "运行完成",
+    "canvas.runFailed": "运行失败",
+    "canvas.runTimeout": "运行超时",
+    "canvas.runLimited": "已触发资源限制",
+    "canvas.runRevision": "基于 v{revision} · {duration} ms",
+    "canvas.runNoOutput": "程序已结束，没有文本输出。",
+    "canvas.stdout": "输出",
+    "canvas.stderr": "错误",
+    "canvas.artifacts": "生成的文件",
+    "canvas.download": "下载",
+    "canvas.runRequestFailed": "暂时无法运行这段代码。",
+    "canvas.artifactFailed": "文件下载失败，请稍后再试。",
     "canvas.preview": "预览",
     "canvas.edit": "编辑",
     "canvas.versions": "版本",
@@ -1180,6 +1205,24 @@ const UI_TEXT = {
     "canvas.writing": "Writing",
     "canvas.code": "Code",
     "canvas.language": "Language",
+    "canvas.run": "Run",
+    "canvas.running": "Running",
+    "canvas.analysisKicker": "ISOLATED ANALYSIS",
+    "canvas.runResult": "Run result",
+    "canvas.runClose": "Close run result",
+    "canvas.runWaiting": "Ready to run",
+    "canvas.runCompleted": "Completed",
+    "canvas.runFailed": "Failed",
+    "canvas.runTimeout": "Timed out",
+    "canvas.runLimited": "Resource limit reached",
+    "canvas.runRevision": "From v{revision} · {duration} ms",
+    "canvas.runNoOutput": "The program finished without text output.",
+    "canvas.stdout": "Output",
+    "canvas.stderr": "Errors",
+    "canvas.artifacts": "Generated files",
+    "canvas.download": "Download",
+    "canvas.runRequestFailed": "This code could not be run right now.",
+    "canvas.artifactFailed": "Download failed. Please try again.",
     "canvas.preview": "Preview",
     "canvas.edit": "Edit",
     "canvas.versions": "Versions",
@@ -1539,6 +1582,7 @@ let canvasDirty = false;
 let canvasSaveTimer = 0;
 let canvasSavePromise = null;
 let canvasSuggestion = null;
+let currentCanvasRun = null;
 let canvasSelection = { start: 0, end: 0 };
 let canvasDeleteToken = "";
 let canvasRestoreFocus = null;
@@ -1706,7 +1750,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v387-progressive-voice";
+const WEB_VERSION = "voice-ui-web-polish-v389-reply-readability";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -2259,6 +2303,271 @@ function renderDocumentMessageBody(body, text, options = {}) {
     }
     if (row.childNodes.length) body.appendChild(row);
   });
+}
+
+const REPLY_FIELD_KEYS = new Set([
+  "收件人", "发件人", "抄送", "密送", "主题", "正文", "时间", "日期", "地点",
+  "来源", "状态", "结果", "原因", "建议", "风险", "下一步", "温度", "天气",
+  "是否下雨", "降雨", "降水概率", "风速", "湿度", "空气质量", "文件", "页码", "附件",
+  "from", "to", "cc", "bcc", "subject", "body", "time", "date", "location",
+  "source", "status", "result"
+]);
+
+function appendReplyInlineText(target, text) {
+  const value = String(text || "");
+  const tokenPattern = /(\*\*[^*\n]+\*\*|`[^`\n]+`|\[[^\]\n]+\]\(https?:\/\/[^)\s]+\))/g;
+  let cursor = 0;
+  for (const match of value.matchAll(tokenPattern)) {
+    const index = Number(match.index || 0);
+    if (index > cursor) target.appendChild(document.createTextNode(value.slice(cursor, index)));
+    const token = match[0];
+    if (token.startsWith("**")) {
+      const strong = document.createElement("strong");
+      strong.textContent = token.slice(2, -2);
+      target.appendChild(strong);
+    } else if (token.startsWith("`")) {
+      const code = document.createElement("code");
+      code.textContent = token.slice(1, -1);
+      target.appendChild(code);
+    } else {
+      const parsed = token.match(/^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/);
+      if (parsed) {
+        const link = document.createElement("a");
+        link.textContent = parsed[1];
+        link.href = parsed[2];
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        target.appendChild(link);
+      } else {
+        target.appendChild(document.createTextNode(token));
+      }
+    }
+    cursor = index + token.length;
+  }
+  if (cursor < value.length) target.appendChild(document.createTextNode(value.slice(cursor)));
+}
+
+function replyFieldParts(line) {
+  const match = String(line || "").match(/^\s*([^：:\n]{1,18})[：:]\s*(.*)$/);
+  if (!match) return null;
+  const key = match[1].trim();
+  const value = match[2].trim();
+  if (!value) return { key, value, section: key.length <= 16 };
+  return (
+    REPLY_FIELD_KEYS.has(key.toLowerCase())
+    || (/^[\u3400-\u9fff]{1,3}$/.test(key))
+  ) ? { key, value, section: false } : null;
+}
+
+function replyLineKind(line) {
+  const value = String(line || "");
+  const stripped = value.trim();
+  if (!stripped) return "blank";
+  if (/^\s{0,3}#{1,6}\s+\S/.test(value)) return "heading";
+  if (/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(value)) return "rule";
+  if (/^\s*\|.*\|\s*$/.test(value) && (stripped.match(/\|/g) || []).length >= 2) return "table";
+  if (/^\s*[-+*•]\s+\S/.test(value)) return "unordered";
+  if (/^\s*(?:\d{1,3}[.)、]|[一二三四五六七八九十]+[、.])\s*\S/.test(value)) return "ordered";
+  if (/^\s*>\s?\S/.test(value)) return "quote";
+  if (/^\s*[A-Z0-9]{6}\s*$/.test(value)) return "token";
+  const field = replyFieldParts(value);
+  if (field) return field.section ? "section" : "field";
+  if (stripped.length <= 28 && /[：:]$/.test(stripped)) return "section";
+  return "prose";
+}
+
+function replyNeedsJoiningSpace(left, right) {
+  if (!left || !right) return false;
+  const leftChar = left.slice(-1);
+  const rightChar = right.charAt(0);
+  if (/\s/.test(leftChar) || /\s/.test(rightChar)) return false;
+  if (/[\(\[\{「『“‘]/.test(leftChar) || /[\)\]\}，。！？；：、,.!?;:」』”’]/.test(rightChar)) return false;
+  return /[A-Za-z0-9]/.test(leftChar) || /[A-Za-z0-9]/.test(rightChar);
+}
+
+function joinReplyProseLines(lines) {
+  return (lines || []).reduce((joined, line) => {
+    const part = String(line || "").trim().replace(/[ \t]+/g, " ");
+    if (!part) return joined;
+    if (!joined) return part;
+    return `${joined}${replyNeedsJoiningSpace(joined, part) ? " " : ""}${part}`;
+  }, "");
+}
+
+function appendReplyParagraph(container, text, className = "replyParagraph") {
+  const paragraph = document.createElement("p");
+  paragraph.className = className;
+  appendReplyInlineText(paragraph, String(text || "").trim());
+  container.appendChild(paragraph);
+}
+
+function appendReplyTable(container, lines) {
+  const rows = (lines || []).map((line) => String(line || "")
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((cell) => cell.trim()));
+  const separator = rows.length > 1 && rows[1].every((cell) => /^:?-{2,}:?$/.test(cell));
+  const wrapper = document.createElement("div");
+  wrapper.className = "replyTableWrap";
+  wrapper.tabIndex = 0;
+  wrapper.setAttribute("role", "region");
+  wrapper.setAttribute("aria-label", currentLanguage === "en" ? "Response table" : "回复表格");
+  const table = document.createElement("table");
+  rows.forEach((cells, rowIndex) => {
+    if (separator && rowIndex === 1) return;
+    const row = document.createElement("tr");
+    cells.forEach((cell) => {
+      const node = document.createElement(separator && rowIndex === 0 ? "th" : "td");
+      if (separator && rowIndex === 0) node.scope = "col";
+      appendReplyInlineText(node, cell);
+      row.appendChild(node);
+    });
+    table.appendChild(row);
+  });
+  wrapper.appendChild(table);
+  container.appendChild(wrapper);
+}
+
+function renderAssistantReplyBody(body, text) {
+  const value = String(text || "").trim();
+  body.dataset.replyRender = "true";
+  body.dataset.replyText = value;
+  delete body.dataset.documentRender;
+  delete body.dataset.documentKind;
+  body.replaceChildren();
+  if (!value) {
+    body.textContent = " ";
+    return;
+  }
+  const lines = value.replace(/\r\n?/g, "\n").split("\n");
+  let index = 0;
+  while (index < lines.length) {
+    if (!lines[index].trim()) {
+      index += 1;
+      continue;
+    }
+    const kind = replyLineKind(lines[index]);
+    if (/^\s*(`{3,}|~{3,})/.test(lines[index])) {
+      const marker = lines[index].match(/^\s*(`{3,}|~{3,})/)[1][0];
+      const language = lines[index].trim().replace(/^(`{3,}|~{3,})/, "").trim();
+      const codeLines = [];
+      index += 1;
+      while (index < lines.length && !new RegExp(`^\\s*\\${marker}{3,}\\s*$`).test(lines[index])) {
+        codeLines.push(lines[index]);
+        index += 1;
+      }
+      if (index < lines.length) index += 1;
+      const pre = document.createElement("pre");
+      pre.className = "replyCodeBlock";
+      if (language) pre.dataset.language = language.slice(0, 24);
+      const code = document.createElement("code");
+      code.textContent = codeLines.join("\n");
+      pre.appendChild(code);
+      body.appendChild(pre);
+      continue;
+    }
+    if (kind === "heading") {
+      const match = lines[index].trim().match(/^(#{1,6})\s+(.+)$/);
+      const heading = document.createElement("h3");
+      heading.className = "replyHeading";
+      heading.dataset.level = String(Math.min(3, match ? match[1].length : 1));
+      appendReplyInlineText(heading, match ? match[2] : lines[index].trim());
+      body.appendChild(heading);
+      index += 1;
+      continue;
+    }
+    if (kind === "section") {
+      const field = replyFieldParts(lines[index]);
+      appendReplyParagraph(
+        body,
+        field ? field.key : lines[index].trim().replace(/[：:]$/, ""),
+        "replySectionLabel"
+      );
+      index += 1;
+      continue;
+    }
+    if (kind === "rule") {
+      const rule = document.createElement("hr");
+      rule.className = "replyRule";
+      body.appendChild(rule);
+      index += 1;
+      continue;
+    }
+    if (kind === "token") {
+      const token = document.createElement("code");
+      token.className = "replyConfirmationToken";
+      token.textContent = lines[index].trim();
+      body.appendChild(token);
+      index += 1;
+      continue;
+    }
+    if (kind === "unordered" || kind === "ordered") {
+      const list = document.createElement(kind === "ordered" ? "ol" : "ul");
+      list.className = "replyList";
+      while (index < lines.length && replyLineKind(lines[index]) === kind) {
+        const item = document.createElement("li");
+        const itemText = lines[index]
+          .replace(/^\s*[-+*•]\s+/, "")
+          .replace(/^\s*(?:\d{1,3}[.)、]|[一二三四五六七八九十]+[、.])\s*/, "");
+        appendReplyInlineText(item, itemText);
+        list.appendChild(item);
+        index += 1;
+      }
+      body.appendChild(list);
+      continue;
+    }
+    if (kind === "quote") {
+      const quoteLines = [];
+      while (index < lines.length && replyLineKind(lines[index]) === "quote") {
+        quoteLines.push(lines[index].replace(/^\s*>\s?/, ""));
+        index += 1;
+      }
+      const quote = document.createElement("blockquote");
+      quote.className = "replyQuote";
+      appendReplyInlineText(quote, joinReplyProseLines(quoteLines));
+      body.appendChild(quote);
+      continue;
+    }
+    if (kind === "table") {
+      const tableLines = [];
+      while (index < lines.length && replyLineKind(lines[index]) === "table") {
+        tableLines.push(lines[index]);
+        index += 1;
+      }
+      appendReplyTable(body, tableLines);
+      continue;
+    }
+    if (kind === "field") {
+      const fields = document.createElement("dl");
+      fields.className = "replyFields";
+      while (index < lines.length && replyLineKind(lines[index]) === "field") {
+        const field = replyFieldParts(lines[index]);
+        if (!field) break;
+        const term = document.createElement("dt");
+        term.textContent = field.key;
+        const definition = document.createElement("dd");
+        appendReplyInlineText(definition, field.value);
+        fields.append(term, definition);
+        index += 1;
+      }
+      body.appendChild(fields);
+      continue;
+    }
+    const prose = [];
+    while (index < lines.length && replyLineKind(lines[index]) === "prose") {
+      prose.push(lines[index]);
+      index += 1;
+    }
+    appendReplyParagraph(body, joinReplyProseLines(prose));
+  }
+  if (!body.childNodes.length) body.textContent = value;
+}
+
+function messageBodySourceText(body) {
+  if (!body) return "";
+  return String(body.dataset.replyText || body.textContent || "").trim();
 }
 
 function boundedDocumentComparisonText(value, limit = 180) {
@@ -4011,15 +4320,23 @@ function appendDeepResearchCard(item, payload) {
 function setMessageBodyText(body, text, options = {}) {
   if (!body) return;
   const kind = options.kind || "";
-  if (options.role === "file" || documentMessageKind(kind)) {
-    renderDocumentMessageBody(body, text, options);
-    return;
-  }
-  delete body.dataset.documentRender;
-  delete body.dataset.documentKind;
-  body.textContent = options.preserveText
+  const value = options.preserveText
     ? (String(text || "") || " ")
     : ((text || "").trim() || " ");
+  body.dataset.replyText = String(value || "").trim();
+  if (options.role === "file" || documentMessageKind(kind)) {
+    delete body.dataset.replyRender;
+    renderDocumentMessageBody(body, value, options);
+    return;
+  }
+  if (options.role === "assistant" && !options.preserveText && !options.streamState) {
+    renderAssistantReplyBody(body, value);
+    return;
+  }
+  delete body.dataset.replyRender;
+  delete body.dataset.documentRender;
+  delete body.dataset.documentKind;
+  body.textContent = value;
 }
 
 function appendConversationMessage(role, text, options = {}) {
@@ -4056,7 +4373,7 @@ function appendConversationMessage(role, text, options = {}) {
     );
     meta.appendChild(badge);
   }
-  const body = document.createElement("p");
+  const body = document.createElement("div");
   body.className = "messageText";
   setMessageBodyText(body, value || " ", { ...options, role });
   item.append(meta, body);
@@ -4468,7 +4785,7 @@ function attachMessageFeedbackControls(item, rawTarget) {
   canvas.title = textFor("canvas.sendTo", "在 Canvas 中编辑");
   canvas.addEventListener("click", async () => {
     const body = item.querySelector(".messageText");
-    const content = String(body ? body.textContent : "").trim();
+    const content = messageBodySourceText(body);
     if (!content) return;
     canvas.disabled = true;
     canvas.setAttribute("aria-busy", "true");
@@ -6312,9 +6629,13 @@ function renderPublicConversationShare(payload) {
       time.textContent = publicShareDate(message.time);
       meta.appendChild(time);
     }
-    const content = document.createElement("p");
+    const content = document.createElement("div");
     content.className = "publicShareMessageText";
-    content.textContent = String(message.content || "");
+    if (message.role === "assistant") {
+      renderAssistantReplyBody(content, String(message.content || ""));
+    } else {
+      content.textContent = String(message.content || "");
+    }
     article.append(meta, content);
     stream.appendChild(article);
   });
@@ -7520,9 +7841,12 @@ function ensureAssistantConversationAnchor() {
   const meta = document.createElement("p");
   meta.className = "messageMeta";
   meta.textContent = "Iris";
-  const body = document.createElement("p");
+  const body = document.createElement("div");
   body.className = "messageText";
-  body.textContent = textFor("welcome.message", "我在。你可以直接说，也可以把文件发给我。");
+  renderAssistantReplyBody(
+    body,
+    textFor("welcome.message", "我在。你可以直接说，也可以把文件发给我。")
+  );
   item.append(meta, body);
   els.conversationStream.prepend(item);
 }
@@ -15683,12 +16007,222 @@ function resetCanvasSuggestion() {
   if (els.canvasSuggestionText) els.canvasSuggestionText.textContent = "";
 }
 
+function isCanvasPythonRunnable() {
+  const kind = String((els.canvasKind && els.canvasKind.value) || (currentCanvas && currentCanvas.kind) || "");
+  const language = String(
+    (els.canvasLanguage && els.canvasLanguage.value) || (currentCanvas && currentCanvas.language) || ""
+  ).trim().toLowerCase();
+  return kind === "code" && ["python", "py", "python3"].includes(language);
+}
+
+function updateCanvasRunAvailability() {
+  if (!els.canvasRun) return;
+  els.canvasRun.hidden = !currentCanvas || !isCanvasPythonRunnable();
+  if (els.canvasRun.getAttribute("aria-busy") !== "true") {
+    els.canvasRun.textContent = textFor("canvas.run", "运行");
+  }
+}
+
+function resetCanvasRun() {
+  currentCanvasRun = null;
+  if (els.canvasRunPanel) els.canvasRunPanel.hidden = true;
+  if (els.canvasRunStatus) {
+    els.canvasRunStatus.textContent = textFor("canvas.runWaiting", "等待运行");
+    els.canvasRunStatus.dataset.status = "waiting";
+  }
+  if (els.canvasRunMeta) els.canvasRunMeta.textContent = "";
+  if (els.canvasRunOutput) els.canvasRunOutput.replaceChildren();
+  if (els.canvasRunArtifacts) {
+    els.canvasRunArtifacts.replaceChildren();
+    els.canvasRunArtifacts.hidden = true;
+  }
+  updateCanvasRunAvailability();
+}
+
+function canvasRunStatusLabel(status) {
+  if (status === "completed") return textFor("canvas.runCompleted", "运行完成");
+  if (status === "timeout") return textFor("canvas.runTimeout", "运行超时");
+  if (status === "resource_limited") return textFor("canvas.runLimited", "已触发资源限制");
+  return textFor("canvas.runFailed", "运行失败");
+}
+
+function formatCanvasArtifactSize(value) {
+  const bytes = Math.max(0, Number(value) || 0);
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function appendCanvasRunStream(labelKey, fallback, content, tone = "standard") {
+  if (!els.canvasRunOutput || !String(content || "")) return;
+  const section = document.createElement("section");
+  section.className = "canvasRunStream";
+  section.dataset.tone = tone;
+  const label = document.createElement("strong");
+  label.textContent = textFor(labelKey, fallback);
+  const pre = document.createElement("pre");
+  pre.textContent = String(content);
+  section.append(label, pre);
+  els.canvasRunOutput.appendChild(section);
+}
+
+async function downloadCanvasArtifact(run, artifact, button) {
+  if (!currentCanvas || !run || !artifact) return;
+  if (button) {
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+  }
+  try {
+    const query = new URLSearchParams({ user_id: currentSubjectId() });
+    const path = `/${encodeURIComponent(currentCanvas.canvas_id)}/runs/${encodeURIComponent(run.run_id)}/artifacts/${encodeURIComponent(artifact.artifact_id)}?${query}`;
+    const response = await fetch(canvasRequestPath(path), { headers: authHeaders() });
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = String(artifact.filename || "iris-artifact");
+    anchor.hidden = true;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    setCanvasSaveStatus("canvas.artifactFailed", "error", "文件下载失败，请稍后再试。");
+    logLine(error.message || "canvas artifact download failed");
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.removeAttribute("aria-busy");
+    }
+  }
+}
+
+function renderCanvasRun(run) {
+  if (!run || !els.canvasRunPanel) return;
+  currentCanvasRun = run;
+  const status = String(run.status || "failed");
+  els.canvasRunPanel.hidden = false;
+  if (els.canvasRunStatus) {
+    els.canvasRunStatus.textContent = canvasRunStatusLabel(status);
+    els.canvasRunStatus.dataset.status = status;
+  }
+  if (els.canvasRunMeta) {
+    els.canvasRunMeta.textContent = formatTextFor(
+      "canvas.runRevision",
+      "基于 v{revision} · {duration} ms",
+      {
+        revision: Math.max(1, Number(run.revision) || 1),
+        duration: Math.max(0, Number(run.duration_ms) || 0)
+      }
+    );
+  }
+  if (els.canvasRunOutput) {
+    els.canvasRunOutput.replaceChildren();
+    appendCanvasRunStream("canvas.stdout", "输出", run.stdout);
+    appendCanvasRunStream("canvas.stderr", "错误", run.stderr, "error");
+    if (!String(run.stdout || "") && !String(run.stderr || "")) {
+      const empty = document.createElement("p");
+      empty.className = "canvasRunEmpty";
+      empty.textContent = textFor("canvas.runNoOutput", "程序已结束，没有文本输出。");
+      els.canvasRunOutput.appendChild(empty);
+    }
+  }
+  if (els.canvasRunArtifacts) {
+    els.canvasRunArtifacts.replaceChildren();
+    const artifacts = Array.isArray(run.artifacts) ? run.artifacts : [];
+    els.canvasRunArtifacts.hidden = !artifacts.length;
+    if (artifacts.length) {
+      const title = document.createElement("strong");
+      title.className = "canvasRunArtifactsTitle";
+      title.textContent = textFor("canvas.artifacts", "生成的文件");
+      els.canvasRunArtifacts.appendChild(title);
+      artifacts.forEach((artifact) => {
+        const row = document.createElement("div");
+        row.className = "canvasRunArtifact";
+        const copy = document.createElement("span");
+        const name = document.createElement("strong");
+        name.textContent = String(artifact.filename || "artifact");
+        const size = document.createElement("small");
+        size.textContent = formatCanvasArtifactSize(artifact.size_bytes);
+        copy.append(name, size);
+        const download = document.createElement("button");
+        download.type = "button";
+        download.textContent = textFor("canvas.download", "下载");
+        download.addEventListener("click", () => {
+          downloadCanvasArtifact(run, artifact, download);
+        });
+        row.append(copy, download);
+        els.canvasRunArtifacts.appendChild(row);
+      });
+    }
+  }
+}
+
+async function loadLatestCanvasRun() {
+  if (!currentCanvas || !isCanvasPythonRunnable()) return;
+  const canvasId = currentCanvas.canvas_id;
+  try {
+    const payload = await canvasJsonRequest(`/${encodeURIComponent(canvasId)}/runs?limit=1`);
+    if (currentCanvas && currentCanvas.canvas_id === canvasId && Array.isArray(payload.items) && payload.items[0]) {
+      renderCanvasRun(payload.items[0]);
+    }
+  } catch (error) {
+    logLine(error.message || "canvas run history failed");
+  }
+}
+
+async function runCurrentCanvas() {
+  if (!currentCanvas || !isCanvasPythonRunnable() || !els.canvasRun) return;
+  if (canvasDirty && !(await saveCurrentCanvas({ source: "before_run" }))) return;
+  els.canvasRun.disabled = true;
+  els.canvasRun.setAttribute("aria-busy", "true");
+  els.canvasRun.textContent = textFor("canvas.running", "正在运行");
+  if (els.canvasRunPanel) els.canvasRunPanel.hidden = false;
+  if (els.canvasRunStatus) {
+    els.canvasRunStatus.textContent = textFor("canvas.running", "正在运行");
+    els.canvasRunStatus.dataset.status = "running";
+  }
+  try {
+    const payload = await canvasJsonRequest(`/${encodeURIComponent(currentCanvas.canvas_id)}/runs`, {
+      method: "POST",
+      body: JSON.stringify({
+        user_id: currentSubjectId(),
+        client_id: voiceClientId(),
+        expected_revision: currentCanvas.revision
+      })
+    });
+    renderCanvasRun(payload.run || null);
+  } catch (error) {
+    if (error.status === 409) {
+      await loadLatestCanvasAfterConflict(currentCanvas.canvas_id);
+    } else {
+      renderCanvasRun({
+        status: "failed",
+        revision: currentCanvas.revision,
+        duration_ms: 0,
+        stdout: "",
+        stderr: textFor("canvas.runRequestFailed", "暂时无法运行这段代码。"),
+        artifacts: []
+      });
+    }
+  } finally {
+    els.canvasRun.disabled = false;
+    els.canvasRun.removeAttribute("aria-busy");
+    updateCanvasRunAvailability();
+  }
+}
+
 function populateCanvasEditor(canvas) {
   currentCanvas = canvas || null;
   canvasDirty = false;
   window.clearTimeout(canvasSaveTimer);
   canvasSaveTimer = 0;
   resetCanvasSuggestion();
+  resetCanvasRun();
   if (!currentCanvas) {
     setCanvasEmptyState(true);
     if (els.canvasHeaderTitle) els.canvasHeaderTitle.textContent = textFor("canvas.workspace", "创作空间");
@@ -15707,6 +16241,7 @@ function populateCanvasEditor(canvas) {
   updateCanvasDocumentMeta();
   setCanvasSaveStatus("canvas.saved", "saved", "已保存");
   if (els.canvasAssistPanel) els.canvasAssistPanel.hidden = false;
+  updateCanvasRunAvailability();
   renderCanvasLibrary();
 }
 
@@ -15725,6 +16260,7 @@ async function openCanvasById(canvasId) {
   }
   const payload = await canvasJsonRequest(`/${encodeURIComponent(canvasId)}`);
   populateCanvasEditor(payload.canvas || null);
+  await loadLatestCanvasRun();
   if (window.matchMedia("(max-width: 760px)").matches && els.canvasWorkspace) {
     els.canvasWorkspace.classList.remove("libraryOpen");
   }
@@ -15824,6 +16360,7 @@ function scheduleCanvasSave(delay = 720) {
 function markCanvasDirty() {
   if (!currentCanvas) return;
   canvasDirty = true;
+  resetCanvasRun();
   setCanvasSaveStatus("canvas.unsaved", "dirty", "有未保存修改");
   updateCanvasDocumentMeta();
   if (els.canvasEditor && els.canvasKind) {
@@ -15867,6 +16404,7 @@ async function saveCurrentCanvas(options = {}) {
       });
       const saved = payload.canvas;
       currentCanvas = saved;
+      resetCanvasRun();
       upsertCanvasListItem(saved);
       if (!canvasDirty) {
         if (els.canvasTitle) els.canvasTitle.value = saved.title || "";
@@ -16442,6 +16980,16 @@ if (els.canvasWorkspace) {
 if (els.canvasPreviewToggle) {
   els.canvasPreviewToggle.addEventListener("click", () => {
     setCanvasPreview(Boolean(els.canvasPreview && els.canvasPreview.hidden));
+  });
+}
+if (els.canvasRun) {
+  els.canvasRun.addEventListener("click", () => {
+    runCurrentCanvas().catch((error) => logLine(error.message || "canvas run failed"));
+  });
+}
+if (els.canvasRunClose) {
+  els.canvasRunClose.addEventListener("click", () => {
+    if (els.canvasRunPanel) els.canvasRunPanel.hidden = true;
   });
 }
 if (els.canvasAssistOpen) els.canvasAssistOpen.addEventListener("click", openCanvasAssistPanel);

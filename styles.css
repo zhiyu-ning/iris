@@ -57,8 +57,8 @@
   --control-hover-filter: brightness(1.018) saturate(1.06);
   --control-active-filter: brightness(0.985) saturate(1.02);
   --control-press-shadow: inset 0 2px 5px rgba(24, 42, 67, 0.08);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=387");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=387");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=389");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=389");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -212,8 +212,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 22px 54px rgba(85, 91, 255, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=387");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=387");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=389");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=389");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -269,8 +269,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=387");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=387");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=389");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=389");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -1719,6 +1719,210 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
   letter-spacing: -0.006em;
 }
 
+.messageText[data-reply-render="true"],
+.publicShareMessageText[data-reply-render="true"] {
+  display: grid;
+  gap: 12px;
+  white-space: normal;
+}
+
+.messageText[data-reply-render="true"] > *,
+.publicShareMessageText[data-reply-render="true"] > * {
+  min-width: 0;
+}
+
+.replyParagraph,
+.replyHeading,
+.replySectionLabel,
+.replyList,
+.replyQuote,
+.replyFields {
+  margin: 0;
+}
+
+.replyParagraph {
+  color: inherit;
+}
+
+.replyHeading {
+  color: color-mix(in srgb, var(--ink) 94%, var(--accent) 6%);
+  font-size: 16.2px;
+  line-height: 1.38;
+  font-weight: 780;
+  letter-spacing: -0.018em;
+}
+
+.replyHeading[data-level="2"],
+.replyHeading[data-level="3"] {
+  font-size: 15.4px;
+  font-weight: 740;
+}
+
+.replySectionLabel {
+  margin-top: 2px;
+  color: color-mix(in srgb, var(--accent) 58%, var(--ink) 42%);
+  font-size: 11.2px;
+  line-height: 1.3;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+}
+
+.replyList {
+  display: grid;
+  gap: 7px;
+  padding-left: 1.28em;
+}
+
+.replyList li {
+  padding-left: 0.2em;
+}
+
+.replyList li::marker {
+  color: color-mix(in srgb, var(--accent) 68%, var(--ink-dim));
+  font-weight: 760;
+}
+
+.replyQuote {
+  padding: 2px 0 2px 14px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 34%, var(--line));
+  color: color-mix(in srgb, var(--ink-soft) 84%, var(--ink-dim));
+}
+
+.replyFields {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 13px;
+  padding: 11px 13px;
+  border: 1px solid color-mix(in srgb, var(--line) 68%, transparent);
+  border-radius: 15px;
+  background: color-mix(in srgb, var(--glass-soft) 56%, transparent);
+}
+
+.replyFields dt {
+  color: var(--ink-dim);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.replyFields dd {
+  margin: 0;
+  color: color-mix(in srgb, var(--ink) 90%, var(--ink-soft));
+}
+
+.messageText code,
+.publicShareMessageText code {
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  border-radius: 6px;
+  padding: 0.08em 0.34em;
+  color: color-mix(in srgb, var(--accent) 62%, var(--ink));
+  background: color-mix(in srgb, var(--accent) 6%, var(--glass-soft));
+  font-family: "SFMono-Regular", "Cascadia Code", "Liberation Mono", monospace;
+  font-size: 0.88em;
+}
+
+.replyCodeBlock {
+  position: relative;
+  max-width: 100%;
+  margin: 0;
+  padding: 14px 15px;
+  overflow-x: auto;
+  border: 1px solid color-mix(in srgb, var(--line) 72%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--ink) 5%, var(--glass-soft));
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.replyCodeBlock[data-language]::before {
+  content: attr(data-language);
+  display: block;
+  margin-bottom: 8px;
+  color: var(--ink-dim);
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 760;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.messageText .replyCodeBlock code,
+.publicShareMessageText .replyCodeBlock code {
+  display: block;
+  min-width: max-content;
+  padding: 0;
+  border: 0;
+  color: color-mix(in srgb, var(--ink) 90%, var(--accent));
+  background: transparent;
+  font-size: 12px;
+  line-height: 1.58;
+  white-space: pre;
+}
+
+.replyTableWrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid color-mix(in srgb, var(--line) 74%, transparent);
+  border-radius: 14px;
+  outline: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.replyTableWrap:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.replyTableWrap table {
+  width: 100%;
+  min-width: 290px;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.replyTableWrap th,
+.replyTableWrap td {
+  padding: 9px 11px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 64%, transparent);
+  text-align: left;
+  vertical-align: top;
+}
+
+.replyTableWrap th {
+  color: color-mix(in srgb, var(--ink) 90%, var(--accent));
+  background: color-mix(in srgb, var(--accent) 5%, var(--glass-soft));
+  font-weight: 760;
+}
+
+.replyTableWrap tr:last-child td {
+  border-bottom: 0;
+}
+
+.replyConfirmationToken {
+  justify-self: start;
+  padding: 5px 9px !important;
+  border-radius: 8px !important;
+  letter-spacing: 0.12em;
+  user-select: all;
+}
+
+.replyRule {
+  width: 100%;
+  height: 1px;
+  margin: 1px 0;
+  border: 0;
+  background: color-mix(in srgb, var(--line) 72%, transparent);
+}
+
+.messageText a,
+.publicShareMessageText a {
+  color: color-mix(in srgb, var(--accent) 72%, var(--ink));
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 34%, transparent);
+  text-underline-offset: 0.18em;
+}
+
 .messageText[data-document-render="true"] {
   display: grid;
   gap: 10px;
@@ -2068,7 +2272,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=387");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=389");
 }
 
 .brandName {
@@ -8017,7 +8221,7 @@ body.publicShareMode {
   height: 35px;
   border-radius: 11px;
   background:
-    url("/iris/assets/brand/iris-app-icon-light-192.webp?v=387")
+    url("/iris/assets/brand/iris-app-icon-light-192.webp?v=389")
     center / cover no-repeat;
   box-shadow: 0 6px 18px rgba(96, 96, 188, 0.13);
 }
@@ -8130,6 +8334,10 @@ body.publicShareMode {
   line-height: 1.78;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+
+.publicShareMessageText[data-reply-render="true"] {
+  line-height: 1.72;
 }
 
 .publicShareFooter {
@@ -12169,7 +12377,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 /* v354 Iris companion interface: portrait-led entry, calm conversation, and card-based settings. */
 :root {
-  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=387");
+  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=389");
   --iris-violet: #7567f8;
   --iris-violet-deep: #5547e8;
   --iris-lilac: #b9b0ff;
@@ -13490,7 +13698,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 .accessConnectingGlyph,
 .capabilitySuggestionMark,
 .sheetGlyph {
-  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=387");
+  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=389");
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -14397,7 +14605,7 @@ body {
   height: 76px;
   display: block;
   border-radius: 22px;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=387") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=389") center / 58px 58px no-repeat;
   filter: drop-shadow(0 12px 24px rgba(104, 85, 224, 0.16));
 }
 
@@ -16670,7 +16878,7 @@ body > .dock.unifiedComposer {
   width: 76px !important;
   height: 76px !important;
   display: block !important;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=387") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=389") center / 58px 58px no-repeat;
 }
 
 #accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessFocusIntro > .accessFocusGlyph,
@@ -17833,6 +18041,8 @@ body > .dock.unifiedComposer {
 .canvasVersionDrawer[hidden],
 .canvasDeletePanel[hidden],
 .canvasSuggestionCard[hidden],
+.canvasRunPanel[hidden],
+.canvasRunArtifacts[hidden],
 .canvasPreview[hidden],
 .canvasEditor[hidden] {
   display: none !important;
@@ -18246,7 +18456,7 @@ body.canvasOpen .terminal {
   height: 100%;
   padding: 18px 14px max(13px, env(safe-area-inset-bottom));
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   gap: 11px;
   overflow: hidden;
 }
@@ -18324,6 +18534,7 @@ body.canvasOpen .terminal {
   font-size: 8.5px;
   font-weight: 650;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .canvasCompactField select,
@@ -18374,6 +18585,33 @@ body.canvasOpen .terminal {
 .canvasAssistOpen {
   color: var(--canvas-lilac);
   background: var(--canvas-lilac-soft);
+}
+
+.canvasRunButton {
+  position: relative;
+  padding-left: 23px;
+  color: color-mix(in srgb, var(--canvas-ink) 88%, var(--canvas-lilac));
+  background: color-mix(in srgb, var(--canvas-lilac-soft) 72%, transparent);
+}
+
+.canvasRunButton::before {
+  position: absolute;
+  left: 9px;
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid currentColor;
+  content: "";
+}
+
+.canvasRunButton[aria-busy="true"]::before {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid color-mix(in srgb, currentColor 28%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: canvas-spin 700ms linear infinite;
 }
 
 .canvasPaper {
@@ -18457,6 +18695,222 @@ body.canvasOpen .terminal {
   font-size: 12px;
   line-height: 1.65;
   white-space: pre-wrap;
+}
+
+.canvasRunPanel {
+  max-height: min(31vh, 260px);
+  padding: 13px 14px 14px;
+  display: grid;
+  gap: 9px;
+  border: 1px solid color-mix(in srgb, var(--canvas-lilac) 18%, var(--canvas-line));
+  border-radius: 17px;
+  color: var(--canvas-ink);
+  background:
+    radial-gradient(circle at 92% -30%, color-mix(in srgb, var(--canvas-lilac-soft) 74%, transparent), transparent 55%),
+    color-mix(in srgb, var(--canvas-panel) 94%, transparent);
+  box-shadow:
+    0 18px 46px color-mix(in srgb, var(--shadow) 34%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 48%, transparent);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  animation: canvas-run-enter 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.canvasRunHeading,
+.canvasRunHeadingMeta,
+.canvasRunArtifact {
+  display: flex;
+  align-items: center;
+}
+
+.canvasRunHeading {
+  min-width: 0;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.canvasRunHeading > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.canvasRunHeading > div:first-child > span {
+  color: var(--canvas-muted);
+  font-size: 8px;
+  font-weight: 720;
+  letter-spacing: 0.16em;
+}
+
+.canvasRunHeading > div:first-child > strong {
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.canvasRunHeadingMeta {
+  flex: 0 0 auto;
+  gap: 7px;
+}
+
+.canvasRunStatus {
+  min-height: 24px;
+  padding: 5px 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  color: var(--canvas-muted);
+  background: color-mix(in srgb, var(--canvas-paper) 72%, transparent);
+  font-size: 9px;
+  font-weight: 680;
+}
+
+.canvasRunStatus::before {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--canvas-muted);
+  content: "";
+}
+
+.canvasRunStatus[data-status="completed"] {
+  color: color-mix(in srgb, var(--accent-2) 72%, var(--canvas-ink));
+}
+
+.canvasRunStatus[data-status="completed"]::before {
+  background: var(--accent-2);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-2) 10%, transparent);
+}
+
+.canvasRunStatus[data-status="running"]::before {
+  border: 1.5px solid color-mix(in srgb, var(--canvas-lilac) 25%, transparent);
+  border-top-color: var(--canvas-lilac);
+  background: transparent;
+  animation: canvas-spin 700ms linear infinite;
+}
+
+.canvasRunStatus[data-status="failed"],
+.canvasRunStatus[data-status="timeout"],
+.canvasRunStatus[data-status="resource_limited"] {
+  color: color-mix(in srgb, var(--danger) 76%, var(--canvas-ink));
+}
+
+.canvasRunStatus[data-status="failed"]::before,
+.canvasRunStatus[data-status="timeout"]::before,
+.canvasRunStatus[data-status="resource_limited"]::before {
+  background: var(--danger);
+}
+
+.canvasRunClose {
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  border: 1px solid var(--canvas-line);
+  border-radius: 50%;
+  color: var(--canvas-muted);
+  background: color-mix(in srgb, var(--canvas-paper) 75%, transparent);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.canvasRunMeta {
+  margin: -3px 0 0;
+  color: var(--canvas-muted);
+  font-size: 8.5px;
+}
+
+.canvasRunOutput {
+  display: grid;
+  gap: 7px;
+}
+
+.canvasRunStream {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.canvasRunStream > strong,
+.canvasRunArtifactsTitle {
+  color: var(--canvas-muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.canvasRunStream pre {
+  max-height: 130px;
+  margin: 0;
+  padding: 10px 11px;
+  border: 1px solid var(--canvas-line);
+  border-radius: 11px;
+  color: var(--canvas-ink);
+  background: color-mix(in srgb, var(--canvas-shell) 78%, transparent);
+  font: 10.5px/1.55 "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
+  white-space: pre-wrap;
+  overflow: auto;
+}
+
+.canvasRunStream[data-tone="error"] pre {
+  border-color: color-mix(in srgb, var(--danger) 22%, var(--canvas-line));
+  color: color-mix(in srgb, var(--danger) 74%, var(--canvas-ink));
+}
+
+.canvasRunEmpty {
+  margin: 0;
+  color: var(--canvas-muted);
+  font-size: 10px;
+}
+
+.canvasRunArtifacts {
+  display: grid;
+  gap: 6px;
+}
+
+.canvasRunArtifact {
+  min-width: 0;
+  min-height: 42px;
+  padding: 7px 8px 7px 11px;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--canvas-line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--canvas-paper) 70%, transparent);
+}
+
+.canvasRunArtifact > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.canvasRunArtifact > span strong {
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canvasRunArtifact > span small {
+  color: var(--canvas-muted);
+  font-size: 8.5px;
+}
+
+.canvasRunArtifact button {
+  min-width: 54px;
+  min-height: 28px;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--canvas-lilac) 20%, var(--canvas-line));
+  border-radius: 999px;
+  color: var(--canvas-lilac);
+  background: var(--canvas-lilac-soft);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 680;
 }
 
 .canvasDocumentFooter {
@@ -18923,6 +19377,10 @@ body.canvasOpen .terminal {
     grid-template-rows: auto auto minmax(0, 1fr);
   }
 
+  body.keyboardOpen .canvasRunPanel {
+    display: none;
+  }
+
   body.keyboardOpen .canvasDocumentFooter {
     display: none;
   }
@@ -18942,6 +19400,13 @@ body.canvasOpen .terminal {
   from {
     opacity: 0;
     transform: translateY(8px) scale(0.992);
+  }
+}
+
+@keyframes canvas-run-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
   }
 }
 
