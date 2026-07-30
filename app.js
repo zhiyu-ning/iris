@@ -129,7 +129,7 @@ const els = {
   manualSend: document.getElementById("manualSend")
 };
 
-const VOICE_UI_VERSION = "377";
+const VOICE_UI_VERSION = "378";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -577,6 +577,17 @@ const UI_TEXT = {
     "conversation.archived": "归档",
     "conversation.branch": "从这里分支",
     "conversation.branched": "已创建独立分支",
+    "conversation.editMessage": "编辑这条消息",
+    "conversation.editHint": "将在新分支发送，原对话会保留。",
+    "conversation.editCancel": "取消",
+    "conversation.editSubmit": "在新分支发送",
+    "conversation.editRequired": "消息不能为空。",
+    "conversation.editNoChange": "请先修改消息内容。",
+    "conversation.editCreating": "正在创建编辑分支…",
+    "conversation.editFailed": "编辑分支创建失败",
+    "conversation.regenerate": "重新生成回答",
+    "conversation.regenerating": "正在新分支重新生成…",
+    "conversation.regenerateFailed": "重新生成失败",
     "conversation.export": "导出",
     "conversation.exportMarkdown": "Markdown",
     "conversation.exportJson": "JSON",
@@ -855,6 +866,17 @@ const UI_TEXT = {
     "conversation.archived": "Archived",
     "conversation.branch": "Branch from here",
     "conversation.branched": "Independent branch created",
+    "conversation.editMessage": "Edit this message",
+    "conversation.editHint": "This sends in a new branch. The original conversation stays unchanged.",
+    "conversation.editCancel": "Cancel",
+    "conversation.editSubmit": "Send in new branch",
+    "conversation.editRequired": "Message cannot be empty.",
+    "conversation.editNoChange": "Change the message before sending.",
+    "conversation.editCreating": "Creating edit branch…",
+    "conversation.editFailed": "Edit branch failed",
+    "conversation.regenerate": "Regenerate response",
+    "conversation.regenerating": "Regenerating in a new branch…",
+    "conversation.regenerateFailed": "Regeneration failed",
     "conversation.export": "Export",
     "conversation.exportMarkdown": "Markdown",
     "conversation.exportJson": "JSON",
@@ -1261,7 +1283,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v377-conversation-permanent-delete";
+const WEB_VERSION = "voice-ui-web-polish-v378-message-edit-regenerate";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -3629,6 +3651,9 @@ function appendConversationMessage(role, text, options = {}) {
   if (role === "assistant" && options.feedbackTarget) {
     attachMessageFeedbackControls(item, options.feedbackTarget);
   }
+  if (role === "user" && options.editableTarget) {
+    attachUserMessageEditControls(item, options.editableTarget);
+  }
   if (options.beforeElement && options.beforeElement.parentNode === els.conversationStream) {
     els.conversationStream.insertBefore(item, options.beforeElement);
   } else {
@@ -3659,8 +3684,42 @@ function feedbackIcon(kind) {
     ? '<path d="M7.8 10.2 11 3.8c.5-1 1.8-.9 2.1.1l.2.8c.2.7.1 1.5-.2 2.1l-.6 1.2h4.2c1.3 0 2.2 1.2 1.8 2.4l-1.6 5.2c-.3.9-1.1 1.5-2 1.5H7.8V10.2Z"/><path d="M4 9.5h3.8v8H4z"/>'
     : kind === "branch"
       ? '<path d="M6 4v5.2c0 1.5 1.2 2.8 2.8 2.8H17"/><path d="m13.5 8.5 3.5 3.5-3.5 3.5"/><circle cx="6" cy="4" r="1.7"/>'
-      : '<path d="M7.8 9.8 11 16.2c.5 1 1.8.9 2.1-.1l.2-.8c.2-.7.1-1.5-.2-2.1l-.6-1.2h4.2c1.3 0 2.2-1.2 1.8-2.4l-1.6-5.2c-.3-.9-1.1-1.5-2-1.5H7.8v6.9Z"/><path d="M4 2.5h3.8v8H4z"/>';
+      : kind === "regenerate"
+        ? '<path d="M17.8 7.7A7 7 0 1 0 18 13"/><path d="M17.8 3.8v3.9h-3.9"/>'
+        : kind === "edit"
+          ? '<path d="m5 15.8.6-3.5L14.7 3.2a1.6 1.6 0 0 1 2.2 0l1 1a1.6 1.6 0 0 1 0 2.2l-9.1 9.1-3.8.3Z"/><path d="m12.9 5 3.2 3.2"/>'
+          : '<path d="M7.8 9.8 11 16.2c.5 1 1.8.9 2.1-.1l.2-.8c.2-.7.1-1.5-.2-2.1l-.6-1.2h4.2c1.3 0 2.2-1.2 1.8-2.4l-1.6-5.2c-.3-.9-1.1-1.5-2-1.5H7.8v6.9Z"/><path d="M4 2.5h3.8v8H4z"/>';
   return `<svg viewBox="0 0 22 22" aria-hidden="true">${path}</svg>`;
+}
+
+async function forkConversationTurn(target, mode) {
+  const sourceConversationId = currentConversationId;
+  if (!sourceConversationId || !target || !target.turnId) {
+    throw new Error("conversation_turn_not_found");
+  }
+  const response = await fetch(
+    backendUrl(
+      `/client/v1/conversations/${encodeURIComponent(sourceConversationId)}`
+      + `/turns/${encodeURIComponent(target.turnId)}/fork`
+    ),
+    {
+      method: "POST",
+      headers: { ...authHeaders(), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: currentSubjectId(),
+        mode
+      })
+    }
+  );
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    handleUnauthorizedResponse(response);
+    throw new Error(payload.detail || `HTTP ${response.status}`);
+  }
+  conversationLibraryLoaded = false;
+  await refreshConversationLibrary({ force: true });
+  await switchConversation(payload.conversation_id);
+  return payload;
 }
 
 async function branchConversationFromTurn(group, target, button) {
@@ -3715,6 +3774,167 @@ async function branchConversationFromTurn(group, target, button) {
     group.dataset.busy = "false";
     button.removeAttribute("aria-busy");
   }
+}
+
+async function regenerateConversationTurn(group, target, button) {
+  if (!group || group.dataset.busy === "true" || !currentConversationId) return;
+  const status = group.querySelector(".messageFeedbackStatus");
+  if (conversationSwitchBlocked()) {
+    if (status) {
+      status.textContent = currentLanguage === "en"
+        ? "Finish the file upload first"
+        : "请先完成文件上传";
+    }
+    return;
+  }
+  group.dataset.busy = "true";
+  button.disabled = true;
+  button.setAttribute("aria-busy", "true");
+  if (status) {
+    status.textContent = textFor("conversation.regenerating", "正在新分支重新生成…");
+  }
+  try {
+    const payload = await forkConversationTurn(target, "regenerate");
+    const sourceMessage = String(payload.source_user_message || "").trim();
+    if (!sourceMessage) throw new Error("conversation_source_message_empty");
+    await sendTextPrompt(sourceMessage, { forceUserMessage: true });
+  } catch (error) {
+    if (document.body.contains(group) && status) {
+      status.textContent = `${textFor("conversation.regenerateFailed", "重新生成失败")}：${error.message || ""}`;
+      button.disabled = false;
+    }
+  } finally {
+    group.dataset.busy = "false";
+    button.removeAttribute("aria-busy");
+  }
+}
+
+function editableMessageTarget(rawTarget = {}, item = null) {
+  const turnId = String(rawTarget.turn_id || rawTarget.turnId || "").trim();
+  const sourceText = String(
+    rawTarget.source_text
+    || rawTarget.sourceText
+    || (item && item.querySelector(".messageText") && item.querySelector(".messageText").textContent)
+    || ""
+  ).trim();
+  if (!turnId || !sourceText) return null;
+  return { turnId, sourceText };
+}
+
+function closeUserMessageEditor(item) {
+  if (!item) return;
+  const body = item.querySelector(".messageText");
+  const controls = item.querySelector(".messageUserControls");
+  const editor = item.querySelector(".messageEditPanel");
+  if (body) body.hidden = false;
+  if (controls) controls.hidden = false;
+  if (editor) editor.remove();
+  item.classList.remove("isEditing");
+}
+
+function openUserMessageEditor(item, target) {
+  if (!item || !target || item.querySelector(".messageEditPanel")) return;
+  if (conversationSwitchBlocked()) {
+    setSubtitle(
+      currentLanguage === "en"
+        ? "Finish or cancel the current file upload before editing."
+        : "请先完成或取消当前文件上传，再编辑消息。",
+      { speaker: "IRIS", resetFlow: true }
+    );
+    return;
+  }
+  const body = item.querySelector(".messageText");
+  const controls = item.querySelector(".messageUserControls");
+  if (body) body.hidden = true;
+  if (controls) controls.hidden = true;
+  item.classList.add("isEditing");
+
+  const panel = document.createElement("div");
+  panel.className = "messageEditPanel";
+  const label = document.createElement("label");
+  label.className = "messageEditLabel";
+  label.textContent = textFor("conversation.editMessage", "编辑这条消息");
+  const input = document.createElement("textarea");
+  input.className = "messageEditInput";
+  input.rows = 3;
+  input.maxLength = 1600;
+  input.value = target.sourceText;
+  input.setAttribute("aria-label", label.textContent);
+  const hint = document.createElement("p");
+  hint.className = "messageEditHint";
+  hint.textContent = textFor(
+    "conversation.editHint",
+    "将在新分支发送，原对话会保留。"
+  );
+  const status = document.createElement("p");
+  status.className = "messageEditStatus";
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+  const actions = document.createElement("div");
+  actions.className = "messageEditActions";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.className = "messageEditCancel";
+  cancel.textContent = textFor("conversation.editCancel", "取消");
+  cancel.addEventListener("click", () => closeUserMessageEditor(item));
+  const submit = document.createElement("button");
+  submit.type = "button";
+  submit.className = "messageEditSubmit";
+  submit.textContent = textFor("conversation.editSubmit", "在新分支发送");
+  submit.addEventListener("click", async () => {
+    const replacement = String(input.value || "").trim();
+    if (!replacement) {
+      status.textContent = textFor("conversation.editRequired", "消息不能为空。");
+      input.focus();
+      return;
+    }
+    if (replacement === target.sourceText) {
+      status.textContent = textFor("conversation.editNoChange", "请先修改消息内容。");
+      input.focus();
+      return;
+    }
+    input.disabled = true;
+    cancel.disabled = true;
+    submit.disabled = true;
+    submit.setAttribute("aria-busy", "true");
+    status.textContent = textFor("conversation.editCreating", "正在创建编辑分支…");
+    try {
+      await forkConversationTurn(target, "edit");
+      await sendTextPrompt(replacement, { forceUserMessage: true });
+    } catch (error) {
+      if (document.body.contains(panel)) {
+        status.textContent = `${textFor("conversation.editFailed", "编辑分支创建失败")}：${error.message || ""}`;
+        input.disabled = false;
+        cancel.disabled = false;
+        submit.disabled = false;
+        submit.removeAttribute("aria-busy");
+      }
+    }
+  });
+  actions.append(cancel, submit);
+  panel.append(label, input, hint, status, actions);
+  item.appendChild(panel);
+  window.requestAnimationFrame(() => {
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  });
+}
+
+function attachUserMessageEditControls(item, rawTarget) {
+  if (!item || item.querySelector(".messageUserControls")) return;
+  const target = editableMessageTarget(rawTarget, item);
+  if (!target) return;
+  const controls = document.createElement("div");
+  controls.className = "messageUserControls";
+  const edit = document.createElement("button");
+  edit.type = "button";
+  edit.className = "messageFeedbackIcon messageEditIcon";
+  edit.innerHTML = feedbackIcon("edit");
+  edit.setAttribute("aria-label", textFor("conversation.editMessage", "编辑这条消息"));
+  edit.title = textFor("conversation.editMessage", "编辑这条消息");
+  edit.addEventListener("click", () => openUserMessageEditor(item, target));
+  controls.appendChild(edit);
+  item.appendChild(controls);
 }
 
 async function submitMessageFeedback(group, target, feedbackType, button) {
@@ -3784,6 +4004,16 @@ function attachMessageFeedbackControls(item, rawTarget) {
     button.addEventListener("click", () => submitMessageFeedback(group, target, kind, button));
     group.appendChild(button);
   });
+  const regenerate = document.createElement("button");
+  regenerate.type = "button";
+  regenerate.className = "messageFeedbackIcon messageRegenerateIcon";
+  regenerate.innerHTML = feedbackIcon("regenerate");
+  regenerate.setAttribute("aria-label", textFor("conversation.regenerate", "重新生成回答"));
+  regenerate.title = textFor("conversation.regenerate", "重新生成回答");
+  regenerate.addEventListener("click", () => {
+    regenerateConversationTurn(group, target, regenerate);
+  });
+  group.appendChild(regenerate);
   const branch = document.createElement("button");
   branch.type = "button";
   branch.className = "messageFeedbackIcon messageBranchIcon";
@@ -3915,7 +4145,11 @@ function appendUserConversation(text, options = {}) {
   if (!options.force && value === lastUserConversationText && now - lastUserConversationAt < 1800) return "";
   lastUserConversationText = value;
   lastUserConversationAt = now;
-  return appendConversationMessage("user", value, { forceScroll: true });
+  clearWelcomeMessageForHistory();
+  return appendConversationMessage("user", value, {
+    ...options,
+    forceScroll: true
+  });
 }
 
 function appendAssistantConversation(text, options = {}) {
@@ -5614,6 +5848,10 @@ function appendConversationHistoryItem(
       turn_id: item.turn_id,
       response_id: item.response_id || "",
       channel: item.client_type === "voice" ? "voice" : "web"
+    } : null,
+    editableTarget: role === "user" && item.turn_id ? {
+      turn_id: item.turn_id,
+      source_text: item.content || ""
     } : null
   });
 }
@@ -10904,7 +11142,7 @@ function shutdownVoiceSessionForPageHide() {
   logLine("voice session cleaned up for pagehide");
 }
 
-async function sendTextPrompt(text) {
+async function sendTextPrompt(text, options = {}) {
   const final = (text || "").trim();
   if (!final) return false;
   if (!canUseBackendNow()) {
@@ -10918,7 +11156,9 @@ async function sendTextPrompt(text) {
   els.partial.textContent = "";
   setDockText(final);
   setSubtitle(final, { speaker: "你" });
-  appendUserConversation(final);
+  const userMessageId = appendUserConversation(final, {
+    force: Boolean(options.forceUserMessage)
+  });
   setState("thinking");
   try {
     const response = await fetch(backendUrl("/client/v1/message"), {
@@ -10956,6 +11196,14 @@ async function sendTextPrompt(text) {
       throw new Error(payload.detail || `HTTP ${response.status}`);
     }
     currentConversationId = payload.conversation_id || currentConversationId;
+    const userMessage = findConversationMessage(userMessageId);
+    if (userMessage && payload.turn_id) {
+      userMessage.dataset.turnId = String(payload.turn_id);
+      attachUserMessageEditControls(userMessage, {
+        turn_id: payload.turn_id,
+        source_text: final
+      });
+    }
     refreshConversationLibrary({ force: true }).catch((error) => {
       logLine(error.message || "conversation library refresh failed");
     });
