@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=391" type="image/png" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=391" />
-    <link rel="manifest" href="/iris/manifest.json?v=391" />
-    <link rel="stylesheet" href="/iris/styles.css?v=391" />
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=393" type="image/png" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=393" />
+    <link rel="manifest" href="/iris/manifest.json?v=393" />
+    <link rel="stylesheet" href="/iris/styles.css?v=393" />
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -96,6 +96,15 @@
               <span class="capabilityIcon capabilityThinkIcon" aria-hidden="true"></span>
               <span id="thinkingCapabilityLabel">思考模式</span>
             </button>
+            <button id="studyCapabilityButton" type="button" data-capability-action="study" aria-pressed="false">
+              <span class="capabilityIcon capabilityStudyIcon" aria-hidden="true">
+                <svg viewBox="0 0 20 20">
+                  <path d="M2.5 4.3c2.8-.7 5-.1 7 1.7v10c-2-1.8-4.2-2.4-7-1.7V4.3Z"></path>
+                  <path d="M17.5 4.3c-2.8-.7-5-.1-7 1.7v10c2-1.8 4.2-2.4 7-1.7V4.3Z"></path>
+                </svg>
+              </span>
+              <span id="studyCapabilityLabel">学习模式</span>
+            </button>
             <button type="button" data-capability-prompt="帮我搜索：">
               <span class="capabilityIcon capabilitySearchIcon" aria-hidden="true"></span>
               <span>搜索</span>
@@ -177,11 +186,23 @@
         <section class="controls dock unifiedComposer" aria-label="message composer">
           <p id="voiceInputStatus" class="voiceInputStatus" aria-live="polite" data-i18n="voice.inputting">正在语音输入</p>
           <input id="documentPdfInput" class="fileInput" type="file" multiple accept="application/pdf,image/png,image/jpeg,image/webp,image/tiff,image/heic,image/heif,text/plain,text/markdown,text/csv,text/tab-separated-values,application/json,text/html,application/xml,application/rtf,message/rfc822,application/msword,application/vnd.ms-excel,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-word.document.macroenabled.12,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroenabled.12,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-powerpoint.presentation.macroenabled.12,application/vnd.oasis.opendocument.text,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.presentation,.pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.heic,.heif,.txt,.log,.md,.markdown,.csv,.tsv,.json,.html,.htm,.xml,.rtf,.doc,.xls,.ppt,.docx,.docm,.xlsx,.xlsm,.pptx,.pptm,.odt,.ods,.odp,.eml" />
-          <button id="thinkingModeStatus" class="thinkingModeStatus" type="button" data-mode="auto" hidden aria-label="当前为自动思考模式">
-            <span class="thinkingModeStatusOrb" aria-hidden="true"></span>
-            <strong>自动思考</strong>
-            <span>按问题调整</span>
-          </button>
+          <div id="conversationModeRail" class="conversationModeRail" hidden>
+            <button id="thinkingModeStatus" class="thinkingModeStatus" type="button" data-mode="auto" hidden aria-label="当前为自动思考模式">
+              <span class="thinkingModeStatusOrb" aria-hidden="true"></span>
+              <strong>自动思考</strong>
+              <span>按问题调整</span>
+            </button>
+            <button id="studyModeStatus" class="studyModeStatus" type="button" hidden aria-label="学习模式已开启，点按关闭">
+              <span class="studyModeStatusMark" aria-hidden="true">
+                <svg viewBox="0 0 20 20">
+                  <path d="M2.5 4.3c2.8-.7 5-.1 7 1.7v10c-2-1.8-4.2-2.4-7-1.7V4.3Z"></path>
+                  <path d="M17.5 4.3c-2.8-.7-5-.1-7 1.7v10c2-1.8 4.2-2.4 7-1.7V4.3Z"></path>
+                </svg>
+              </span>
+              <strong>学习模式</strong>
+              <span>分步理解</span>
+            </button>
+          </div>
           <p id="documentUploadStatus" class="documentUploadStatus" role="status" aria-live="polite" aria-atomic="true" data-tone="info" data-visible="false"> </p>
           <button id="documentUploadButton" class="dockIcon attachButton" type="button" aria-label="上传文件" title="上传文件" data-i18n-aria-label="action.uploadFile" data-i18n-title="action.uploadFile">
             <span class="attachPlus" aria-hidden="true">+</span>
@@ -375,7 +396,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=391" alt="" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=393" alt="" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -442,7 +463,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=391" alt="" />
+              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=393" alt="" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
@@ -936,7 +957,7 @@
         </div>
       </aside>
     </main>
-    <script src="/iris/public-config.js?v=391"></script>
-    <script src="/iris/app.js?v=391"></script>
+    <script src="/iris/public-config.js?v=393"></script>
+    <script src="/iris/app.js?v=393"></script>
   </body>
 </html>

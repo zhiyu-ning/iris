@@ -57,8 +57,8 @@
   --control-hover-filter: brightness(1.018) saturate(1.06);
   --control-active-filter: brightness(0.985) saturate(1.02);
   --control-press-shadow: inset 0 2px 5px rgba(24, 42, 67, 0.08);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=391");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=391");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=393");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-light-192.webp?v=393");
   --logo-glow: color-mix(in srgb, var(--accent) 18%, transparent);
   --status-online: #31c6a8;
   --status-offline: #8d98a8;
@@ -212,8 +212,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     0 22px 54px rgba(85, 91, 255, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=391");
-  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=391");
+  --ambient-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=393");
+  --app-logo: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=393");
   --logo-glow: rgba(119, 119, 255, 0.34);
   --status-offline: #6f7886;
 }
@@ -269,8 +269,8 @@
   --access-action-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.38),
     0 22px 54px rgba(82, 78, 166, 0.22);
-  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=391");
-  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=391");
+  --ambient-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=393");
+  --app-logo: url("/iris/assets/brand/iris-symbol-light-192.webp?v=393");
   --logo-glow: rgba(255, 255, 255, 0.42);
 }
 
@@ -1722,7 +1722,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 .messageText[data-reply-render="true"],
 .publicShareMessageText[data-reply-render="true"] {
   display: grid;
-  gap: 10px;
+  gap: 9px;
   white-space: normal;
 }
 
@@ -1745,9 +1745,14 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 .replyParagraph {
   color: inherit;
+  line-height: 1.66;
   overflow-wrap: break-word;
   word-break: normal;
   text-wrap: pretty;
+}
+
+.replyParagraph + .replyParagraph {
+  margin-top: 2px;
 }
 
 .replyHeading {
@@ -1756,6 +1761,12 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
   line-height: 1.38;
   font-weight: 780;
   letter-spacing: -0.018em;
+}
+
+.replyHeading:not(:first-child),
+.replySectionLabel:not(:first-child),
+.replyTopic:not(:first-child) {
+  margin-top: 4px;
 }
 
 .replyHeading[data-level="2"],
@@ -2299,7 +2310,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 :root[data-theme="pure-black"] .brandMark,
 :root[data-theme="pure-black"] .sheetBrandMark {
-  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=391");
+  content: url("/iris/assets/brand/iris-app-icon-dark-192.webp?v=393");
 }
 
 .brandName {
@@ -8248,7 +8259,7 @@ body.publicShareMode {
   height: 35px;
   border-radius: 11px;
   background:
-    url("/iris/assets/brand/iris-app-icon-light-192.webp?v=391")
+    url("/iris/assets/brand/iris-app-icon-light-192.webp?v=393")
     center / cover no-repeat;
   box-shadow: 0 6px 18px rgba(96, 96, 188, 0.13);
 }
@@ -11091,6 +11102,66 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
   font-size: 10px;
 }
 
+:root[data-theme="pure-black"] .capabilityPanel {
+  border-color: rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(circle at 50% -12%, rgba(124, 106, 226, 0.15), transparent 34%),
+    rgba(24, 25, 35, 0.98);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 -16px 54px rgba(0, 0, 0, 0.44);
+}
+
+:root[data-theme="pure-black"] .capabilityHandle {
+  background: rgba(245, 242, 255, 0.24);
+}
+
+:root[data-theme="pure-black"] .capabilityGrid button {
+  color: rgba(242, 240, 252, 0.76);
+}
+
+:root[data-theme="pure-black"] .capabilityGrid button:hover,
+:root[data-theme="pure-black"] .capabilityGrid button:focus-visible {
+  color: #c8beff;
+}
+
+:root[data-theme="pure-black"] .capabilityIcon {
+  color: #afa2ff;
+  border-color: rgba(184, 171, 255, 0.17);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.095), rgba(122, 103, 220, 0.11));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+:root[data-theme="pure-black"] .capabilitySuggestion {
+  border-color: rgba(184, 171, 255, 0.12);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(123, 105, 222, 0.12), transparent 42%),
+    rgba(255, 255, 255, 0.045);
+}
+
+:root[data-theme="pure-black"] .capabilitySuggestion strong {
+  color: rgba(248, 246, 255, 0.93);
+}
+
+:root[data-theme="pure-black"] .capabilitySuggestion span {
+  color: rgba(230, 226, 247, 0.7);
+}
+
+:root[data-theme="pure-black"] .capabilitySuggestion li {
+  color: rgba(235, 232, 250, 0.74);
+}
+
+:root[data-theme="pure-black"] .capabilitySuggestion li::before {
+  background: #a99bff;
+  box-shadow: 0 0 0 3px rgba(169, 155, 255, 0.12);
+}
+
+:root[data-theme="pure-black"] .capabilityCustomButton {
+  color: #b9adff;
+}
+
 @keyframes irisCapabilityIn {
   from {
     opacity: 0;
@@ -12404,7 +12475,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 
 /* v354 Iris companion interface: portrait-led entry, calm conversation, and card-based settings. */
 :root {
-  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=391");
+  --companion-avatar: url("/iris/assets/brand/iris-companion-avatar.jpg?v=393");
   --iris-violet: #7567f8;
   --iris-violet-deep: #5547e8;
   --iris-lilac: #b9b0ff;
@@ -13725,7 +13796,7 @@ body:not(.detailsOpen) .conversationShell:has(.conversationStream > .message[dat
 .accessConnectingGlyph,
 .capabilitySuggestionMark,
 .sheetGlyph {
-  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=391");
+  background-image: url("/iris/assets/brand/iris-symbol-light-192.png?v=393");
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
@@ -14632,7 +14703,7 @@ body {
   height: 76px;
   display: block;
   border-radius: 22px;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=391") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=393") center / 58px 58px no-repeat;
   filter: drop-shadow(0 12px 24px rgba(104, 85, 224, 0.16));
 }
 
@@ -16905,7 +16976,7 @@ body > .dock.unifiedComposer {
   width: 76px !important;
   height: 76px !important;
   display: block !important;
-  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=391") center / 58px 58px no-repeat;
+  background: url("/iris/assets/brand/iris-symbol-light-192.png?v=393") center / 58px 58px no-repeat;
 }
 
 #accessGate.accessGate[data-input-focused="true"]:not([data-submitting="true"]) > .accessPanel > .accessFocusIntro > .accessFocusGlyph,
@@ -19770,5 +19841,145 @@ body.canvasOpen .terminal {
   from {
     opacity: 0;
     transform: translateY(-4px) scale(0.99);
+  }
+}
+
+/* Study mode: a conversation-level learning state, not a keyword shortcut. */
+.capabilityStudyIcon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.45;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.capabilityGrid button[data-capability-action="study"][data-busy="true"] {
+  opacity: 0.58;
+}
+
+.conversationModeRail {
+  grid-area: thinking;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.conversationModeRail[hidden] {
+  display: none !important;
+}
+
+.conversationModeRail .thinkingModeStatus,
+.studyModeStatus {
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.studyModeStatus {
+  min-height: 28px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(91, 139, 217, 0.12);
+  border-radius: 999px;
+  color: #4e72bb;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(190, 226, 255, 0.32), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(241, 247, 255, 0.62));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
+  font: inherit;
+  text-align: left;
+}
+
+.studyModeStatus[hidden] {
+  display: none !important;
+}
+
+.studyModeStatusMark {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+
+.studyModeStatusMark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.55;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.studyModeStatus strong {
+  flex: 0 0 auto;
+  font-size: 9.7px;
+  font-weight: 740;
+}
+
+.studyModeStatus span:last-child {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  color: rgba(59, 78, 116, 0.5);
+  font-size: 8.7px;
+  font-weight: 560;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.messageStudyBadge {
+  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(88, 142, 220, 0.12);
+  border-radius: 999px;
+  color: #557cc0;
+  background: rgba(226, 241, 255, 0.68);
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+:root[data-study-mode="active"] .composerField {
+  border-color: color-mix(in srgb, #71a6ea 18%, var(--line));
+}
+
+:root[data-theme="pure-black"] .studyModeStatus {
+  color: rgba(183, 214, 255, 0.88);
+  border-color: rgba(126, 181, 246, 0.14);
+  background:
+    radial-gradient(circle at 92% 0%, rgba(75, 133, 199, 0.14), transparent 44%),
+    rgba(255, 255, 255, 0.055);
+}
+
+:root[data-theme="pure-black"] .studyModeStatus span:last-child {
+  color: rgba(214, 230, 250, 0.45);
+}
+
+:root[data-theme="pure-black"] .messageStudyBadge {
+  color: rgba(188, 218, 255, 0.82);
+  border-color: rgba(126, 181, 246, 0.13);
+  background: rgba(75, 133, 199, 0.13);
+}
+
+@media (max-width: 350px) {
+  .conversationModeRail {
+    gap: 4px;
+  }
+
+  .conversationModeRail .thinkingModeStatus,
+  .studyModeStatus {
+    padding-inline: 8px;
+  }
+
+  .conversationModeRail:has(.thinkingModeStatus:not([hidden])) .studyModeStatus span:last-child,
+  .conversationModeRail:has(.studyModeStatus:not([hidden])) .thinkingModeStatus span:last-child {
+    display: none;
   }
 }

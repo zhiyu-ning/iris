@@ -23,7 +23,11 @@ const els = {
   thinkingModePicker: document.getElementById("thinkingModePicker"),
   thinkingModePickerTitle: document.getElementById("thinkingModePickerTitle"),
   thinkingModePickerHint: document.getElementById("thinkingModePickerHint"),
+  conversationModeRail: document.getElementById("conversationModeRail"),
   thinkingModeStatus: document.getElementById("thinkingModeStatus"),
+  studyCapability: document.getElementById("studyCapabilityButton"),
+  studyCapabilityLabel: document.getElementById("studyCapabilityLabel"),
+  studyModeStatus: document.getElementById("studyModeStatus"),
   detailSheet: document.getElementById("detailSheet"),
   closeDetails: document.getElementById("closeDetails"),
   state: document.getElementById("stateLabel"),
@@ -202,7 +206,7 @@ const els = {
   canvasDeleteConfirm: document.getElementById("canvasDeleteConfirmButton")
 };
 
-const VOICE_UI_VERSION = "391";
+const VOICE_UI_VERSION = "393";
 const SUPPORTED_DOCUMENT_EXTENSIONS = new Set([
   "pdf", "txt", "log", "md", "markdown", "csv", "tsv", "json", "html", "htm", "xml", "rtf",
   "doc", "xls", "ppt", "docx", "docm", "xlsx", "xlsm", "pptx", "pptm", "odt", "ods", "odp", "eml",
@@ -1750,7 +1754,7 @@ const DOCUMENT_UPLOAD_MAX_FILES = 12;
 const DOCUMENT_UPLOAD_CONCURRENCY = 3;
 const DOCUMENT_BATCH_POLL_INTERVAL_MS = 700;
 
-const WEB_VERSION = "voice-ui-web-polish-v391-reply-readability";
+const WEB_VERSION = "voice-ui-web-polish-v393-study-readability";
 const PRE_AUTH_SAFE_EVENT_TYPES = new Set(["session_status", "server_capabilities", "error"]);
 const TOKEN_KEY = "jarvis_voice_token";
 const ACCESS_TOKEN_KEY = "iris_access_token";
@@ -1766,6 +1770,7 @@ const VOLUME_KEY = "jarvis_voice_volume";
 const THINKING_MODE_KEY = "iris_thinking_mode";
 let currentLanguage = normalizedLanguage(safeStorageGet(LANGUAGE_KEY, "zh"));
 let selectedThinkingMode = normalizedThinkingMode(safeStorageGet(THINKING_MODE_KEY, "auto"));
+let selectedConversationMode = "standard";
 const WEB_TEXT_CAPABILITIES = {
   calendar: true,
   calendar_read: true,
@@ -2314,6 +2319,9 @@ const REPLY_FIELD_KEYS = new Set([
 ]);
 const REPLY_TOPIC_KEY_PATTERN = /^(?:[\u3400-\u9fffA-Za-z0-9+&＆/·]{1,12}(?:层|端|侧|方面|部分|阶段|现状|方向|方案|体验|能力|限制|说明|提醒|生态)|结论|建议|原因|风险|重点|下一步|现状|方向|方案|说明|提醒|注意)$/i;
 const REPLY_STRONG_SECTION_PATTERN = /^\s*(?:\*\*|__)([^*_\n]{1,28}?)[：:]?(?:\*\*|__)\s*$/;
+const REPLY_PARAGRAPH_CONNECTOR_PATTERN = /^(?:而且|并且|不过|但是|但|因此|所以|同时|另外|此外|这样|这也|它也|如果|也就是说|换句话说|更重要的是|相反|and\b|but\b|however\b|therefore\b|so\b|meanwhile\b|also\b|in other words\b|more importantly\b)/i;
+const REPLY_INDEPENDENT_STATUS_PATTERN = /^(?:已停止生成|生成已停止|已取消|操作已取消|请求已取消|已中止|操作失败|生成失败|发送失败|上传失败|解析失败|执行失败)[。！？!?]?$/;
+const REPLY_QUESTION_END_PATTERN = /[？?][”’」』）)]*$/;
 
 function isReplyTopicKey(value) {
   return REPLY_TOPIC_KEY_PATTERN.test(String(value || "").replace(/\s+/g, "").trim());
@@ -2337,6 +2345,7 @@ function normalizeReplyDisplayStructure(text) {
     String(text || "")
       .replace(/\r\n?/g, "\n")
       .replace(/[\u2028\u2029]/g, "\n")
+      .replace(/\u00a0/g, " ")
   );
   value = value.replace(
     /([。！？!?：:])([\u3400-\u9fffA-Za-z0-9+&＆/· ]{1,14})[：:]/g,
@@ -2345,7 +2354,13 @@ function normalizeReplyDisplayStructure(text) {
       return isReplyTopicKey(key) ? `${punctuation}\n\n${key}：` : match;
     }
   );
-  return value.replace(/\n{3,}/g, "\n\n").trim();
+  value = value
+    .split("\n")
+    .map((line) => line.replace(/[ \t]+$/g, ""))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return compactReplyDisplayParagraphs(value);
 }
 
 function appendReplyInlineText(target, text) {
@@ -2435,6 +2450,116 @@ function joinReplyProseLines(lines) {
     if (!joined) return part;
     return `${joined}${replyNeedsJoiningSpace(joined, part) ? " " : ""}${part}`;
   }, "");
+}
+
+function mergeReplyDisplayFragments(items) {
+  return joinReplyProseLines((items || []).filter(Boolean));
+}
+
+function compactReplyDisplayProseRun(run) {
+  if (!Array.isArray(run) || run.length <= 1) return Array.isArray(run) ? run : [];
+  const connectorMerged = [];
+  run.forEach((block) => {
+    const value = String(block || "").trim();
+    const previous = connectorMerged[connectorMerged.length - 1] || "";
+    if (
+      previous
+      && REPLY_PARAGRAPH_CONNECTOR_PATTERN.test(value)
+      && previous.length + value.length <= 260
+    ) {
+      connectorMerged[connectorMerged.length - 1] = mergeReplyDisplayFragments([previous, value]);
+    } else if (value) {
+      connectorMerged.push(value);
+    }
+  });
+  if (connectorMerged.length < 3) return connectorMerged;
+
+  const totalLength = connectorMerged.reduce((total, block) => total + block.length, 0);
+  const shortBlocks = connectorMerged.filter((block) => block.length <= 56).length;
+  if (totalLength > 320 || shortBlocks < 2) return connectorMerged;
+
+  if (REPLY_QUESTION_END_PATTERN.test(connectorMerged[connectorMerged.length - 1])) {
+    const leading = mergeReplyDisplayFragments(connectorMerged.slice(0, -1));
+    return leading ? [leading, connectorMerged[connectorMerged.length - 1]] : connectorMerged.slice(-1);
+  }
+
+  const target = totalLength / 2;
+  let running = 0;
+  const candidates = [];
+  for (let index = 1; index < connectorMerged.length; index += 1) {
+    running += connectorMerged[index - 1].length;
+    if (REPLY_PARAGRAPH_CONNECTOR_PATTERN.test(connectorMerged[index])) continue;
+    candidates.push({ distance: Math.abs(running - target), index });
+  }
+  if (!candidates.length) return [mergeReplyDisplayFragments(connectorMerged)];
+  candidates.sort((left, right) => left.distance - right.distance || left.index - right.index);
+  const splitAt = candidates[0].index;
+  return [
+    mergeReplyDisplayFragments(connectorMerged.slice(0, splitAt)),
+    mergeReplyDisplayFragments(connectorMerged.slice(splitAt))
+  ].filter(Boolean);
+}
+
+function compactReplyDisplayPlainSegment(text) {
+  const blocks = String(text || "")
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+  const output = [];
+  const proseRun = [];
+  const flushProse = () => {
+    if (!proseRun.length) return;
+    output.push(...compactReplyDisplayProseRun(proseRun));
+    proseRun.length = 0;
+  };
+  blocks.forEach((block) => {
+    const lines = block.split("\n").filter((line) => line.trim());
+    const proseOnly = lines.length && lines.every((line) => replyLineKind(line) === "prose");
+    const joined = proseOnly ? joinReplyProseLines(lines) : block;
+    if (proseOnly && !REPLY_INDEPENDENT_STATUS_PATTERN.test(joined)) {
+      proseRun.push(joined);
+      return;
+    }
+    flushProse();
+    output.push(joined);
+  });
+  flushProse();
+  return output.join("\n\n");
+}
+
+function compactReplyDisplayParagraphs(text) {
+  const output = [];
+  const proseLines = [];
+  const codeLines = [];
+  let fenceMarker = "";
+  const flushProse = () => {
+    if (!proseLines.length) return;
+    const compacted = compactReplyDisplayPlainSegment(proseLines.join("\n"));
+    if (compacted) output.push(compacted);
+    proseLines.length = 0;
+  };
+  String(text || "").split("\n").forEach((line) => {
+    const fence = line.match(/^\s*(`{3,}|~{3,})/);
+    if (!fenceMarker && fence) {
+      flushProse();
+      fenceMarker = fence[1][0];
+      codeLines.push(line.replace(/[ \t]+$/g, ""));
+      return;
+    }
+    if (fenceMarker) {
+      codeLines.push(line.replace(/[ \t]+$/g, ""));
+      if (fence && fence[1][0] === fenceMarker) {
+        output.push(codeLines.join("\n"));
+        codeLines.length = 0;
+        fenceMarker = "";
+      }
+      return;
+    }
+    proseLines.push(line);
+  });
+  flushProse();
+  if (codeLines.length) output.push(codeLines.join("\n"));
+  return output.filter((block) => block.trim()).join("\n\n").trim();
 }
 
 function appendReplyParagraph(container, text, className = "replyParagraph") {
@@ -4437,6 +4562,22 @@ function appendConversationMessage(role, text, options = {}) {
     );
     meta.appendChild(badge);
   }
+  if (
+    role === "assistant"
+    && normalizedConversationMode(options.conversationMode) === "study"
+  ) {
+    item.dataset.conversationMode = "study";
+    const badge = document.createElement("span");
+    badge.className = "messageStudyBadge";
+    badge.textContent = currentLanguage === "en" ? "Study" : "学习";
+    badge.setAttribute(
+      "title",
+      currentLanguage === "en"
+        ? "Answered in Study mode"
+        : "本轮使用学习模式"
+    );
+    meta.appendChild(badge);
+  }
   const body = document.createElement("div");
   body.className = "messageText";
   setMessageBodyText(body, value || " ", { ...options, role });
@@ -6010,6 +6151,11 @@ function updateConversationIdentity(record = currentConversationRecord()) {
   if (record && record.title) currentConversationTitle = String(record.title).trim();
   const title = currentConversationTitle || fallback;
   const temporary = Boolean(record && record.memory_mode === "temporary");
+  const studyMode = normalizedConversationMode(
+    record && record.conversation_mode || "standard"
+  );
+  selectedConversationMode = studyMode;
+  renderStudyMode(studyMode);
   if (els.conversationCurrentTitle) els.conversationCurrentTitle.textContent = title;
   if (els.conversationMemoryHint) {
     els.conversationMemoryHint.textContent = temporary
@@ -6023,12 +6169,17 @@ function updateConversationIdentity(record = currentConversationRecord()) {
       );
   }
   if (els.conversationModeBadge) {
-    els.conversationModeBadge.hidden = !temporary;
-    els.conversationModeBadge.textContent = textFor("conversation.temporaryBadge", "临时");
+    els.conversationModeBadge.hidden = !temporary && studyMode !== "study";
+    els.conversationModeBadge.textContent = [
+      temporary ? textFor("conversation.temporaryBadge", "临时") : "",
+      studyMode === "study" ? (currentLanguage === "en" ? "Study" : "学习") : ""
+    ].filter(Boolean).join(" · ");
     els.conversationModeBadge.title = temporary
       ? textFor("conversation.temporaryExpires", "{time} 自动清除")
         .replace("{time}", conversationTemporaryExpiryLabel(record))
-      : "";
+      : studyMode === "study"
+        ? (currentLanguage === "en" ? "Study mode is active" : "当前会话已开启学习模式")
+        : "";
   }
   if (els.emptyMemoryChip) {
     els.emptyMemoryChip.textContent = temporary
@@ -7608,6 +7759,14 @@ async function switchConversation(
           ? "Temporary chat. Long-term memory is off."
           : "临时对话已接上，不会使用长期记忆。"
       )
+      : normalizedConversationMode(
+        activeRecord && activeRecord.conversation_mode
+      ) === "study"
+        ? (
+          currentLanguage === "en"
+            ? "Study mode is ready in this conversation."
+            : "这段会话的学习模式已经接上。"
+        )
       : (currentLanguage === "en" ? "This conversation is ready." : "这段会话已经接上。"),
     {
       speaker: "IRIS",
@@ -9333,6 +9492,26 @@ function normalizedThinkingMode(value) {
   return ["auto", "fast", "normal", "deep"].includes(normalized) ? normalized : "auto";
 }
 
+function normalizedConversationMode(value) {
+  return String(value || "").trim().toLowerCase() === "study" ? "study" : "standard";
+}
+
+function activeConversationMode() {
+  const record = currentConversationRecord();
+  return normalizedConversationMode(
+    record && record.conversation_mode || selectedConversationMode
+  );
+}
+
+function updateModeRailVisibility() {
+  const thinkingVisible = normalizedThinkingMode(selectedThinkingMode) !== "auto";
+  const studyVisible = activeConversationMode() === "study";
+  const visible = thinkingVisible || studyVisible;
+  if (els.conversationModeRail) els.conversationModeRail.hidden = !visible;
+  if (els.dock) els.dock.dataset.thinkingVisible = visible ? "true" : "false";
+  scheduleViewportMetrics({ refreshSubtitle: false });
+}
+
 function thinkingModeCopy(mode = selectedThinkingMode) {
   const language = currentLanguage === "en" ? "en" : "zh";
   return THINKING_MODE_COPY[language][normalizedThinkingMode(mode)];
@@ -9410,9 +9589,8 @@ function renderThinkingMode() {
     if (title) title.textContent = copy.name;
     if (detail) detail.textContent = copy.status;
   }
-  if (els.dock) els.dock.dataset.thinkingVisible = mode === "auto" ? "false" : "true";
+  updateModeRailVisibility();
   if (els.manual) els.manual.setAttribute("placeholder", copy.placeholder);
-  scheduleViewportMetrics({ refreshSubtitle: false });
 }
 
 function setThinkingMode(mode, { persist = true, closePicker = true } = {}) {
@@ -9422,8 +9600,132 @@ function setThinkingMode(mode, { persist = true, closePicker = true } = {}) {
   if (closePicker) setThinkingModePickerOpen(false);
 }
 
+function renderStudyMode(mode = selectedConversationMode) {
+  selectedConversationMode = normalizedConversationMode(mode);
+  const active = selectedConversationMode === "study";
+  document.documentElement.dataset.studyMode = active ? "active" : "standard";
+  if (els.studyCapability) {
+    els.studyCapability.dataset.active = active ? "true" : "false";
+    els.studyCapability.setAttribute("aria-pressed", active ? "true" : "false");
+    els.studyCapability.setAttribute(
+      "aria-label",
+      currentLanguage === "en"
+        ? `Study mode is ${active ? "on" : "off"}`
+        : `学习模式已${active ? "开启" : "关闭"}`
+    );
+  }
+  if (els.studyCapabilityLabel) {
+    els.studyCapabilityLabel.textContent = currentLanguage === "en" ? "Study" : "学习模式";
+  }
+  if (els.studyModeStatus) {
+    els.studyModeStatus.hidden = !active;
+    els.studyModeStatus.setAttribute(
+      "aria-label",
+      currentLanguage === "en"
+        ? "Study mode is on. Press to turn it off."
+        : "学习模式已开启，点按关闭。"
+    );
+    const title = els.studyModeStatus.querySelector("strong");
+    const detail = els.studyModeStatus.querySelector("span:last-child");
+    if (title) title.textContent = currentLanguage === "en" ? "Study mode" : "学习模式";
+    if (detail) detail.textContent = currentLanguage === "en" ? "Learn step by step" : "分步理解";
+  }
+  updateModeRailVisibility();
+}
+
+async function setConversationStudyMode(mode) {
+  const nextMode = normalizedConversationMode(mode);
+  if (!currentConversationId || !canUseBackendNow()) return false;
+  if (els.studyCapability && els.studyCapability.dataset.busy === "true") return false;
+  const targetConversationId = currentConversationId;
+  const previousMode = activeConversationMode();
+  if (nextMode === previousMode) {
+    setCapabilityPanelOpen(false);
+    return true;
+  }
+  if (els.studyCapability) {
+    els.studyCapability.dataset.busy = "true";
+    els.studyCapability.disabled = true;
+  }
+  if (els.studyModeStatus) els.studyModeStatus.disabled = true;
+  try {
+    const response = await fetch(
+      backendUrl(`/client/v1/conversations/${encodeURIComponent(targetConversationId)}`),
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders()
+        },
+        body: JSON.stringify({
+          user_id: currentSubjectId(),
+          conversation_mode: nextMode
+        })
+      }
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      handleUnauthorizedResponse(response);
+      throw new Error(payload.detail || `HTTP ${response.status}`);
+    }
+    const conversation = payload.conversation && typeof payload.conversation === "object"
+      ? payload.conversation
+      : null;
+    const index = conversationLibraryItems.findIndex(
+      (item) => item.conversation_id === targetConversationId
+    );
+    if (conversation && index >= 0) conversationLibraryItems[index] = conversation;
+    renderConversationLibrary();
+    if (currentConversationId === targetConversationId) {
+      selectedConversationMode = normalizedConversationMode(
+        conversation && conversation.conversation_mode || nextMode
+      );
+      renderStudyMode(selectedConversationMode);
+      setCapabilityPanelOpen(false);
+      setSubtitle(
+        selectedConversationMode === "study"
+          ? (currentLanguage === "en"
+            ? "Study mode is on. We will build this up step by step."
+            : "学习模式已开启。我们一步一步把它弄懂。")
+          : (currentLanguage === "en" ? "Study mode is off." : "学习模式已关闭。"),
+        { speaker: "IRIS", resetFlow: true }
+      );
+    }
+    return true;
+  } catch (error) {
+    if (currentConversationId === targetConversationId) {
+      selectedConversationMode = previousMode;
+      renderStudyMode(previousMode);
+      setConversationFeedback(
+        currentLanguage === "en"
+          ? "Study mode could not be updated. Please try again."
+          : "学习模式暂时没有切换成功，请再试一次。",
+        "warning"
+      );
+    }
+    logLine(error.message || "study mode update failed");
+    return false;
+  } finally {
+    if (els.studyCapability) {
+      delete els.studyCapability.dataset.busy;
+      els.studyCapability.disabled = false;
+    }
+    if (els.studyModeStatus) els.studyModeStatus.disabled = false;
+  }
+}
+
 function thinkingStreamLabel(mode, stage = "start") {
   const normalized = normalizedThinkingMode(mode);
+  if (activeConversationMode() === "study") {
+    if (currentLanguage === "en") {
+      return stage === "progress"
+        ? "Iris · building the next step"
+        : "Iris · working through it with you";
+    }
+    return stage === "progress"
+      ? "Iris · 正在整理下一步"
+      : "Iris · 正在陪你梳理";
+  }
   if (currentLanguage === "en") {
     if (normalized === "fast") return "Iris · responding fast";
     if (normalized === "normal") return stage === "progress" ? "Iris · shaping the answer" : "Iris · thinking";
@@ -13530,9 +13832,18 @@ async function summarizeCurrentDocument() {
     setDocumentStatus(currentDocumentStatusLine() || currentDocumentName, "loading");
   }
   setDocumentAnswer(textFor("document.summarizePendingShort", "正在整理摘要..."));
-  const pendingId = appendAssistantConversation(textFor("document.summarizePending", "正在整理这份文件的摘要..."), { kind: "document_pending" });
+  const pendingId = appendAssistantConversation(
+    textFor("document.summarizePending", "正在整理这份文件的摘要..."),
+    {
+      kind: "document_pending",
+      conversationMode: activeConversationMode()
+    }
+  );
   try {
-    const response = await fetch(documentApiUrl(`/client/v1/documents/${encodeURIComponent(currentDocumentId)}/summarize`, { client_id: voiceClientId() }), {
+    const response = await fetch(documentApiUrl(`/client/v1/documents/${encodeURIComponent(currentDocumentId)}/summarize`, {
+      client_id: voiceClientId(),
+      conversation_id: currentConversationId || ""
+    }), {
       method: "POST",
       headers: {
         "X-Jarvis-Client-Id": voiceClientId(),
@@ -13547,7 +13858,11 @@ async function summarizeCurrentDocument() {
     const text = payload.summary || textFor("document.summaryEmpty", "没有生成摘要。");
     setDocumentAnswer(text);
     if (!updateConversationMessage(pendingId, text, { label: textFor("document.summaryLabel", "Iris · PDF 摘要"), kind: "document_summary" })) {
-      const summaryId = appendAssistantConversation(text, { label: textFor("document.summaryLabel", "Iris · PDF 摘要"), kind: "document_summary" });
+      const summaryId = appendAssistantConversation(text, {
+        label: textFor("document.summaryLabel", "Iris · PDF 摘要"),
+        kind: "document_summary",
+        conversationMode: activeConversationMode()
+      });
       revealConversationMessage(summaryId);
     } else {
       revealConversationMessage(pendingId);
@@ -13588,7 +13903,13 @@ async function askCurrentDocument(questionOverride = "") {
   }
   setDocumentAnswer(textFor("document.askPendingShort", "正在从文档里找相关内容..."));
   appendUserConversation(question, { force: true });
-  const pendingId = appendAssistantConversation(textFor("document.askPending", "正在从当前文件里找相关内容..."), { kind: "document_pending" });
+  const pendingId = appendAssistantConversation(
+    textFor("document.askPending", "正在从当前文件里找相关内容..."),
+    {
+      kind: "document_pending",
+      conversationMode: activeConversationMode()
+    }
+  );
   try {
     const response = await fetch(documentApiUrl(`/client/v1/documents/${encodeURIComponent(currentDocumentId)}/ask`, { client_id: voiceClientId() }), {
       method: "POST",
@@ -13597,7 +13918,10 @@ async function askCurrentDocument(questionOverride = "") {
         "X-Jarvis-Client-Id": voiceClientId(),
         ...authHeaders()
       },
-      body: JSON.stringify({ question })
+      body: JSON.stringify({
+        question,
+        conversation_id: currentConversationId || ""
+      })
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -13610,7 +13934,11 @@ async function askCurrentDocument(questionOverride = "") {
     const text = `${payload.answer || textFor("document.askEmpty", "没有找到可回答的内容。")}${citations}`;
     setDocumentAnswer(text);
     if (!updateConversationMessage(pendingId, text, { label: textFor("document.answerLabel", "Iris · PDF"), kind: "document_answer" })) {
-      const answerId = appendAssistantConversation(text, { label: textFor("document.answerLabel", "Iris · PDF"), kind: "document_answer" });
+      const answerId = appendAssistantConversation(text, {
+        label: textFor("document.answerLabel", "Iris · PDF"),
+        kind: "document_answer",
+        conversationMode: activeConversationMode()
+      });
       revealConversationMessage(answerId);
     } else {
       revealConversationMessage(pendingId);
@@ -14051,7 +14379,8 @@ function clientTextMessageRequestBody(text, thinkingMode = selectedThinkingMode)
       voice_profile: selectedVoiceProfile(),
       voice_output: false,
       proactive_notification_id: activeProactiveNotificationId || null,
-      thinking_mode: normalizedThinkingMode(thinkingMode)
+      thinking_mode: normalizedThinkingMode(thinkingMode),
+      conversation_mode: activeConversationMode()
     },
     capabilities: WEB_TEXT_CAPABILITIES,
     auth: { token: persistedVoiceToken || "" }
@@ -14162,6 +14491,7 @@ function finalizeClientTextResponse(payload, { userMessageId, userText, streamin
     researchVerification,
     deepResearch,
     thinking,
+    conversationMode: payload.conversation_mode,
     revealFromStart: Boolean(deepResearch),
     turnId: String(payload.turn_id || ""),
     feedbackTarget: payload.feedback || (payload.turn_id ? {
@@ -16968,6 +17298,12 @@ if (els.capabilityPanel) {
       setThinkingModePickerOpen(!isOpen, { focusActive: !isOpen });
       return;
     }
+    if (action === "study") {
+      setConversationStudyMode(
+        activeConversationMode() === "study" ? "standard" : "study"
+      ).catch((error) => logLine(error.message || "study mode update failed"));
+      return;
+    }
     if (action === "memory") openMemorySettings();
   });
 }
@@ -16975,6 +17311,12 @@ if (els.thinkingModeStatus) {
   els.thinkingModeStatus.addEventListener("click", () => {
     setCapabilityPanelOpen(true);
     setThinkingModePickerOpen(true, { focusActive: true });
+  });
+}
+if (els.studyModeStatus) {
+  els.studyModeStatus.addEventListener("click", () => {
+    setConversationStudyMode("standard")
+      .catch((error) => logLine(error.message || "study mode update failed"));
   });
 }
 if (els.capabilityCustom) {
@@ -17595,6 +17937,7 @@ initVoiceClientId();
 initThemeSettings();
 initLanguageSettings();
 setThinkingMode(selectedThinkingMode, { persist: false, closePicker: true });
+renderStudyMode(selectedConversationMode);
 refreshAccessRevealButton();
 if (PUBLIC_SHARE_MODE) {
   initializePublicConversationShare().catch((err) => {
