@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.webp?v=396" type="image/webp" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=396" />
-    <link rel="manifest" href="/iris/manifest.json?v=396" />
-    <link rel="preload" href="/iris/assets/brand/iris-companion-avatar.webp?v=396" as="image" type="image/webp" fetchpriority="high" />
-    <link rel="stylesheet" href="/iris/styles.css?v=396" />
-    <script defer src="/iris/public-config.js?v=396"></script>
-    <script defer fetchpriority="high" src="/iris/app.js?v=396"></script>
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.webp?v=397" type="image/webp" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=397" />
+    <link rel="manifest" href="/iris/manifest.json?v=397" />
+    <link rel="preload" href="/iris/assets/brand/iris-companion-avatar.webp?v=397" as="image" type="image/webp" fetchpriority="high" />
+    <link rel="stylesheet" href="/iris/styles.css?v=397" />
+    <script defer src="/iris/public-config.js?v=397"></script>
+    <script defer fetchpriority="high" src="/iris/app.js?v=397"></script>
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -399,7 +399,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.webp?v=396" alt="" width="512" height="512" decoding="async" fetchpriority="high" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.webp?v=397" alt="" width="512" height="512" decoding="async" fetchpriority="high" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -466,7 +466,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.webp?v=396" alt="" width="512" height="512" decoding="async" loading="lazy" />
+              <img src="/iris/assets/brand/iris-companion-avatar.webp?v=397" alt="" width="512" height="512" decoding="async" loading="lazy" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
@@ -657,6 +657,94 @@
               <select id="modelSelect" aria-label="回答模型" data-i18n-aria-label="settings.modelLabel">
                 <option value="">正在加载</option>
               </select>
+            </div>
+          </div>
+        </details>
+
+        <details class="settingsGroup navGroup personalizationGroup">
+          <summary class="navSummary">
+            <span class="navIcon personalizationIcon" aria-hidden="true"></span>
+            <span class="navCopy">
+              <span class="navTitle" data-i18n="settings.personalization">个性化</span>
+              <span id="personalizationStatus" class="navSub" role="status" aria-live="polite" data-tone="info" data-i18n="personalization.ready">风格 · 特征 · 自定义指令</span>
+            </span>
+          </summary>
+          <div class="groupBody personalizationPanel">
+            <section class="personalizationHero" aria-labelledby="personalizationHeroTitle">
+              <div>
+                <span class="personalizationKicker" data-i18n="personalization.kicker">PERSONALIZATION</span>
+                <strong id="personalizationHeroTitle" data-i18n="personalization.title">让 Iris 更像你的 Iris</strong>
+                <p data-i18n="personalization.hint">配置会立即用于所有对话；当前消息和项目指令仍然优先。</p>
+              </div>
+              <span id="personalizationSaveState" class="personalizationSaveState" data-tone="neutral" data-i18n="personalization.synced">已同步</span>
+            </section>
+
+            <section class="personalizationSection" aria-labelledby="personalizationStyleTitle">
+              <header>
+                <div>
+                  <strong id="personalizationStyleTitle" data-i18n="personalization.styleTitle">基础风格与语气</strong>
+                  <small data-i18n="personalization.styleHint">只改变表达方式，不改变能力和安全规则。</small>
+                </div>
+              </header>
+              <div id="personalizationPersonalityPicker" class="personalizationPersonalityPicker" role="radiogroup" aria-label="基础风格与语气" data-i18n-aria-label="personalization.styleTitle">
+                <button type="button" data-personality-choice="default" role="radio" aria-checked="true"><strong data-i18n="personalization.personality.default">默认</strong><small data-i18n="personalization.personality.defaultHint">清晰自然，平衡表达</small></button>
+                <button type="button" data-personality-choice="professional" role="radio" aria-checked="false"><strong data-i18n="personalization.personality.professional">专业</strong><small data-i18n="personalization.personality.professionalHint">严谨、精确、适合工作</small></button>
+                <button type="button" data-personality-choice="friendly" role="radio" aria-checked="false"><strong data-i18n="personalization.personality.friendly">友好</strong><small data-i18n="personalization.personality.friendlyHint">温暖、自然、善于陪你梳理</small></button>
+                <button type="button" data-personality-choice="candid" role="radio" aria-checked="false"><strong data-i18n="personalization.personality.candid">坦率</strong><small data-i18n="personalization.personality.candidHint">直说重点，也给建设性建议</small></button>
+                <button type="button" data-personality-choice="quirky" role="radio" aria-checked="false"><strong data-i18n="personalization.personality.quirky">灵动</strong><small data-i18n="personalization.personality.quirkyHint">有想象力，偶尔出其不意</small></button>
+                <button type="button" data-personality-choice="efficient" role="radio" aria-checked="false"><strong data-i18n="personalization.personality.efficient">高效</strong><small data-i18n="personalization.personality.efficientHint">先给答案，少说废话</small></button>
+                <button type="button" data-personality-choice="cynical" role="radio" aria-checked="false"><strong data-i18n="personalization.personality.cynical">冷幽默</strong><small data-i18n="personalization.personality.cynicalHint">略带吐槽，但始终有用</small></button>
+              </div>
+            </section>
+
+            <section class="personalizationSection personalizationCharacteristics" aria-labelledby="personalizationCharacteristicsTitle">
+              <header>
+                <div>
+                  <strong id="personalizationCharacteristicsTitle" data-i18n="personalization.characteristicsTitle">回应特征</strong>
+                  <small data-i18n="personalization.characteristicsHint">向左减少，向右增加；中间保持默认。</small>
+                </div>
+              </header>
+              <label class="personalizationCharacteristic" for="personalizationWarmth">
+                <span><strong data-i18n="personalization.warmth">温暖</strong><small data-i18n="personalization.warmthHint">真诚、友善和情绪温度</small></span>
+                <span class="personalizationRange"><span data-i18n="personalization.less">少</span><input id="personalizationWarmth" type="range" min="-2" max="2" step="1" value="0" data-personalization-characteristic="warmth" /><span data-i18n="personalization.more">多</span><output for="personalizationWarmth">默认</output></span>
+              </label>
+              <label class="personalizationCharacteristic" for="personalizationEnthusiasm">
+                <span><strong data-i18n="personalization.enthusiasm">热情</strong><small data-i18n="personalization.enthusiasmHint">兴奋感、好奇心和主动兴趣</small></span>
+                <span class="personalizationRange"><span data-i18n="personalization.less">少</span><input id="personalizationEnthusiasm" type="range" min="-2" max="2" step="1" value="0" data-personalization-characteristic="enthusiasm" /><span data-i18n="personalization.more">多</span><output for="personalizationEnthusiasm">默认</output></span>
+              </label>
+              <label class="personalizationCharacteristic" for="personalizationFormatting">
+                <span><strong data-i18n="personalization.formatting">标题与列表</strong><small data-i18n="personalization.formattingHint">Markdown 结构和信息扫描性</small></span>
+                <span class="personalizationRange"><span data-i18n="personalization.less">少</span><input id="personalizationFormatting" type="range" min="-2" max="2" step="1" value="0" data-personalization-characteristic="formatting" /><span data-i18n="personalization.more">多</span><output for="personalizationFormatting">默认</output></span>
+              </label>
+              <label class="personalizationCharacteristic" for="personalizationEmoji">
+                <span><strong data-i18n="personalization.emoji">表情符号</strong><small data-i18n="personalization.emojiHint">只影响适合轻松表达的场景</small></span>
+                <span class="personalizationRange"><span data-i18n="personalization.less">少</span><input id="personalizationEmoji" type="range" min="-2" max="2" step="1" value="0" data-personalization-characteristic="emoji" /><span data-i18n="personalization.more">多</span><output for="personalizationEmoji">默认</output></span>
+              </label>
+            </section>
+
+            <section class="personalizationSection personalizationInstructions" aria-labelledby="personalizationInstructionsTitle">
+              <header>
+                <div>
+                  <label id="personalizationInstructionsTitle" for="personalizationInstructions" data-i18n="personalization.instructionsTitle">自定义指令</label>
+                  <small data-i18n="personalization.instructionsHint">告诉 Iris 希望她了解什么，以及平时怎样回应你。</small>
+                </div>
+                <label class="proactiveSwitch" for="personalizationInstructionsEnabled">
+                  <input id="personalizationInstructionsEnabled" type="checkbox" />
+                  <span aria-hidden="true"></span>
+                  <span class="srOnly" data-i18n="personalization.instructionsEnabled">启用自定义指令</span>
+                </label>
+              </header>
+              <textarea id="personalizationInstructions" rows="5" maxlength="5000" placeholder="例如：技术问题先给结论，再解释原因；默认使用中文。" data-i18n-placeholder="personalization.instructionsPlaceholder"></textarea>
+              <div class="personalizationInstructionMeta">
+                <small data-i18n="personalization.privacyHint">不会扩大工具权限，也不会出现在公开分享中。</small>
+                <output id="personalizationInstructionCount" for="personalizationInstructions">0 / 5000</output>
+              </div>
+            </section>
+
+            <p id="personalizationFeedback" class="personalizationFeedback" role="status" aria-live="polite"></p>
+            <div class="personalizationActions">
+              <button id="personalizationResetButton" type="button" data-action-role="secondary" data-i18n="personalization.reset">恢复默认</button>
+              <button id="personalizationSaveButton" type="button" data-action-role="primary" data-i18n="personalization.save">保存更改</button>
             </div>
           </div>
         </details>
