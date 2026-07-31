@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.webp?v=395" type="image/webp" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=395" />
-    <link rel="manifest" href="/iris/manifest.json?v=395" />
-    <link rel="preload" href="/iris/assets/brand/iris-companion-avatar.webp?v=395" as="image" type="image/webp" fetchpriority="high" />
-    <link rel="stylesheet" href="/iris/styles.css?v=395" />
-    <script defer src="/iris/public-config.js?v=395"></script>
-    <script defer fetchpriority="high" src="/iris/app.js?v=395"></script>
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.webp?v=396" type="image/webp" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=396" />
+    <link rel="manifest" href="/iris/manifest.json?v=396" />
+    <link rel="preload" href="/iris/assets/brand/iris-companion-avatar.webp?v=396" as="image" type="image/webp" fetchpriority="high" />
+    <link rel="stylesheet" href="/iris/styles.css?v=396" />
+    <script defer src="/iris/public-config.js?v=396"></script>
+    <script defer fetchpriority="high" src="/iris/app.js?v=396"></script>
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -399,7 +399,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.webp?v=395" alt="" width="512" height="512" decoding="async" fetchpriority="high" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.webp?v=396" alt="" width="512" height="512" decoding="async" fetchpriority="high" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -466,7 +466,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.webp?v=395" alt="" width="512" height="512" decoding="async" loading="lazy" />
+              <img src="/iris/assets/brand/iris-companion-avatar.webp?v=396" alt="" width="512" height="512" decoding="async" loading="lazy" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
@@ -858,6 +858,33 @@
               </div>
               <div id="proactiveInbox" class="proactiveInbox" aria-live="polite"></div>
             </section>
+          </div>
+        </details>
+
+        <details class="settingsGroup navGroup scheduledGroup">
+          <summary class="navSummary">
+            <span class="navIcon scheduledIcon" aria-hidden="true"></span>
+            <span class="navCopy">
+              <span class="navTitle" data-i18n="settings.scheduled">定时任务</span>
+              <span id="scheduledTaskStatus" class="navSub" role="status" aria-live="polite" data-tone="info" data-i18n="scheduled.loading">读取任务中</span>
+            </span>
+          </summary>
+          <div class="groupBody scheduledTaskPanel">
+            <header class="scheduledTaskHeader">
+              <div>
+                <span class="scheduledTaskKicker" data-i18n="scheduled.kicker">SCHEDULED</span>
+                <strong data-i18n="scheduled.title">定时任务</strong>
+              </div>
+              <div class="scheduledTaskHeaderActions">
+                <button id="scheduledTaskRefreshButton" type="button" data-i18n="action.refresh">刷新</button>
+                <button id="scheduledTaskCreateButton" type="button" data-i18n="scheduled.create">新建</button>
+              </div>
+            </header>
+            <p class="scheduledTaskHint" data-i18n="scheduled.hint">支持单次、每天、工作日和每周提醒；任务到点后会进入通知中心。</p>
+            <div id="scheduledTaskList" class="scheduledTaskList" aria-live="polite">
+              <p class="scheduledTaskEmpty" data-i18n="scheduled.loading">读取任务中</p>
+            </div>
+            <p id="scheduledTaskFeedback" class="scheduledTaskFeedback" role="status" aria-live="polite"></p>
           </div>
         </details>
 
