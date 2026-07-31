@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.webp?v=398" type="image/webp" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=398" />
-    <link rel="manifest" href="/iris/manifest.json?v=398" />
-    <link rel="preload" href="/iris/assets/brand/iris-companion-avatar.webp?v=398" as="image" type="image/webp" fetchpriority="high" />
-    <link rel="stylesheet" href="/iris/styles.css?v=398" />
-    <script defer src="/iris/public-config.js?v=398"></script>
-    <script defer fetchpriority="high" src="/iris/app.js?v=398"></script>
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.webp?v=399" type="image/webp" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=399" />
+    <link rel="manifest" href="/iris/manifest.json?v=399" />
+    <link rel="preload" href="/iris/assets/brand/iris-companion-avatar.webp?v=399" as="image" type="image/webp" fetchpriority="high" />
+    <link rel="stylesheet" href="/iris/styles.css?v=399" />
+    <script defer src="/iris/public-config.js?v=399"></script>
+    <script defer fetchpriority="high" src="/iris/app.js?v=399"></script>
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -399,7 +399,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.webp?v=398" alt="" width="512" height="512" decoding="async" fetchpriority="high" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.webp?v=399" alt="" width="512" height="512" decoding="async" fetchpriority="high" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -466,7 +466,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.webp?v=398" alt="" width="512" height="512" decoding="async" loading="lazy" />
+              <img src="/iris/assets/brand/iris-companion-avatar.webp?v=399" alt="" width="512" height="512" decoding="async" loading="lazy" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
@@ -850,6 +850,18 @@
                 <label for="proactiveDailyNewsTopicHealth"><input id="proactiveDailyNewsTopicHealth" type="checkbox" value="health" data-daily-news-topic aria-label="健康" data-i18n-aria-label="proactive.newsTopicHealth" /><span data-i18n="proactive.newsTopicHealth">健康</span></label>
                 <label for="proactiveDailyNewsTopicSports"><input id="proactiveDailyNewsTopicSports" type="checkbox" value="sports" data-daily-news-topic aria-label="体育" data-i18n-aria-label="proactive.newsTopicSports" /><span data-i18n="proactive.newsTopicSports">体育</span></label>
               </fieldset>
+              <div class="proactiveDailyNewsPreviewActions">
+                <button id="proactiveDailyNewsPreviewButton" type="button" aria-controls="proactiveDailyNewsPreview" aria-describedby="proactiveDailyNewsPreviewHint" data-i18n="proactive.newsPreview">预览今日简报</button>
+                <span id="proactiveDailyNewsPreviewHint" data-i18n="proactive.newsPreviewHint">立即查看，不会占用今天的正式推送次数。</span>
+              </div>
+              <section id="proactiveDailyNewsPreview" class="proactiveDailyNewsPreview" data-state="idle" aria-labelledby="proactiveDailyNewsPreviewTitle" aria-live="polite" hidden>
+                <header>
+                  <strong id="proactiveDailyNewsPreviewTitle" data-i18n="proactive.newsPreviewLoading">正在汇集可信来源…</strong>
+                  <span id="proactiveDailyNewsPreviewMeta"></span>
+                </header>
+                <ol id="proactiveDailyNewsPreviewList"></ol>
+                <p id="proactiveDailyNewsPreviewNotice"></p>
+              </section>
               <p id="proactiveDailyNewsStatus" class="proactiveDailyNewsStatus" role="status" aria-live="polite"></p>
             </section>
 
