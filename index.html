@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=393" type="image/png" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=393" />
-    <link rel="manifest" href="/iris/manifest.json?v=393" />
-    <link rel="stylesheet" href="/iris/styles.css?v=393" />
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.webp?v=395" type="image/webp" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=395" />
+    <link rel="manifest" href="/iris/manifest.json?v=395" />
+    <link rel="preload" href="/iris/assets/brand/iris-companion-avatar.webp?v=395" as="image" type="image/webp" fetchpriority="high" />
+    <link rel="stylesheet" href="/iris/styles.css?v=395" />
+    <script defer src="/iris/public-config.js?v=395"></script>
+    <script defer fetchpriority="high" src="/iris/app.js?v=395"></script>
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -396,7 +399,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.jpg?v=393" alt="" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.webp?v=395" alt="" width="512" height="512" decoding="async" fetchpriority="high" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -463,7 +466,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.jpg?v=393" alt="" />
+              <img src="/iris/assets/brand/iris-companion-avatar.webp?v=395" alt="" width="512" height="512" decoding="async" loading="lazy" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
@@ -730,6 +733,38 @@
               </label>
             </section>
 
+            <section id="proactiveDailyNews" class="proactiveDailyNews" data-enabled="false" aria-labelledby="proactiveDailyNewsTitle">
+              <header>
+                <div>
+                  <span class="proactiveDailyNewsKicker" data-i18n="proactive.newsKicker">DAILY BRIEFING</span>
+                  <strong id="proactiveDailyNewsTitle" data-i18n="proactive.newsTitle">每日新闻</strong>
+                </div>
+                <label class="proactiveSwitch" for="proactiveDailyNewsEnabled">
+                  <input id="proactiveDailyNewsEnabled" type="checkbox" />
+                  <span aria-hidden="true"></span>
+                  <span class="srOnly" data-i18n="proactive.newsEnabled">开启每日新闻</span>
+                </label>
+              </header>
+              <p id="proactiveDailyNewsHint" data-i18n="proactive.newsOffHint">开启后，Iris 会在你选择的时间整理当天新鲜且可溯源的新闻。</p>
+              <div class="proactiveDailyNewsSchedule">
+                <label for="proactiveDailyNewsTime">
+                  <span data-i18n="proactive.newsTime">推送时间</span>
+                  <input id="proactiveDailyNewsTime" type="time" value="08:30" aria-label="每日新闻推送时间" data-i18n-aria-label="proactive.newsTimeAria" />
+                </label>
+                <span id="proactiveDailyNewsTimezone" class="proactiveDailyNewsTimezone">Asia/Shanghai</span>
+              </div>
+              <fieldset class="proactiveDailyNewsTopics">
+                <legend data-i18n="proactive.newsTopics">关注主题（最多 4 个）</legend>
+                <label for="proactiveDailyNewsTopicTop"><input id="proactiveDailyNewsTopicTop" type="checkbox" value="top" data-daily-news-topic checked aria-label="要闻" data-i18n-aria-label="proactive.newsTopicTop" /><span data-i18n="proactive.newsTopicTop">要闻</span></label>
+                <label for="proactiveDailyNewsTopicTechnology"><input id="proactiveDailyNewsTopicTechnology" type="checkbox" value="technology" data-daily-news-topic checked aria-label="科技" data-i18n-aria-label="proactive.newsTopicTechnology" /><span data-i18n="proactive.newsTopicTechnology">科技</span></label>
+                <label for="proactiveDailyNewsTopicBusiness"><input id="proactiveDailyNewsTopicBusiness" type="checkbox" value="business" data-daily-news-topic checked aria-label="商业" data-i18n-aria-label="proactive.newsTopicBusiness" /><span data-i18n="proactive.newsTopicBusiness">商业</span></label>
+                <label for="proactiveDailyNewsTopicScience"><input id="proactiveDailyNewsTopicScience" type="checkbox" value="science" data-daily-news-topic aria-label="科学" data-i18n-aria-label="proactive.newsTopicScience" /><span data-i18n="proactive.newsTopicScience">科学</span></label>
+                <label for="proactiveDailyNewsTopicHealth"><input id="proactiveDailyNewsTopicHealth" type="checkbox" value="health" data-daily-news-topic aria-label="健康" data-i18n-aria-label="proactive.newsTopicHealth" /><span data-i18n="proactive.newsTopicHealth">健康</span></label>
+                <label for="proactiveDailyNewsTopicSports"><input id="proactiveDailyNewsTopicSports" type="checkbox" value="sports" data-daily-news-topic aria-label="体育" data-i18n-aria-label="proactive.newsTopicSports" /><span data-i18n="proactive.newsTopicSports">体育</span></label>
+              </fieldset>
+              <p id="proactiveDailyNewsStatus" class="proactiveDailyNewsStatus" role="status" aria-live="polite"></p>
+            </section>
+
             <div class="proactivePreferenceGrid">
               <label class="proactiveField" for="proactiveDailyLimit">
                 <span data-i18n="proactive.dailyLimit">每天最多</span>
@@ -957,7 +992,5 @@
         </div>
       </aside>
     </main>
-    <script src="/iris/public-config.js?v=393"></script>
-    <script src="/iris/app.js?v=393"></script>
   </body>
 </html>
