@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.webp?v=402" type="image/webp" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=402" />
-    <link rel="manifest" href="/iris/manifest.json?v=402" />
-    <link rel="preload" href="/iris/assets/brand/iris-companion-avatar.webp?v=402" as="image" type="image/webp" fetchpriority="high" />
-    <link rel="stylesheet" href="/iris/styles.css?v=402" />
-    <script defer src="/iris/public-config.js?v=402"></script>
-    <script defer fetchpriority="high" src="/iris/app.js?v=402"></script>
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.webp?v=403" type="image/webp" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=403" />
+    <link rel="manifest" href="/iris/manifest.json?v=403" />
+    <link rel="preload" href="/iris/assets/brand/iris-companion-avatar.webp?v=403" as="image" type="image/webp" fetchpriority="high" />
+    <link rel="stylesheet" href="/iris/styles.css?v=403" />
+    <script defer src="/iris/public-config.js?v=403"></script>
+    <script defer fetchpriority="high" src="/iris/app.js?v=403"></script>
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -144,6 +144,10 @@
               <span class="capabilityIcon capabilityCanvasIcon" aria-hidden="true"></span>
               <span data-i18n="canvas.capability">创作画布</span>
             </button>
+            <button id="recordingCapabilityButton" type="button" data-capability-action="recording">
+              <span class="capabilityIcon capabilityRecordingIcon" aria-hidden="true"></span>
+              <span data-i18n="recording.capability">会议记录</span>
+            </button>
           </div>
           <section id="thinkingModePicker" class="thinkingModePicker" aria-label="思考模式" hidden>
             <div class="thinkingModePickerHeading">
@@ -219,6 +223,63 @@
             </ul>
           </div>
           <button id="capabilityCustomButton" class="capabilityCustomButton" type="button">+&nbsp;&nbsp;自定义能力</button>
+        </section>
+
+        <section id="recordingPanel" class="recordingPanel" role="dialog" aria-modal="true" aria-labelledby="recordingTitle" aria-describedby="recordingConsent recordingPrivacy" aria-hidden="true" hidden>
+          <div class="recordingSheet" data-state="ready">
+            <header class="recordingHeader">
+              <div class="recordingBrand">
+                <span class="recordingBrandMark" aria-hidden="true"></span>
+                <div>
+                  <span data-i18n="recording.kicker">IRIS RECORD</span>
+                  <strong data-i18n="recording.brand">记录与整理</strong>
+                </div>
+              </div>
+              <button id="recordingCloseButton" class="recordingCloseButton" type="button" aria-label="关闭记录面板" title="关闭记录面板" data-i18n-aria-label="recording.close" data-i18n-title="recording.close">×</button>
+            </header>
+
+            <div class="recordingBody">
+              <div class="recordingStatusLine">
+                <span id="recordingStatusDot" class="recordingStatusDot" aria-hidden="true"></span>
+                <span id="recordingStatus" role="status" aria-live="polite" data-i18n="recording.ready">准备记录</span>
+                <time id="recordingTimer" datetime="PT0S">00:00</time>
+              </div>
+              <h2 id="recordingTitle" data-i18n="recording.title">把讨论变成可继续工作的笔记</h2>
+              <p id="recordingConsent" class="recordingConsent" data-i18n="recording.consent">开始前，请确认所有参与者已同意录音与转写，并遵守当地法律。</p>
+              <p id="recordingPrivacy" class="recordingPrivacy" data-i18n="recording.privacy">音频仅供浏览器或 Iris 实时转写，Iris 不会保存；完成后只把文字写入你的私人 Canvas。</p>
+
+              <section class="recordingTranscriptCard" aria-labelledby="recordingTranscriptTitle">
+                <div class="recordingTranscriptHeading">
+                  <strong id="recordingTranscriptTitle" data-i18n="recording.transcript">实时转写</strong>
+                  <span id="recordingTranscriptCount">0 段</span>
+                </div>
+                <div id="recordingTranscript" class="recordingTranscript" role="log" aria-live="polite" aria-relevant="additions text">
+                  <p class="recordingTranscriptEmpty" data-i18n="recording.empty">开始后，听清的内容会逐段出现在这里。</p>
+                </div>
+                <p id="recordingLiveText" class="recordingLiveText" aria-live="polite"></p>
+              </section>
+
+              <p id="recordingFeedback" class="recordingFeedback" role="status" aria-live="polite"></p>
+
+              <section id="recordingDiscardConfirm" class="recordingDiscardConfirm" aria-label="删除未完成记录" hidden>
+                <div>
+                  <strong data-i18n="recording.discardTitle">删除这次记录？</strong>
+                  <span data-i18n="recording.discardHint">未生成笔记的转写会从当前浏览器会话移除。</span>
+                </div>
+                <div>
+                  <button id="recordingDiscardCancelButton" type="button" data-i18n="recording.keep">保留</button>
+                  <button id="recordingDiscardConfirmButton" type="button" data-i18n="recording.discardConfirm">删除记录</button>
+                </div>
+              </section>
+            </div>
+
+            <footer class="recordingActions">
+              <button id="recordingDeleteButton" class="recordingDeleteButton" type="button" hidden data-i18n="recording.delete">删除</button>
+              <button id="recordingPauseButton" class="recordingPauseButton" type="button" hidden data-i18n="recording.pause">暂停</button>
+              <button id="recordingFinishButton" class="recordingFinishButton" type="button" hidden disabled data-i18n="recording.finish">生成笔记</button>
+              <button id="recordingStartButton" class="recordingStartButton" type="button" data-i18n="recording.start">确认同意并开始</button>
+            </footer>
+          </div>
         </section>
 
         <section class="controls dock unifiedComposer" aria-label="message composer">
@@ -446,7 +507,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.webp?v=402" alt="" width="512" height="512" decoding="async" fetchpriority="high" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.webp?v=403" alt="" width="512" height="512" decoding="async" fetchpriority="high" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -513,7 +574,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.webp?v=402" alt="" width="512" height="512" decoding="async" loading="lazy" />
+              <img src="/iris/assets/brand/iris-companion-avatar.webp?v=403" alt="" width="512" height="512" decoding="async" loading="lazy" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
