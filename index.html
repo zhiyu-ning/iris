@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.webp?v=400" type="image/webp" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=400" />
-    <link rel="manifest" href="/iris/manifest.json?v=400" />
-    <link rel="preload" href="/iris/assets/brand/iris-companion-avatar.webp?v=400" as="image" type="image/webp" fetchpriority="high" />
-    <link rel="stylesheet" href="/iris/styles.css?v=400" />
-    <script defer src="/iris/public-config.js?v=400"></script>
-    <script defer fetchpriority="high" src="/iris/app.js?v=400"></script>
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.webp?v=402" type="image/webp" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=402" />
+    <link rel="manifest" href="/iris/manifest.json?v=402" />
+    <link rel="preload" href="/iris/assets/brand/iris-companion-avatar.webp?v=402" as="image" type="image/webp" fetchpriority="high" />
+    <link rel="stylesheet" href="/iris/styles.css?v=402" />
+    <script defer src="/iris/public-config.js?v=402"></script>
+    <script defer fetchpriority="high" src="/iris/app.js?v=402"></script>
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -108,6 +108,10 @@
               </span>
               <span id="studyCapabilityLabel">学习模式</span>
             </button>
+            <button id="goalCapabilityButton" type="button" data-capability-action="goal" aria-pressed="false" aria-expanded="false" aria-controls="conversationGoalEditor">
+              <span class="capabilityIcon capabilityGoalIcon" aria-hidden="true"></span>
+              <span id="goalCapabilityLabel" data-i18n="goal.capability">目标模式</span>
+            </button>
             <button type="button" data-capability-prompt="帮我搜索：">
               <span class="capabilityIcon capabilitySearchIcon" aria-hidden="true"></span>
               <span>搜索</span>
@@ -168,6 +172,37 @@
               </button>
             </div>
           </section>
+          <section id="conversationGoalEditor" class="conversationGoalEditor" aria-label="设置对话目标" data-i18n-aria-label="goal.editorAria" aria-hidden="true" hidden>
+            <header class="conversationGoalEditorHeader">
+              <span class="conversationGoalEditorMark" aria-hidden="true"></span>
+              <div>
+                <strong data-i18n="goal.editorTitle">为这段对话设定目标</strong>
+                <span data-i18n="goal.editorHint">Iris 会围绕结果持续对齐，你仍可随时调整方向。</span>
+              </div>
+              <button id="conversationGoalEditorClose" class="conversationGoalEditorClose" type="button" aria-label="关闭目标编辑器" data-i18n-aria-label="goal.close">×</button>
+            </header>
+            <div class="conversationGoalEditorFields">
+              <label class="conversationGoalField conversationGoalObjectiveField">
+                <span data-i18n="goal.objectiveLabel">想实现什么？</span>
+                <textarea id="conversationGoalObjective" rows="2" maxlength="600" placeholder="例如：完成产品发布并通过全部验收" data-i18n-placeholder="goal.objectivePlaceholder"></textarea>
+              </label>
+              <label class="conversationGoalField">
+                <span data-i18n="goal.constraintsLabel">约束与偏好</span>
+                <textarea id="conversationGoalConstraints" rows="2" maxlength="1200" placeholder="可选，例如：不跳过测试，保持兼容" data-i18n-placeholder="goal.constraintsPlaceholder"></textarea>
+              </label>
+              <label class="conversationGoalField">
+                <span data-i18n="goal.doneWhenLabel">怎样算完成？</span>
+                <textarea id="conversationGoalDoneWhen" rows="2" maxlength="800" placeholder="可选，例如：线上可访问且完整 QA 通过" data-i18n-placeholder="goal.doneWhenPlaceholder"></textarea>
+              </label>
+            </div>
+            <p id="conversationGoalFeedback" class="conversationGoalFeedback" role="status" aria-live="polite" data-tone="info"></p>
+            <footer class="conversationGoalEditorActions">
+              <button id="conversationGoalClearEditor" class="conversationGoalClearEditor" type="button" data-i18n="goal.clear">清除目标</button>
+              <span class="conversationGoalEditorActionSpacer"></span>
+              <button id="conversationGoalCancel" class="conversationGoalCancel" type="button" data-i18n="goal.cancel">取消</button>
+              <button id="conversationGoalSave" class="conversationGoalSave" type="button" data-i18n="goal.save">保存目标</button>
+            </footer>
+          </section>
           <div class="capabilitySuggestion">
             <div>
               <span class="capabilitySuggestionMark" aria-hidden="true"></span>
@@ -189,6 +224,18 @@
         <section class="controls dock unifiedComposer" aria-label="message composer">
           <p id="voiceInputStatus" class="voiceInputStatus" aria-live="polite" data-i18n="voice.inputting">正在语音输入</p>
           <input id="documentPdfInput" class="fileInput" type="file" multiple accept="application/pdf,image/png,image/jpeg,image/webp,image/tiff,image/heic,image/heif,text/plain,text/markdown,text/csv,text/tab-separated-values,application/json,text/html,application/xml,application/rtf,message/rfc822,application/msword,application/vnd.ms-excel,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-word.document.macroenabled.12,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroenabled.12,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-powerpoint.presentation.macroenabled.12,application/vnd.oasis.opendocument.text,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.presentation,.pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,.heic,.heif,.txt,.log,.md,.markdown,.csv,.tsv,.json,.html,.htm,.xml,.rtf,.doc,.xls,.ppt,.docx,.docm,.xlsx,.xlsm,.pptx,.pptm,.odt,.ods,.odp,.eml" />
+          <section id="conversationGoalBar" class="conversationGoalBar" aria-label="当前对话目标" aria-live="polite" hidden>
+            <span class="conversationGoalBarMark" aria-hidden="true"></span>
+            <div class="conversationGoalBarCopy">
+              <span id="conversationGoalBarStatus">目标进行中</span>
+              <strong id="conversationGoalBarObjective"></strong>
+            </div>
+            <div class="conversationGoalBarActions">
+              <button id="conversationGoalPause" type="button" data-goal-action="pause" aria-label="暂停目标" title="暂停目标"><span aria-hidden="true">Ⅱ</span></button>
+              <button id="conversationGoalEdit" type="button" data-goal-action="edit" aria-label="编辑目标" title="编辑目标"><span aria-hidden="true">✎</span></button>
+              <button id="conversationGoalClear" type="button" data-goal-action="clear" aria-label="清除目标" title="清除目标"><span aria-hidden="true">×</span></button>
+            </div>
+          </section>
           <div id="conversationModeRail" class="conversationModeRail" hidden>
             <button id="thinkingModeStatus" class="thinkingModeStatus" type="button" data-mode="auto" hidden aria-label="当前为自动思考模式">
               <span class="thinkingModeStatusOrb" aria-hidden="true"></span>
@@ -399,7 +446,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.webp?v=400" alt="" width="512" height="512" decoding="async" fetchpriority="high" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.webp?v=402" alt="" width="512" height="512" decoding="async" fetchpriority="high" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -466,7 +513,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.webp?v=400" alt="" width="512" height="512" decoding="async" loading="lazy" />
+              <img src="/iris/assets/brand/iris-companion-avatar.webp?v=402" alt="" width="512" height="512" decoding="async" loading="lazy" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
@@ -857,6 +904,14 @@
                 <label for="proactiveDailyNewsTopicHealth"><input id="proactiveDailyNewsTopicHealth" type="checkbox" value="health" data-daily-news-topic aria-label="健康" data-i18n-aria-label="proactive.newsTopicHealth" /><span data-i18n="proactive.newsTopicHealth">健康</span></label>
                 <label for="proactiveDailyNewsTopicSports"><input id="proactiveDailyNewsTopicSports" type="checkbox" value="sports" data-daily-news-topic aria-label="体育" data-i18n-aria-label="proactive.newsTopicSports" /><span data-i18n="proactive.newsTopicSports">体育</span></label>
               </fieldset>
+              <div id="proactiveDailyNewsDelivery" class="proactiveDailyNewsDelivery" data-state="off" hidden>
+                <span class="proactiveDailyNewsDeliveryDot" aria-hidden="true"></span>
+                <span class="proactiveDailyNewsDeliveryCopy" aria-live="polite">
+                  <strong id="proactiveDailyNewsDeliveryTitle" data-i18n="proactive.newsDeliveryInAppTitle">站内早报已开启</strong>
+                  <small id="proactiveDailyNewsDeliveryDetail" data-i18n="proactive.newsDeliveryInAppDetail">开启后台推送，关闭网页后也能收到。</small>
+                </span>
+                <button id="proactiveDailyNewsDeliveryAction" type="button" hidden data-i18n="proactive.newsDeliveryEnable">开启后台推送</button>
+              </div>
               <div class="proactiveDailyNewsPreviewActions">
                 <button id="proactiveDailyNewsPreviewButton" type="button" aria-controls="proactiveDailyNewsPreview" aria-describedby="proactiveDailyNewsPreviewHint" data-i18n="proactive.newsPreview">预览今日简报</button>
                 <span id="proactiveDailyNewsPreviewHint" data-i18n="proactive.newsPreviewHint">立即查看，不会占用今天的正式推送次数。</span>

@@ -1,14 +1,14 @@
-const VERSION = "400";
-const CACHE = "iris-pages-v400-push-delivery-health";
+const VERSION = "402";
+const CACHE = "iris-pages-v402-daily-news-delivery-loop";
 const ASSETS = [
-  "/iris/styles.css?v=400",
-  "/iris/public-config.js?v=400",
-  "/iris/app.js?v=400",
-  "/iris/manifest.json?v=400",
-  "/iris/assets/brand/iris-companion-avatar.webp?v=400",
-  "/iris/assets/brand/iris-app-icon-dark-192.webp?v=400",
-  "/iris/assets/brand/iris-app-icon-light-192.webp?v=400",
-  "/iris/assets/brand/iris-symbol-light-192.webp?v=400"
+  "/iris/styles.css?v=402",
+  "/iris/public-config.js?v=402",
+  "/iris/app.js?v=402",
+  "/iris/manifest.json?v=402",
+  "/iris/assets/brand/iris-companion-avatar.webp?v=402",
+  "/iris/assets/brand/iris-app-icon-dark-192.webp?v=402",
+  "/iris/assets/brand/iris-app-icon-light-192.webp?v=402",
+  "/iris/assets/brand/iris-symbol-light-192.webp?v=402"
 ];
 
 function isCurrentVersionedStatic(url) {
@@ -67,7 +67,7 @@ self.addEventListener("push", (event) => {
     target.searchParams.set("proactive_notification_id", notificationId);
   }
   const icon = new URL(
-    "/iris/assets/brand/iris-app-icon-dark-192.png?v=400",
+    "/iris/assets/brand/iris-app-icon-dark-192.png?v=402",
     self.location.origin
   ).href;
   event.waitUntil(
