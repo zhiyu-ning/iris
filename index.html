@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#f7f9fc" />
     <title>Iris Voice</title>
-    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.webp?v=399" type="image/webp" />
-    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=399" />
-    <link rel="manifest" href="/iris/manifest.json?v=399" />
-    <link rel="preload" href="/iris/assets/brand/iris-companion-avatar.webp?v=399" as="image" type="image/webp" fetchpriority="high" />
-    <link rel="stylesheet" href="/iris/styles.css?v=399" />
-    <script defer src="/iris/public-config.js?v=399"></script>
-    <script defer fetchpriority="high" src="/iris/app.js?v=399"></script>
+    <link rel="icon" href="/iris/assets/brand/iris-app-icon-dark-192.webp?v=400" type="image/webp" />
+    <link rel="apple-touch-icon" href="/iris/assets/brand/iris-app-icon-dark-192.png?v=400" />
+    <link rel="manifest" href="/iris/manifest.json?v=400" />
+    <link rel="preload" href="/iris/assets/brand/iris-companion-avatar.webp?v=400" as="image" type="image/webp" fetchpriority="high" />
+    <link rel="stylesheet" href="/iris/styles.css?v=400" />
+    <script defer src="/iris/public-config.js?v=400"></script>
+    <script defer fetchpriority="high" src="/iris/app.js?v=400"></script>
   </head>
   <body data-voice-state="idle" data-visual-state="idle" data-theme="minimal-white">
     <main class="terminal">
@@ -399,7 +399,7 @@
         <div class="accessPanel">
           <div class="accessBrandStack" aria-hidden="true">
             <div class="accessPortrait">
-              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.webp?v=399" alt="" width="512" height="512" decoding="async" fetchpriority="high" />
+              <img class="accessMark" src="/iris/assets/brand/iris-companion-avatar.webp?v=400" alt="" width="512" height="512" decoding="async" fetchpriority="high" />
               <span class="accessMarkGlow"></span>
               <span class="accessPortraitOrbit"></span>
               <span class="accessPortraitBadge"></span>
@@ -466,7 +466,7 @@
               </li>
             </ol>
             <div class="accessConnectingPortrait">
-              <img src="/iris/assets/brand/iris-companion-avatar.webp?v=399" alt="" width="512" height="512" decoding="async" loading="lazy" />
+              <img src="/iris/assets/brand/iris-companion-avatar.webp?v=400" alt="" width="512" height="512" decoding="async" loading="lazy" />
             </div>
             <strong class="accessConnectingWait" data-i18n="access.connectingWait">请稍候…</strong>
             <span class="accessConnectingSoon" data-i18n="access.connectingSoon">马上就好</span>
@@ -805,6 +805,13 @@
                 <span id="proactivePushBadge" class="proactivePushBadge" data-tone="loading" data-i18n="proactive.pushChecking">检查中</span>
               </header>
               <p id="proactivePushHint" data-i18n="proactive.pushLoadingHint">开启后，即使没有打开网页，Iris 也能在合适的时候找到你。</p>
+              <div id="proactivePushHealth" class="proactivePushHealth" data-state="checking" hidden>
+                <span class="proactivePushHealthDot" aria-hidden="true"></span>
+                <span>
+                  <strong id="proactivePushHealthTitle" data-i18n="proactive.pushHealthChecking">正在确认送达通道</strong>
+                  <small id="proactivePushHealthDetail" data-i18n="proactive.pushHealthWaiting">等待后台首次检查。</small>
+                </span>
+              </div>
               <div class="proactivePushActions">
                 <button id="proactivePushAction" type="button" data-i18n="proactive.pushEnable">开启后台通知</button>
                 <button id="proactivePushTest" type="button" hidden data-i18n="proactive.pushTest">发送测试通知</button>
